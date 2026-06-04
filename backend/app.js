@@ -10,6 +10,8 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Will restrict later for now it is fine as it is in development
+
 // Basic health route to confirm the backend is running.
 app.get("/", (_req, res) => {
   res.json({ message: "GH Social backend is running" });

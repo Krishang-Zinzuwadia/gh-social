@@ -4,6 +4,5 @@ CREATE TABLE activity (
     repo_id UUID NOT NULL,
     time_spent TIMESTAMP,
     likelihood_count INT DEFAULT 0,
-    swipes VARCHAR(10),
     is_saved BOOL DEFAULT FALSE
 );

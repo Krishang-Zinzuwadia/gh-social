@@ -5,7 +5,6 @@ export const getProfile = async (req, res) => {
         const data = await userService.getUserProfile(req.params.username);
         res.json({ status: "success", data });
     } catch (err) {
-        // Checking for our attached status codes instead of strings!
         if (err.statusCode) return res.status(err.statusCode).json({ message: err.message });
         
         console.error("Error fetching user profile:", err);
@@ -15,11 +14,14 @@ export const getProfile = async (req, res) => {
 
 export const followUser = async (req, res) => {
     const { username } = req.params;
-    
-    // SECURE FIX: Grabbing ID from the verified token, NOT the user's input!
-    const follower_id = req.user.id; 
 
     try {
+        // SAFEGUARD: Ensure req.user exists before trying to read .id
+        if (!req.user || !req.user.id) {
+            return res.status(401).json({ error: "Unauthorized: Missing user context." });
+        }
+        const follower_id = req.user.id; 
+
         await userService.addFollower(username, follower_id);
         res.json({ status: "success", message: `Successfully followed ${username}` });
     } catch (err) {
@@ -32,11 +34,14 @@ export const followUser = async (req, res) => {
 
 export const unfollowUser = async (req, res) => {
     const { username } = req.params;
-    
-    // SECURE FIX: Grabbing ID from the verified token, NOT the user's input!
-    const follower_id = req.user.id;
 
     try {
+        // SAFEGUARD: Ensure req.user exists before trying to read .id
+        if (!req.user || !req.user.id) {
+            return res.status(401).json({ error: "Unauthorized: Missing user context." });
+        }
+        const follower_id = req.user.id;
+
         await userService.removeFollower(username, follower_id);
         res.json({ status: "success", message: `Successfully unfollowed ${username}` });
     } catch (err) {

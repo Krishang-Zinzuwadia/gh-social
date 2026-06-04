@@ -1,5 +1,5 @@
 CREATE TABLE comment (
-    comment_id UUID PRIMARY KEY,
+    comment_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL,
     repo_id UUID NOT NULL,
     parent_comment_id UUID,

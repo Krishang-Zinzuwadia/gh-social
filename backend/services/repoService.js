@@ -28,7 +28,10 @@ const createRepo = (repoData) => {
 const updateRepoById = (repoId, repoData) => {
   return supabase
     .from(repoTable)
-    .update(repoData)
+    .update({
+      ...repoData,
+      updated_at: new Date().toISOString(),
+    })
     .eq("repo_id", repoId)
     .select()
     .single();

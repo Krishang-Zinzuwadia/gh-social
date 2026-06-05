@@ -1,12 +1,24 @@
 const githubService = require("../services/githubService");
 const repoService = require("../services/repoService");
 const summaryService = require("../services/summaryService");
-const { sendControllerError, sendError, sendSuccess } = require("../utils/response");
+const {
+  sendControllerError,
+  sendError,
+  sendSuccess,
+  sendSupabaseError,
+} = require("../utils/response");
 
 const uuidRegex =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-const isNotFoundError = (error) => error && error.code === "PGRST116";
+const sendRepoDatabaseError = (res, error) => {
+  return sendSupabaseError(res, error, {
+    notFoundMessage: "Repository not found.",
+    conflictMessage: "Repository already exists.",
+    missingRequiredMessage: "Repository data is missing required fields.",
+    invalidReferenceMessage: "Repository data references an invalid record.",
+  });
+};
 
 const buildRepoPayload = async ({ github_repo_url: githubRepoUrl, owner_id: ownerId }) => {
   const parsedRepo = githubService.parseGitHubRepoUrl(githubRepoUrl);
@@ -38,7 +50,7 @@ const getAllRepos = async (_req, res) => {
   const { data, error } = await repoService.getAllRepos();
 
   if (error) {
-    return sendError(res, 500, error.message);
+    return sendRepoDatabaseError(res, error);
   }
 
   return sendSuccess(res, 200, data);
@@ -53,12 +65,8 @@ const getRepoById = async (req, res) => {
 
   const { data, error } = await repoService.getRepoById(repoId);
 
-  if (isNotFoundError(error)) {
-    return sendError(res, 404, "Repository not found.");
-  }
-
   if (error) {
-    return sendControllerError(res, error, 500);
+    return sendRepoDatabaseError(res, error);
   }
 
   return sendSuccess(res, 200, data);
@@ -76,7 +84,7 @@ const importRepo = async (req, res) => {
     const { data, error } = await repoService.createRepo(repoPayload);
 
     if (error) {
-      return sendError(res, 400, error.message);
+      return sendRepoDatabaseError(res, error);
     }
 
     return sendSuccess(res, 201, data);
@@ -89,6 +97,10 @@ const syncRepo = async (req, res) => {
   const { repoId } = req.params;
   const { github_repo_url: githubRepoUrl, owner_id: ownerId } = req.body;
 
+  if (!uuidRegex.test(repoId)) {
+    return sendError(res, 400, "repoId must be a valid UUID.");
+  }
+
   if (!githubRepoUrl || !ownerId) {
     return sendError(res, 400, "github_repo_url and owner_id are required.");
   }
@@ -98,7 +110,7 @@ const syncRepo = async (req, res) => {
     const { data, error } = await repoService.updateRepoById(repoId, repoPayload);
 
     if (error) {
-      return sendError(res, 400, error.message);
+      return sendRepoDatabaseError(res, error);
     }
 
     return sendSuccess(res, 200, data);

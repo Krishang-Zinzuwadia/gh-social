@@ -20,8 +20,38 @@ const sendControllerError = (res, err, fallbackStatusCode = 400) => {
   return sendError(res, statusCode, err.message);
 };
 
+// Translate common Supabase/Postgres errors into client-safe responses.
+const sendSupabaseError = (res, error, options = {}) => {
+  if (error.code === "PGRST116") {
+    return sendError(res, 404, options.notFoundMessage || "Resource not found.");
+  }
+
+  if (error.code === "23505") {
+    return sendError(res, 409, options.conflictMessage || "Resource already exists.");
+  }
+
+  if (error.code === "23502") {
+    return sendError(
+      res,
+      400,
+      options.missingRequiredMessage || "Request data is missing required fields."
+    );
+  }
+
+  if (error.code === "23503") {
+    return sendError(
+      res,
+      400,
+      options.invalidReferenceMessage || "Request data references an invalid record."
+    );
+  }
+
+  return sendControllerError(res, error, 500);
+};
+
 module.exports = {
   sendControllerError,
+  sendSupabaseError,
   sendSuccess,
   sendError,
 };

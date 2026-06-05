@@ -4,7 +4,7 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 CREATE TABLE Repo (
     repo_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 
-    github_repo_url VARCHAR(200) NOT NULL,
+    github_repo_url VARCHAR(200) NOT NULL UNIQUE,
 
     owner_id VARCHAR(100) NOT NULL,
 

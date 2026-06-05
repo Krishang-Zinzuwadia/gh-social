@@ -1,5 +1,5 @@
-<<<<<<< HEAD
 INSERT INTO Repo (
+    repo_id,
     github_repo_url,
     owner_id,
     repo_name,
@@ -16,8 +16,8 @@ INSERT INTO Repo (
     pr_count
 )
 VALUES
-
 (
+    '33333333-3333-3333-3333-333333333333',
     'https://github.com/alexdev/ai-task-manager',
     'github_1001',
     'ai-task-manager',
@@ -33,8 +33,8 @@ VALUES
     76,
     18
 ),
-
 (
+    '66666666-6666-6666-6666-666666666666',
     'https://github.com/sarahcodes/devconnect',
     'github_1002',
     'devconnect',
@@ -50,8 +50,8 @@ VALUES
     143,
     42
 ),
-
 (
+    '99999999-9999-9999-9999-999999999999',
     'https://github.com/rajtech/ml-visualizer',
     'github_1003',
     'ml-visualizer',
@@ -67,8 +67,8 @@ VALUES
     52,
     9
 ),
-
 (
+    'aaaaaaaa-1111-1111-1111-aaaaaaaaaaaa',
     'https://github.com/cloudsync/realtime-chat',
     'github_1004',
     'realtime-chat',
@@ -84,8 +84,8 @@ VALUES
     301,
     65
 ),
-
 (
+    'bbbbbbbb-1111-1111-1111-bbbbbbbbbbbb',
     'https://github.com/nexlabs/code-review-ai',
     'github_1005',
     'code-review-ai',
@@ -101,7 +101,7 @@ VALUES
     470,
     120
 );
-=======
+
 INSERT INTO activity (
     activity_id,
     user_id,
@@ -109,7 +109,8 @@ INSERT INTO activity (
     time_spent,
     likelihood_count,
     is_saved
-) VALUES
+)
+VALUES
 (
     '11111111-1111-1111-1111-111111111111',
     '22222222-2222-2222-2222-222222222222',
@@ -142,7 +143,8 @@ INSERT INTO comment (
     parent_comment_id,
     comment,
     created_at
-) VALUES
+)
+VALUES
 (
     'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
     '22222222-2222-2222-2222-222222222222',
@@ -159,4 +161,3 @@ INSERT INTO comment (
     'Agreed, the structure is clean.',
     '2026-06-04 11:05:00'
 );
->>>>>>> 3daf01610eb55b9aea663e2def16f128250d904b

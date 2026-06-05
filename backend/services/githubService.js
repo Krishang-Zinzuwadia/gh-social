@@ -1,9 +1,17 @@
 const githubGraphqlUrl = "https://api.github.com/graphql";
 const githubRestBaseUrl = "https://api.github.com";
 
+class ServerConfigError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = "ServerConfigError";
+    this.statusCode = 500;
+  }
+}
+
 const buildGitHubHeaders = () => {
   if (!process.env.GITHUB_TOKEN) {
-    throw new Error("Missing GITHUB_TOKEN in environment.");
+    throw new ServerConfigError("Missing GITHUB_TOKEN in environment.");
   }
 
   return {
@@ -16,6 +24,11 @@ const buildGitHubHeaders = () => {
 const parseGitHubRepoUrl = (repoUrl) => {
   try {
     const url = new URL(repoUrl);
+
+    if (url.hostname !== "github.com") {
+      return null;
+    }
+
     const [owner, repo] = url.pathname.replace(/^\/|\/$/g, "").split("/");
 
     if (!owner || !repo) {
@@ -61,7 +74,7 @@ const repoMetadataQuery = `
           }
         }
       }
-      pullRequests(states: OPEN) {
+      pullRequests {
         totalCount
       }
       defaultBranchRef {

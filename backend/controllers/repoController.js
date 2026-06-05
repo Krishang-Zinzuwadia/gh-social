@@ -1,7 +1,7 @@
 const githubService = require("../services/githubService");
 const repoService = require("../services/repoService");
 const summaryService = require("../services/summaryService");
-const { sendError, sendSuccess } = require("../utils/response");
+const { sendControllerError, sendError, sendSuccess } = require("../utils/response");
 
 const buildRepoPayload = async ({ github_repo_url: githubRepoUrl, owner_id: ownerId }) => {
   const parsedRepo = githubService.parseGitHubRepoUrl(githubRepoUrl);
@@ -67,7 +67,7 @@ const importRepo = async (req, res) => {
 
     return sendSuccess(res, 201, data);
   } catch (err) {
-    return sendError(res, 400, err.message);
+    return sendControllerError(res, err);
   }
 };
 
@@ -89,7 +89,7 @@ const syncRepo = async (req, res) => {
 
     return sendSuccess(res, 200, data);
   } catch (err) {
-    return sendError(res, 400, err.message);
+    return sendControllerError(res, err);
   }
 };
 

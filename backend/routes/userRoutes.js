@@ -1,15 +1,15 @@
-import express from 'express';
-import { getProfile, followUser, unfollowUser } from '../controllers/userController.js';
+const express = require("express");
+const userController = require("../controllers/userController");
 
 const router = express.Router();
 
 // GET /api/users/:username - Fetch a user's public profile
-router.get('/:username', getProfile);
+router.get("/:username", userController.getUserProfile);
 
 // POST /api/users/:username/follow - Follow a user
-router.post('/:username/follow', followUser);
+router.post("/:username/follow", userController.followUser);
 
-// DELETE /api/users/:username/follow - Unfollow a user
-router.delete('/:username/follow', unfollowUser);
+// Unfollow a user
+router.delete("/:username/follow", userController.unfollowUser);
 
-export default router;
+module.exports = router;

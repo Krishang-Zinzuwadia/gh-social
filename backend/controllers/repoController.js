@@ -3,6 +3,11 @@ const repoService = require("../services/repoService");
 const summaryService = require("../services/summaryService");
 const { sendControllerError, sendError, sendSuccess } = require("../utils/response");
 
+const uuidRegex =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+const isNotFoundError = (error) => error && error.code === "PGRST116";
+
 const buildRepoPayload = async ({ github_repo_url: githubRepoUrl, owner_id: ownerId }) => {
   const parsedRepo = githubService.parseGitHubRepoUrl(githubRepoUrl);
 
@@ -41,10 +46,19 @@ const getAllRepos = async (_req, res) => {
 
 const getRepoById = async (req, res) => {
   const { repoId } = req.params;
+
+  if (!uuidRegex.test(repoId)) {
+    return sendError(res, 400, "repoId must be a valid UUID.");
+  }
+
   const { data, error } = await repoService.getRepoById(repoId);
 
+  if (isNotFoundError(error)) {
+    return sendError(res, 404, "Repository not found.");
+  }
+
   if (error) {
-    return sendError(res, 404, error.message);
+    return sendControllerError(res, error, 500);
   }
 
   return sendSuccess(res, 200, data);

@@ -2,11 +2,12 @@ const supabase = require("../config/supabase");
 
 const repoTable = "repo";
 
-const getAllRepos = () => {
+const getAllRepos = ({ limit, offset }) => {
   return supabase
     .from(repoTable)
     .select("*")
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    .range(offset, offset + limit - 1);
 };
 
 const getRepoById = (repoId) => {

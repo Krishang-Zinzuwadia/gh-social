@@ -11,6 +11,27 @@ const {
 const uuidRegex =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+const defaultRepoLimit = 10;
+
+const parsePaginationParams = ({ limit, offset }) => {
+  const parsedLimit = limit === undefined ? defaultRepoLimit : Number(limit);
+  const parsedOffset = offset === undefined ? 0 : Number(offset);
+
+  if (
+    !Number.isInteger(parsedLimit) ||
+    parsedLimit < 1 ||
+    !Number.isInteger(parsedOffset) ||
+    parsedOffset < 0
+  ) {
+    return null;
+  }
+
+  return {
+    limit: parsedLimit,
+    offset: parsedOffset,
+  };
+};
+
 const sendRepoDatabaseError = (res, error) => {
   return sendSupabaseError(res, error, {
     notFoundMessage: "Repository not found.",
@@ -46,8 +67,14 @@ const buildRepoPayload = async ({ github_repo_url: githubRepoUrl, owner_id: owne
   };
 };
 
-const getAllRepos = async (_req, res) => {
-  const { data, error } = await repoService.getAllRepos();
+const getAllRepos = async (req, res) => {
+  const pagination = parsePaginationParams(req.query);
+
+  if (!pagination) {
+    return sendError(res, 400, "limit must be positive and offset must be zero or greater.");
+  }
+
+  const { data, error } = await repoService.getAllRepos(pagination);
 
   if (error) {
     return sendRepoDatabaseError(res, error);

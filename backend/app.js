@@ -2,6 +2,7 @@ const express = require("express");
 const cors = require("cors");
 const activityRoutes = require("./routes/activityRoutes");
 const commentRoutes = require("./routes/commentRoutes");
+const repoRoutes = require("./routes/repoRoutes");
 const userRoutes = require("./routes/userRoutes");
 
 const app = express();
@@ -22,6 +23,9 @@ app.use("/api/activity", activityRoutes);
 
 // Comment API routes.
 app.use("/api/comment", commentRoutes);
+
+// Repository API routes.
+app.use("/api/repos", repoRoutes);
 
 // User API routes.
 app.use("/api/users", userRoutes);

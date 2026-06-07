@@ -1,3 +1,107 @@
+INSERT INTO Repo (
+    repo_id,
+    github_repo_url,
+    owner_id,
+    repo_name,
+    full_name,
+    description,
+    language_used,
+    topics,
+    readme_summary,
+    likes_count,
+    comments_count,
+    saves_count,
+    views_count,
+    forks_count,
+    pr_count
+)
+VALUES
+(
+    '33333333-3333-3333-3333-333333333333',
+    'https://github.com/alexdev/ai-task-manager',
+    'github_1001',
+    'ai-task-manager',
+    'alexdev/ai-task-manager',
+    'AI powered task management system using NLP.',
+    '["Python", "FastAPI", "PostgreSQL"]',
+    '["AI", "Productivity", "Backend"]',
+    'An intelligent assistant for managing tasks using natural language.',
+    245,
+    39,
+    110,
+    5400,
+    76,
+    18
+),
+(
+    '66666666-6666-6666-6666-666666666666',
+    'https://github.com/sarahcodes/devconnect',
+    'github_1002',
+    'devconnect',
+    'sarahcodes/devconnect',
+    'Social platform for developers to discover repositories.',
+    '["TypeScript", "React", "Node.js"]',
+    '["Social", "Web", "Frontend"]',
+    'A GitHub-inspired social discovery platform for developers.',
+    420,
+    87,
+    201,
+    12000,
+    143,
+    42
+),
+(
+    '99999999-9999-9999-9999-999999999999',
+    'https://github.com/rajtech/ml-visualizer',
+    'github_1003',
+    'ml-visualizer',
+    'rajtech/ml-visualizer',
+    'Machine learning visualization dashboard.',
+    '["Python", "TensorFlow", "Streamlit"]',
+    '["ML", "Visualization", "AI"]',
+    'Interactive dashboard for visualizing machine learning models.',
+    178,
+    21,
+    98,
+    3900,
+    52,
+    9
+),
+(
+    'aaaaaaaa-1111-1111-1111-aaaaaaaaaaaa',
+    'https://github.com/cloudsync/realtime-chat',
+    'github_1004',
+    'realtime-chat',
+    'cloudsync/realtime-chat',
+    'Scalable realtime chat application.',
+    '["Go", "Redis", "WebSocket"]',
+    '["Realtime", "Chat", "Distributed Systems"]',
+    'Low latency realtime messaging system using Redis pub/sub.',
+    532,
+    103,
+    244,
+    21000,
+    301,
+    65
+),
+(
+    'bbbbbbbb-1111-1111-1111-bbbbbbbbbbbb',
+    'https://github.com/nexlabs/code-review-ai',
+    'github_1005',
+    'code-review-ai',
+    'nexlabs/code-review-ai',
+    'AI assistant for automated pull request reviews.',
+    '["Python", "OpenAI", "Docker"]',
+    '["AI", "Code Review", "Automation"]',
+    'Automated pull request analysis and smart review suggestions.',
+    690,
+    140,
+    350,
+    34000,
+    470,
+    120
+);
+
 INSERT INTO activity (
     activity_id,
     user_id,
@@ -5,7 +109,8 @@ INSERT INTO activity (
     time_spent,
     likelihood_count,
     is_saved
-) VALUES
+)
+VALUES
 (
     '11111111-1111-1111-1111-111111111111',
     '22222222-2222-2222-2222-222222222222',
@@ -38,7 +143,8 @@ INSERT INTO comment (
     parent_comment_id,
     comment,
     created_at
-) VALUES
+)
+VALUES
 (
     'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
     '22222222-2222-2222-2222-222222222222',

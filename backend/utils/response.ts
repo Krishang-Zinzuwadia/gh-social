@@ -54,6 +54,6 @@ export function sendSupabaseError(
       sendError(res, 400, invalidFormatMessage);
       break;
     default:
-      sendError(res, 500, error.message || 'Database error');
+      sendError(res, 500, 'Database error');
   }
 }

@@ -1,6 +1,6 @@
 import type { Request, Response } from 'express';
 import * as activityService from '../services/activityService.js';
-import { sendError, sendSuccess, sendSupabaseError } from '../utils/response.js';
+import { sendSuccess, sendSupabaseError } from '../utils/response.js';
 
 // Return every activity row.
 export async function getAllActivity(_req: Request, res: Response): Promise<void> {

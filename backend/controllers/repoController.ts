@@ -1,47 +1,37 @@
-const githubService = require("../services/githubService");
-const repoService = require("../services/repoService");
-const summaryService = require("../services/summaryService");
-const {
+import type { Request, Response } from "express";
+import * as githubService from "../services/githubService.js";
+import * as repoService from "../services/repoService.js";
+import * as summaryService from "../services/summaryService.js";
+import {
   sendControllerError,
   sendError,
   sendSuccess,
   sendSupabaseError,
-} = require("../utils/response");
+} from "../utils/response.js";
+import { isValidUuid, parsePaginationParams } from "../utils/validators.js";
 
-const uuidRegex =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+import type {
+  PostgresError,
+  RepoInsert,
+  SupabaseErrorOptions,
+} from "../types/index.js";
 
-const defaultRepoLimit = 10;
-
-const parsePaginationParams = ({ limit, offset }) => {
-  const parsedLimit = limit === undefined ? defaultRepoLimit : Number(limit);
-  const parsedOffset = offset === undefined ? 0 : Number(offset);
-
-  if (
-    !Number.isInteger(parsedLimit) ||
-    parsedLimit < 1 ||
-    !Number.isInteger(parsedOffset) ||
-    parsedOffset < 0
-  ) {
-    return null;
-  }
-
-  return {
-    limit: parsedLimit,
-    offset: parsedOffset,
-  };
-};
-
-const sendRepoDatabaseError = (res, error) => {
+function sendRepoDatabaseError(res: Response, error: PostgresError): void {
   return sendSupabaseError(res, error, {
     notFoundMessage: "Repository not found.",
     conflictMessage: "Repository already exists.",
     missingRequiredMessage: "Repository data is missing required fields.",
     invalidReferenceMessage: "Repository data references an invalid record.",
-  });
-};
+  } satisfies SupabaseErrorOptions);
+}
 
-const buildRepoPayload = async ({ github_repo_url: githubRepoUrl, owner_id: ownerId }) => {
+interface RepoBodyInput {
+  github_repo_url: string;
+  owner_id: string;
+}
+
+async function buildRepoPayload(body: RepoBodyInput): Promise<RepoInsert> {
+  const { github_repo_url: githubRepoUrl, owner_id: ownerId } = body;
   const parsedRepo = githubService.parseGitHubRepoUrl(githubRepoUrl);
 
   if (!parsedRepo) {
@@ -50,7 +40,7 @@ const buildRepoPayload = async ({ github_repo_url: githubRepoUrl, owner_id: owne
 
   const githubRepo = await githubService.fetchRepoMetadataFromGitHub(
     parsedRepo.owner,
-    parsedRepo.repo
+    parsedRepo.repo,
   );
 
   return {
@@ -59,19 +49,25 @@ const buildRepoPayload = async ({ github_repo_url: githubRepoUrl, owner_id: owne
     repo_name: githubRepo.repo_name,
     full_name: githubRepo.full_name,
     description: githubRepo.description,
-    language_used: githubRepo.language_breakdown,
+    language_used: githubRepo.language_breakdown || [],
     topics: githubRepo.topics || [],
     readme_summary: summaryService.summarizeReadme(githubRepo.readme),
     forks_count: githubRepo.forks_count || 0,
     pr_count: githubRepo.pr_count || 0,
   };
-};
+}
 
-const getAllRepos = async (req, res) => {
-  const pagination = parsePaginationParams(req.query);
+export async function getAllRepos(req: Request, res: Response): Promise<void> {
+  const pagination = parsePaginationParams(
+    req.query as { limit?: string; offset?: string },
+  );
 
   if (!pagination) {
-    return sendError(res, 400, "limit must be positive and offset must be zero or greater.");
+    return sendError(
+      res,
+      400,
+      "limit must be positive and offset must be zero or greater.",
+    );
   }
 
   const { data, error } = await repoService.getAllRepos(pagination);
@@ -81,12 +77,12 @@ const getAllRepos = async (req, res) => {
   }
 
   return sendSuccess(res, 200, data);
-};
+}
 
-const getRepoById = async (req, res) => {
-  const { repoId } = req.params;
+export async function getRepoById(req: Request, res: Response): Promise<void> {
+  const repoId = req.params.repoId as string;
 
-  if (!uuidRegex.test(repoId)) {
+  if (!isValidUuid(repoId)) {
     return sendError(res, 400, "repoId must be a valid UUID.");
   }
 
@@ -97,17 +93,18 @@ const getRepoById = async (req, res) => {
   }
 
   return sendSuccess(res, 200, data);
-};
+}
 
-const importRepo = async (req, res) => {
-  const { github_repo_url: githubRepoUrl, owner_id: ownerId } = req.body;
+export async function importRepo(req: Request, res: Response): Promise<void> {
+  const { github_repo_url: githubRepoUrl, owner_id: ownerId } =
+    req.body as Partial<RepoBodyInput>;
 
   if (!githubRepoUrl || !ownerId) {
     return sendError(res, 400, "github_repo_url and owner_id are required.");
   }
 
   try {
-    const repoPayload = await buildRepoPayload(req.body);
+    const repoPayload = await buildRepoPayload(req.body as RepoBodyInput);
     const { data, error } = await repoService.createRepo(repoPayload);
 
     if (error) {
@@ -116,15 +113,16 @@ const importRepo = async (req, res) => {
 
     return sendSuccess(res, 201, data);
   } catch (err) {
-    return sendControllerError(res, err);
+    return sendControllerError(res, err as Error);
   }
-};
+}
 
-const syncRepo = async (req, res) => {
-  const { repoId } = req.params;
-  const { github_repo_url: githubRepoUrl, owner_id: ownerId } = req.body;
+export async function syncRepo(req: Request, res: Response): Promise<void> {
+  const repoId = req.params.repoId as string;
+  const { github_repo_url: githubRepoUrl, owner_id: ownerId } =
+    req.body as Partial<RepoBodyInput>;
 
-  if (!uuidRegex.test(repoId)) {
+  if (!isValidUuid(repoId)) {
     return sendError(res, 400, "repoId must be a valid UUID.");
   }
 
@@ -133,8 +131,11 @@ const syncRepo = async (req, res) => {
   }
 
   try {
-    const repoPayload = await buildRepoPayload(req.body);
-    const { data, error } = await repoService.updateRepoById(repoId, repoPayload);
+    const repoPayload = await buildRepoPayload(req.body as RepoBodyInput);
+    const { data, error } = await repoService.updateRepoById(
+      repoId,
+      repoPayload,
+    );
 
     if (error) {
       return sendRepoDatabaseError(res, error);
@@ -142,13 +143,6 @@ const syncRepo = async (req, res) => {
 
     return sendSuccess(res, 200, data);
   } catch (err) {
-    return sendControllerError(res, err);
+    return sendControllerError(res, err as Error);
   }
-};
-
-module.exports = {
-  getAllRepos,
-  getRepoById,
-  importRepo,
-  syncRepo,
-};
+}

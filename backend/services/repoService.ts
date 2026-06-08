@@ -1,32 +1,37 @@
-const supabase = require("../config/supabase");
+import supabase from '../config/supabase.js';
+import type { RepoInsert, RepoUpdate, PaginationParams } from '../types/index.js';
 
 const repoTable = "repo";
 
-const getAllRepos = ({ limit, offset }) => {
+// Fetch all repos with pagination, newest first.
+export function getAllRepos({ limit, offset }: PaginationParams) {
   return supabase
     .from(repoTable)
     .select("*")
     .order("created_at", { ascending: false })
     .range(offset, offset + limit - 1);
-};
+}
 
-const getRepoById = (repoId) => {
+// Fetch one repo by primary key.
+export function getRepoById(repoId: string) {
   return supabase
     .from(repoTable)
     .select("*")
     .eq("repo_id", repoId)
     .single();
-};
+}
 
-const createRepo = (repoData) => {
+// Insert a new repo record.
+export function createRepo(repoData: RepoInsert) {
   return supabase
     .from(repoTable)
     .insert(repoData)
     .select()
     .single();
-};
+}
 
-const updateRepoById = (repoId, repoData) => {
+// Update one repo by primary key.
+export function updateRepoById(repoId: string, repoData: RepoUpdate) {
   return supabase
     .from(repoTable)
     .update({
@@ -36,11 +41,4 @@ const updateRepoById = (repoId, repoData) => {
     .eq("repo_id", repoId)
     .select()
     .single();
-};
-
-module.exports = {
-  createRepo,
-  getAllRepos,
-  getRepoById,
-  updateRepoById,
-};
+}

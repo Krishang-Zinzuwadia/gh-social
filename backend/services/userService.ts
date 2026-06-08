@@ -1,4 +1,4 @@
-const supabase = require("../config/supabase");
+import supabase from '../config/supabase.js';
 
 const USER_PROFILE_COLUMNS = [
   "username",
@@ -12,25 +12,25 @@ const USER_PROFILE_COLUMNS = [
 ].join(", ");
 
 // Fetch a user's public profile by username.
-const getUserProfile = (username) => {
+export function getUserProfile(username: string) {
   return supabase
     .from("users")
     .select(USER_PROFILE_COLUMNS)
     .eq("username", username)
     .single();
-};
+}
 
 // Fetch a user's UUID by username.
-const getUserIdByUsername = (username) => {
+export function getUserIdByUsername(username: string) {
   return supabase
     .from("users")
     .select("user_id")
     .eq("username", username)
     .single();
-};
+}
 
 // Create a follower/following relationship.
-const followUser = (followerId, followingId) => {
+export function followUser(followerId: string, followingId: string) {
   return supabase
     .from("follows")
     .insert([
@@ -39,22 +39,15 @@ const followUser = (followerId, followingId) => {
         following_id: followingId,
       },
     ]);
-};
+}
 
 // Delete a follower/following relationship.
-const unfollowUser = (followerId, followingId) => {
+export function unfollowUser(followerId: string, followingId: string) {
   return supabase
     .from("follows")
-    .delete({ count: "exact" })
+    .delete()
     .match({
       follower_id: followerId,
       following_id: followingId,
     });
-};
-
-module.exports = {
-  getUserProfile,
-  getUserIdByUsername,
-  followUser,
-  unfollowUser,
-};
+}

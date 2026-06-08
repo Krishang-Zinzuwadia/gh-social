@@ -45,7 +45,7 @@ export function followUser(followerId: string, followingId: string) {
 export function unfollowUser(followerId: string, followingId: string) {
   return supabase
     .from("follows")
-    .delete()
+    .delete({ count: 'exact' })
     .match({
       follower_id: followerId,
       following_id: followingId,

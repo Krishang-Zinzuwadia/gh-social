@@ -1,6 +1,6 @@
 import type { Request, Response } from 'express';
 import * as commentService from '../services/commentService.js';
-import { sendSuccess, sendSupabaseError } from '../utils/response.js';
+import { sendError, sendSuccess, sendSupabaseError } from '../utils/response.js';
 
 // Return every comment row.
 export async function getAllComments(_req: Request, res: Response): Promise<void> {
@@ -91,12 +91,16 @@ export async function updateCommentById(req: Request, res: Response): Promise<vo
 // Delete one comment directly by primary key.
 export async function deleteCommentById(req: Request, res: Response): Promise<void> {
   const commentId = req.params.commentId as string;
-  const { error } = await commentService.deleteCommentById(commentId);
+  const { error, count } = await commentService.deleteCommentById(commentId);
 
   if (error) {
     return sendSupabaseError(res, error, {
       notFoundMessage: 'Comment not found.',
     });
+  }
+
+  if (count === 0) {
+    return sendError(res, 404, 'Comment not found.');
   }
 
   res.status(204).send();

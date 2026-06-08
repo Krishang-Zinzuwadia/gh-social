@@ -81,6 +81,6 @@ export function updateActivityById(activityId: string, activityData: ActivityUpd
 export function deleteActivityById(activityId: string) {
   return supabase
     .from("activity")
-    .delete()
+    .delete({ count: 'exact' })
     .eq("activity_id", activityId);
 }

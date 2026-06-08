@@ -68,6 +68,6 @@ export function updateCommentById(commentId: string, commentData: CommentUpdate)
 export function deleteCommentById(commentId: string) {
   return supabase
     .from("comment")
-    .delete()
+    .delete({ count: 'exact' })
     .eq("comment_id", commentId);
 }

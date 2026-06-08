@@ -1,6 +1,6 @@
 import type { Request, Response } from 'express';
 import * as activityService from '../services/activityService.js';
-import { sendSuccess, sendSupabaseError } from '../utils/response.js';
+import { sendError, sendSuccess, sendSupabaseError } from '../utils/response.js';
 
 // Return every activity row.
 export async function getAllActivity(_req: Request, res: Response): Promise<void> {
@@ -109,12 +109,16 @@ export async function updateActivityById(req: Request, res: Response): Promise<v
 // Delete activity directly by primary key.
 export async function deleteActivityById(req: Request, res: Response): Promise<void> {
   const activityId = req.params.activityId as string;
-  const { error } = await activityService.deleteActivityById(activityId);
+  const { error, count } = await activityService.deleteActivityById(activityId);
 
   if (error) {
     return sendSupabaseError(res, error, {
       notFoundMessage: 'Activity not found.',
     });
+  }
+
+  if (count === 0) {
+    return sendError(res, 404, 'Activity not found.');
   }
 
   res.status(204).send();

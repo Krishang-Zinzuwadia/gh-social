@@ -39,4 +39,5 @@ export interface SupabaseErrorOptions {
   conflictMessage?: string;
   missingRequiredMessage?: string;
   invalidReferenceMessage?: string;
+  invalidFormatMessage?: string;
 }

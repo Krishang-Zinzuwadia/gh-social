@@ -1,0 +1,37 @@
+import express, { type Request, type Response, type NextFunction } from 'express';
+import cors from 'cors';
+import activityRoutes from './routes/activityRoutes.js';
+import commentRoutes from './routes/commentRoutes.js';
+import repoRoutes from './routes/repoRoutes.js';
+import userRoutes from './routes/userRoutes.js';
+
+const app = express();
+
+// Global middleware used by every route.
+app.use(cors());
+app.use(express.json());
+
+// Basic health route to confirm the backend is running.
+app.get('/', (_req: Request, res: Response) => {
+  res.json({ message: 'GH Social backend is running' });
+});
+
+// Activity API routes.
+app.use('/api/activity', activityRoutes);
+
+// Comment API routes.
+app.use('/api/comment', commentRoutes);
+
+// Repository API routes.
+app.use('/api/repos', repoRoutes);
+
+// User API routes.
+app.use('/api/users', userRoutes);
+
+// Global error handler.
+app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
+  console.error('Unhandled error:', err);
+  res.status(500).json({ error: 'Internal server error' });
+});
+
+export default app;

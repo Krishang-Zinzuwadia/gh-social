@@ -1,4 +1,4 @@
-const summarizeReadme = (readmeText) => {
+export function summarizeReadme(readmeText: string | null | undefined): string {
   if (!readmeText) {
     return "No README available.";
   }
@@ -14,8 +14,4 @@ const summarizeReadme = (readmeText) => {
     .filter((paragraph) => paragraph.length > 0);
 
   return paragraphs.slice(0, 2).join("\n\n").substring(0, 1000);
-};
-
-module.exports = {
-  summarizeReadme,
-};
+}

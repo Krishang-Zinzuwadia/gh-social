@@ -1,15 +1,27 @@
+import type {
+  ParsedRepoUrl,
+  RepoMetadata,
+  Author,
+  GitHubRepositoryResponse,
+  GitHubReadmeResponse,
+  GitHubRepositoryNode,
+  GitHubCommitNode,
+} from '../types/index.js';
+
 const githubGraphqlUrl = "https://api.github.com/graphql";
 const githubRestBaseUrl = "https://api.github.com";
 
-class ServerConfigError extends Error {
-  constructor(message) {
+export class ServerConfigError extends Error {
+  statusCode: number;
+
+  constructor(message: string) {
     super(message);
     this.name = "ServerConfigError";
     this.statusCode = 500;
   }
 }
 
-const buildGitHubHeaders = () => {
+function buildGitHubHeaders(): HeadersInit {
   if (!process.env.GITHUB_TOKEN) {
     throw new ServerConfigError("Missing GITHUB_TOKEN in environment.");
   }
@@ -19,9 +31,9 @@ const buildGitHubHeaders = () => {
     Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
     "Content-Type": "application/json",
   };
-};
+}
 
-const parseGitHubRepoUrl = (repoUrl) => {
+export function parseGitHubRepoUrl(repoUrl: string): ParsedRepoUrl | null {
   try {
     const url = new URL(repoUrl);
 
@@ -42,7 +54,7 @@ const parseGitHubRepoUrl = (repoUrl) => {
   } catch (_err) {
     return null;
   }
-};
+}
 
 const repoMetadataQuery = `
   query RepoMetadata($owner: String!, $name: String!) {
@@ -106,7 +118,7 @@ const repoMetadataQuery = `
   }
 `;
 
-const requestGitHubGraphql = async (query, variables) => {
+async function requestGitHubGraphql<T>(query: string, variables: Record<string, unknown>): Promise<T> {
   const response = await fetch(githubGraphqlUrl, {
     method: "POST",
     headers: buildGitHubHeaders(),
@@ -118,7 +130,7 @@ const requestGitHubGraphql = async (query, variables) => {
     throw new Error(`GitHub GraphQL request failed (${response.status}): ${message}`);
   }
 
-  const payload = await response.json();
+  const payload = await response.json() as { data: T; errors?: Array<{ message: string }> };
 
   if (payload.errors && payload.errors.length > 0) {
     const message = payload.errors.map((error) => error.message).join("; ");
@@ -126,9 +138,9 @@ const requestGitHubGraphql = async (query, variables) => {
   }
 
   return payload.data;
-};
+}
 
-const requestGitHubRest = async (path) => {
+async function requestGitHubRest<T>(path: string): Promise<T> {
   const response = await fetch(`${githubRestBaseUrl}${path}`, {
     headers: buildGitHubHeaders(),
   });
@@ -138,11 +150,11 @@ const requestGitHubRest = async (path) => {
     throw new Error(`GitHub REST request failed (${response.status}): ${message}`);
   }
 
-  return response.json();
-};
+  return response.json() as Promise<T>;
+}
 
-const getUniqueAuthors = (historyNodes = []) => {
-  const authors = new Map();
+function getUniqueAuthors(historyNodes: GitHubCommitNode[] = []): Author[] {
+  const authors = new Map<string, Author>();
 
   historyNodes.forEach((node) => {
     const author = node.author;
@@ -167,9 +179,9 @@ const getUniqueAuthors = (historyNodes = []) => {
   });
 
   return Array.from(authors.values());
-};
+}
 
-const formatRepositoryMetadata = (repository) => {
+function formatRepositoryMetadata(repository: GitHubRepositoryNode): RepoMetadata {
   const languageEdges = repository.languages?.edges || [];
   const totalLanguageSize = repository.languages?.totalSize || 0;
   const historyNodes = repository.defaultBranchRef?.target?.history?.nodes || [];
@@ -203,11 +215,11 @@ const formatRepositoryMetadata = (repository) => {
     default_branch: repository.defaultBranchRef?.name || null,
     authors: getUniqueAuthors(historyNodes),
   };
-};
+}
 
-const fetchReadmeFromGitHubRest = async (owner, repo) => {
+async function fetchReadmeFromGitHubRest(owner: string, repo: string): Promise<string> {
   try {
-    const data = await requestGitHubRest(`/repos/${owner}/${repo}/readme`);
+    const data = await requestGitHubRest<GitHubReadmeResponse>(`/repos/${owner}/${repo}/readme`);
 
     if (!data.content) {
       return "";
@@ -217,10 +229,10 @@ const fetchReadmeFromGitHubRest = async (owner, repo) => {
   } catch (_err) {
     return "";
   }
-};
+}
 
-const fetchRepoMetadataFromGitHub = async (owner, repo) => {
-  const data = await requestGitHubGraphql(repoMetadataQuery, {
+export async function fetchRepoMetadataFromGitHub(owner: string, repo: string): Promise<RepoMetadata> {
+  const data = await requestGitHubGraphql<GitHubRepositoryResponse>(repoMetadataQuery, {
     owner,
     name: repo,
   });
@@ -236,9 +248,4 @@ const fetchRepoMetadataFromGitHub = async (owner, repo) => {
   }
 
   return metadata;
-};
-
-module.exports = {
-  fetchRepoMetadataFromGitHub,
-  parseGitHubRepoUrl,
-};
+}

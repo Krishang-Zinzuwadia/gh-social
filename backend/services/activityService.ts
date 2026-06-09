@@ -1,44 +1,45 @@
-const supabase = require("../config/supabase");
+import supabase from '../config/supabase.js';
+import type { ActivityInsert, ActivityUpdate } from '../types/index.js';
 
 // Fetch all activity records.
-const getAllActivity = () => {
+export function getAllActivity() {
   return supabase
     .from("activity")
     .select("*")
     .order("time_spent", { ascending: false });
-};
+}
 
 // Fetch activity records for one user.
-const getUserActivity = (userId) => {
+export function getUserActivity(userId: string) {
   return supabase
     .from("activity")
     .select("*")
     .eq("user_id", userId)
     .order("time_spent", { ascending: false });
-};
+}
 
 // Fetch saved activity records for one user.
-const getSavedActivity = (userId) => {
+export function getSavedActivity(userId: string) {
   return supabase
     .from("activity")
     .select("*")
     .eq("user_id", userId)
     .eq("is_saved", true)
     .order("time_spent", { ascending: false });
-};
+}
 
 // Fetch one activity record using the user/repo pair.
-const getActivityByUserAndRepo = (userId, repoId) => {
+export function getActivityByUserAndRepo(userId: string, repoId: string) {
   return supabase
     .from("activity")
     .select("*")
     .eq("user_id", userId)
     .eq("repo_id", repoId)
     .maybeSingle();
-};
+}
 
 // Update one activity record using the user/repo pair.
-const updateActivityByUserAndRepo = (userId, repoId, activityData) => {
+export function updateActivityByUserAndRepo(userId: string, repoId: string, activityData: ActivityUpdate) {
   return supabase
     .from("activity")
     .update(activityData)
@@ -46,52 +47,40 @@ const updateActivityByUserAndRepo = (userId, repoId, activityData) => {
     .eq("repo_id", repoId)
     .select()
     .single();
-};
+}
 
 // Fetch one activity record by primary key.
-const getActivityById = (activityId) => {
+export function getActivityById(activityId: string) {
   return supabase
     .from("activity")
     .select("*")
     .eq("activity_id", activityId)
     .single();
-};
+}
 
 // Insert a new activity record.
-const createActivity = (activityData) => {
+export function createActivity(activityData: ActivityInsert) {
   return supabase
     .from("activity")
     .insert(activityData)
     .select()
     .single();
-};
+}
 
 // Update one activity record by primary key.
-const updateActivityById = (activityId, activityData) => {
+export function updateActivityById(activityId: string, activityData: ActivityUpdate) {
   return supabase
     .from("activity")
     .update(activityData)
     .eq("activity_id", activityId)
     .select()
     .single();
-};
+}
 
 // Delete one activity record by primary key.
-const deleteActivityById = (activityId) => {
+export function deleteActivityById(activityId: string) {
   return supabase
     .from("activity")
-    .delete()
+    .delete({ count: 'exact' })
     .eq("activity_id", activityId);
-};
-
-module.exports = {
-  getAllActivity,
-  getUserActivity,
-  getSavedActivity,
-  getActivityByUserAndRepo,
-  updateActivityByUserAndRepo,
-  getActivityById,
-  createActivity,
-  updateActivityById,
-  deleteActivityById,
-};
+}

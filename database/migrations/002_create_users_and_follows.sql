@@ -1,6 +1,11 @@
+
 CREATE TABLE public.users (
     user_id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
     username VARCHAR(50) UNIQUE NOT NULL,
+    full_name VARCHAR(100),       
+    date_of_birth DATE,           
+    bio TEXT,                     
+    github_url TEXT,              
     github_id VARCHAR(100) UNIQUE,
     github_handle VARCHAR(100),
     avatar_url TEXT,
@@ -11,6 +16,7 @@ CREATE TABLE public.users (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- 2. FOLLOWS TABLE
 CREATE TABLE public.follows (
     follower_id UUID REFERENCES public.users(user_id) ON DELETE CASCADE,
     following_id UUID REFERENCES public.users(user_id) ON DELETE CASCADE,
@@ -19,6 +25,7 @@ CREATE TABLE public.follows (
     CONSTRAINT no_self_follow CHECK (follower_id <> following_id)
 );
 
+-- 3. NEW USER TRIGGER (Updated to extract full_name)
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER
 LANGUAGE plpgsql
@@ -28,6 +35,7 @@ BEGIN
     INSERT INTO public.users (
         user_id,
         username,
+        full_name,                -- NEW
         github_id,
         github_handle,
         avatar_url
@@ -38,6 +46,7 @@ BEGIN
             NEW.raw_user_meta_data->>'user_name',
             'user_' || SUBSTRING(NEW.id::text, 1, 8)
         ),
+        NEW.raw_user_meta_data->>'full_name',  -- NEW
         NEW.raw_user_meta_data->>'provider_id',
         NEW.raw_user_meta_data->>'preferred_username',
         NEW.raw_user_meta_data->>'avatar_url'
@@ -53,6 +62,7 @@ AFTER INSERT ON auth.users
 FOR EACH ROW
 EXECUTE FUNCTION public.handle_new_user();
 
+-- 4. FOLLOW COUNTS TRIGGER
 CREATE OR REPLACE FUNCTION public.update_follow_counts()
 RETURNS TRIGGER
 LANGUAGE plpgsql
@@ -91,49 +101,20 @@ ON public.follows
 FOR EACH ROW
 EXECUTE FUNCTION public.update_follow_counts();
 
+-- 5. ROW LEVEL SECURITY (RLS)
 ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.follows ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Public profiles are viewable"
-ON public.users
-FOR SELECT
-USING (true);
+CREATE POLICY "Public profiles are viewable" ON public.users FOR SELECT USING (true);
+CREATE POLICY "Users can update own profile" ON public.users FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Users can insert own profile" ON public.users FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can delete own profile" ON public.users FOR DELETE USING (auth.uid() = user_id);
 
-CREATE POLICY "Users can update own profile"
-ON public.users
-FOR UPDATE
-USING (auth.uid() = user_id);
+CREATE POLICY "Anyone can view follows" ON public.follows FOR SELECT USING (true);
+CREATE POLICY "Users can follow" ON public.follows FOR INSERT WITH CHECK (auth.uid() = follower_id);
+CREATE POLICY "Users can unfollow" ON public.follows FOR DELETE USING (auth.uid() = follower_id);
 
-CREATE POLICY "Users can insert own profile"
-ON public.users
-FOR INSERT
-WITH CHECK (auth.uid() = user_id);
-
-CREATE POLICY "Users can delete own profile"
-ON public.users
-FOR DELETE
-USING (auth.uid() = user_id);
-
-CREATE POLICY "Anyone can view follows"
-ON public.follows
-FOR SELECT
-USING (true);
-
-CREATE POLICY "Users can follow"
-ON public.follows
-FOR INSERT
-WITH CHECK (auth.uid() = follower_id);
-
-CREATE POLICY "Users can unfollow"
-ON public.follows
-FOR DELETE
-USING (auth.uid() = follower_id);
-
-CREATE INDEX idx_users_username
-ON public.users(username);
-
-CREATE INDEX idx_follows_follower
-ON public.follows(follower_id);
-
-CREATE INDEX idx_follows_following
-ON public.follows(following_id);
+-- 6. INDEXES
+CREATE INDEX idx_users_username ON public.users(username);
+CREATE INDEX idx_follows_follower ON public.follows(follower_id);
+CREATE INDEX idx_follows_following ON public.follows(following_id);

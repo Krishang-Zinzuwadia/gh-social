@@ -1,9 +1,10 @@
 import type { Request, Response } from 'express';
+import type { AuthRequest } from '../middlewares/authMiddleware.js'; // Bring in your custom type
 import * as userService from '../services/userService.js';
 import { sendError, sendSuccess, sendSupabaseError } from '../utils/response.js';
-import { isValidUuid } from '../utils/validators.js';
+import { isValidUuid } from '../utils/validators.js'; // You might not need this anymore for the follower, but keep it if you use it elsewhere
 
-// Fetch a user's public profile.
+// Fetch a user's public profile (Remains standard Request as it is a public route)
 export async function getUserProfile(req: Request, res: Response): Promise<void> {
   const username = req.params.username as string;
 
@@ -18,21 +19,18 @@ export async function getUserProfile(req: Request, res: Response): Promise<void>
   return sendSuccess(res, 200, data);
 }
 
-// Follow a user.
-export async function followUser(req: Request, res: Response): Promise<void> {
+// Follow a user (Uses AuthRequest)
+export async function followUser(req: AuthRequest, res: Response): Promise<void> {
   const username = req.params.username as string;
-  const { follower_id: followerId } = req.body as { follower_id?: string };
+  
+  // SECURE: Grab the ID directly from the verified JWT
+  const followerId = req.user?.userId;
 
   if (!followerId) {
-    return sendError(res, 400, 'follower_id is required in the request body.');
+    return sendError(res, 401, 'Unauthorized request. Please log in.');
   }
 
-  if (!isValidUuid(followerId)) {
-    return sendError(res, 400, 'follower_id must be a valid UUID.');
-  }
-
-  const { data: targetUser, error: targetError } =
-    await userService.getUserIdByUsername(username);
+  const { data: targetUser, error: targetError } = await userService.getUserIdByUsername(username);
 
   if (targetError) {
     return sendSupabaseError(res, targetError, {
@@ -44,7 +42,7 @@ export async function followUser(req: Request, res: Response): Promise<void> {
     return sendError(res, 404, 'Target user not found');
   }
 
-  const { user_id: targetUserId } = targetUser as { user_id: string };
+  const targetUserId = (targetUser as { user_id: string }).user_id;
 
   if (followerId === targetUserId) {
     return sendError(res, 400, 'You cannot follow yourself.');
@@ -62,21 +60,18 @@ export async function followUser(req: Request, res: Response): Promise<void> {
   return sendSuccess(res, 200, { message: `Successfully followed ${username}` });
 }
 
-// Unfollow a user.
-export async function unfollowUser(req: Request, res: Response): Promise<void> {
+// Unfollow a user (Uses AuthRequest)
+export async function unfollowUser(req: AuthRequest, res: Response): Promise<void> {
   const username = req.params.username as string;
-  const followerId = req.query.follower_id as string | undefined;
+  
+  // SECURE: Grab the ID directly from the verified JWT
+  const followerId = req.user?.userId;
 
   if (!followerId) {
-    return sendError(res, 400, 'follower_id is required as a query parameter.');
+    return sendError(res, 401, 'Unauthorized request. Please log in.');
   }
 
-  if (!isValidUuid(followerId)) {
-    return sendError(res, 400, 'follower_id must be a valid UUID.');
-  }
-
-  const { data: targetUser, error: targetError } =
-    await userService.getUserIdByUsername(username);
+  const { data: targetUser, error: targetError } = await userService.getUserIdByUsername(username);
 
   if (targetError) {
     return sendSupabaseError(res, targetError, {
@@ -88,7 +83,7 @@ export async function unfollowUser(req: Request, res: Response): Promise<void> {
     return sendError(res, 404, 'Target user not found');
   }
 
-  const { user_id: targetUserId } = targetUser as { user_id: string };
+  const targetUserId = (targetUser as { user_id: string }).user_id;
 
   const { error: unfollowError, count } = await userService.unfollowUser(
     followerId,

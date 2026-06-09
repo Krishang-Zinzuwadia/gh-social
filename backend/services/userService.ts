@@ -1,12 +1,7 @@
-// Bring in the admin client alongside the standard one
-import { supabase, supabaseAdmin } from '../config/supabase.js';
+import supabase from '../config/supabase.js';
 
-// Updated to include the new fields we added to the database
 const USER_PROFILE_COLUMNS = [
   "username",
-  "full_name",
-  "bio",
-  "github_url",
   "github_handle",
   "avatar_url",
   "followers_count",
@@ -16,7 +11,7 @@ const USER_PROFILE_COLUMNS = [
   "created_at",
 ].join(", ");
 
-// Fetch a user's public profile (Standard client is fine here since the RLS policy is "Public profiles are viewable")
+// Fetch a user's public profile by username.
 export function getUserProfile(username: string) {
   return supabase
     .from("users")
@@ -25,7 +20,7 @@ export function getUserProfile(username: string) {
     .single();
 }
 
-// Fetch a user's UUID by username (Standard client is fine)
+// Fetch a user's UUID by username.
 export function getUserIdByUsername(username: string) {
   return supabase
     .from("users")
@@ -34,9 +29,9 @@ export function getUserIdByUsername(username: string) {
     .single();
 }
 
-// Create a follow relationship (REQUIRES Admin client to bypass RLS, since Express handles auth)
+// Create a follower/following relationship.
 export function followUser(followerId: string, followingId: string) {
-  return supabaseAdmin
+  return supabase
     .from("follows")
     .insert([
       {
@@ -46,9 +41,9 @@ export function followUser(followerId: string, followingId: string) {
     ]);
 }
 
-// Delete a follow relationship (REQUIRES Admin client to bypass RLS)
+// Delete a follower/following relationship.
 export function unfollowUser(followerId: string, followingId: string) {
-  return supabaseAdmin
+  return supabase
     .from("follows")
     .delete({ count: 'exact' })
     .match({

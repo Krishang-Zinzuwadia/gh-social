@@ -1,38 +1,15 @@
--- Enable UUID generation
-CREATE EXTENSION IF NOT EXISTS "pgcrypto";
-
-CREATE TABLE Repo (
-    repo_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-
-    github_repo_url VARCHAR(200) NOT NULL UNIQUE,
-
-    owner_id VARCHAR(100) NOT NULL,
-
-    repo_name VARCHAR(200) NOT NULL,
-
-    full_name VARCHAR(255) NOT NULL,
-
-    description TEXT,
-
-    language_used JSONB DEFAULT '[]'::jsonb,
-
-    topics JSONB DEFAULT '[]'::jsonb,
-
-    readme_summary TEXT,
-
-    likes_count INT DEFAULT 0,
-
-    comments_count INT DEFAULT 0,
-
-    saves_count INT DEFAULT 0,
-
-    views_count INT DEFAULT 0,
-
-    forks_count INT DEFAULT 0,
-
-    pr_count INT DEFAULT 0,
-
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+CREATE TABLE public.refresh_tokens (
+    token_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES public.users(user_id) ON DELETE CASCADE,
+    
+    -- SECURITY: Store the SHA-256 hash of the token
+    refresh_token_hash TEXT NOT NULL UNIQUE,
+    expires_at TIMESTAMPTZ NOT NULL,
+    is_revoked BOOLEAN DEFAULT FALSE,
+    last_used_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- INDEXES: Crucial for performance
+CREATE INDEX idx_refresh_tokens_hash ON public.refresh_tokens(refresh_token_hash);
+CREATE INDEX idx_refresh_tokens_user_id ON public.refresh_tokens(user_id);

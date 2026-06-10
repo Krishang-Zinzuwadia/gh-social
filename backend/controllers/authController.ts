@@ -1,10 +1,17 @@
 import type { Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
-import supabase from '../config/supabase.js';
+import supabase from '../config/supabase.js'; // Normal client for public/anon actions
+import { createClient } from '@supabase/supabase-js'; // To create our Admin client
 import crypto from 'crypto';
 import { sendError, sendSuccess, sendControllerError } from '../utils/response.js';
 
 const JWT_SECRET = process.env.JWT_SECRET as string;
+
+// SECURITY FIX: Create a dedicated Admin client to securely fetch user emails
+const supabaseAdmin = createClient(
+  process.env.SUPABASE_URL as string,
+  process.env.SUPABASE_SERVICE_ROLE_KEY as string
+);
 
 // Helper to hash tokens
 const hashToken = (token: string) => crypto.createHash('sha256').update(token).digest('hex');
@@ -100,17 +107,19 @@ export async function getOAuthUrl(req: Request, res: Response): Promise<void> {
 export async function logout(req: Request, res: Response): Promise<void> { 
   const { refreshToken } = req.body;
 
-  // SECURITY FIX: Delete the session from the database
-  if (refreshToken) {
-    try {
-      const tokenHash = hashToken(refreshToken);
-      await supabase.from('refresh_tokens').delete().eq('refresh_token_hash', tokenHash);
-    } catch (err) {
-      console.error('Failed to delete refresh token on logout:', err);
-    }
+  // SECURITY FIX: Reject logout if the token is missing entirely
+  if (!refreshToken) {
+    return sendError(res, 400, 'Refresh token required for logout.');
   }
 
-  res.status(200).json({ success: true, message: 'Logged out successfully.' });
+  try {
+    const tokenHash = hashToken(refreshToken);
+    await supabase.from('refresh_tokens').delete().eq('refresh_token_hash', tokenHash);
+    res.status(200).json({ success: true, message: 'Logged out successfully.' });
+  } catch (err) {
+    console.error('Failed to delete refresh token on logout:', err);
+    return sendError(res, 500, 'An error occurred during logout.');
+  }
 }
 
 export async function refreshToken(req: Request, res: Response): Promise<void> {
@@ -127,12 +136,13 @@ export async function refreshToken(req: Request, res: Response): Promise<void> {
       .eq('refresh_token_hash', tokenHash)
       .single();
 
-    if (error || !storedToken || new Date() > new Date(storedToken.expires_at)) {
-      return sendError(res, 403, 'Invalid or expired token.');
+    // SECURITY FIX: Included the is_revoked check
+    if (error || !storedToken || storedToken.is_revoked || new Date() > new Date(storedToken.expires_at)) {
+      return sendError(res, 403, 'Invalid, expired, or revoked token.');
     }
 
-    // 2. SECURITY FIX: Fetch user email securely from Supabase Auth admin API
-    const { data: authData, error: userError } = await supabase.auth.admin.getUserById(storedToken.user_id);
+    // 2. SECURITY FIX: Fetch user email securely using the dedicated Admin API client
+    const { data: authData, error: userError } = await supabaseAdmin.auth.admin.getUserById(storedToken.user_id);
 
     if (userError || !authData?.user) return sendError(res, 404, 'User not found in Auth system.');
 

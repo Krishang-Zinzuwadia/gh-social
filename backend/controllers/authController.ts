@@ -1,6 +1,6 @@
 import type { Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
-import  supabase  from '../config/supabase.js';
+import supabase from '../config/supabase.js';
 import crypto from 'crypto';
 import { sendError, sendSuccess, sendControllerError } from '../utils/response.js';
 
@@ -24,7 +24,16 @@ export async function signUp(req: Request, res: Response): Promise<void> {
 
     if (error || !data.user) return sendError(res, 400, error?.message || 'Signup failed');
 
-    // Mint custom stateless JWT
+    // SECURITY FIX: Check if email confirmation is pending
+    // Supabase returns null for data.session if they need to verify their email
+    if (!data.session) {
+      return sendSuccess(res, 202, { 
+        message: 'Signup successful! Please check your email to verify your account.',
+        user: data.user 
+      });
+    }
+
+    // Mint custom stateless JWT (only runs if verified or confirmation is disabled)
     const token = jwt.sign({ userId: data.user.id, email: data.user.email }, JWT_SECRET, { expiresIn: '15m' });
 
     return sendSuccess(res, 201, { user: data.user, token });

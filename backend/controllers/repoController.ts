@@ -125,10 +125,14 @@ export async function viewRepo(req: Request, res: Response): Promise<void> {
     return sendError(res, 400, "repoId must be a valid UUID.");
   }
 
-  const { error } = await repoService.incrementRepoViews(repoId);
+  const { data, error } = await repoService.incrementRepoViews(repoId);
 
   if (error) {
     return sendRepoDatabaseError(res, error);
+  }
+
+  if (data === false) {
+    return sendError(res, 404, "Repository not found.");
   }
 
   return sendSuccess(res, 200, { message: "View counted." });

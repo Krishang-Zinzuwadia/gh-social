@@ -103,12 +103,14 @@ EXECUTE FUNCTION update_repo_saves_count();
 -- ─── Views count (increment from backend) ────────────────────────────────────
 
 CREATE OR REPLACE FUNCTION increment_repo_views(rid UUID)
-RETURNS void
+RETURNS boolean
 LANGUAGE plpgsql
 AS $$
 BEGIN
   UPDATE Repo
   SET views_count = views_count + 1
   WHERE repo_id = rid;
+
+  RETURN FOUND;
 END;
 $$;

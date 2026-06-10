@@ -131,21 +131,17 @@ export async function refreshToken(req: Request, res: Response): Promise<void> {
       return sendError(res, 403, 'Invalid or expired token.');
     }
 
-    // 2. Fetch user email for the new access token payload
-    const { data: userData, error: userError } = await supabase
-      .from('users')
-      .select('email')
-      .eq('user_id', storedToken.user_id)
-      .single();
+    // 2. SECURITY FIX: Fetch user email securely from Supabase Auth admin API
+    const { data: authData, error: userError } = await supabase.auth.admin.getUserById(storedToken.user_id);
 
-    if (userError || !userData) return sendError(res, 404, 'User not found.');
+    if (userError || !authData?.user) return sendError(res, 404, 'User not found in Auth system.');
 
-    // 3. SECURITY FIX: Delete the old token (Token Rotation)
+    // 3. Delete the old token (Token Rotation)
     await supabase.from('refresh_tokens').delete().eq('refresh_token_hash', tokenHash);
 
     // 4. Generate a fresh access token (now with email) AND a fresh refresh token
     const newAccessToken = jwt.sign(
-      { userId: storedToken.user_id, email: userData.email }, 
+      { userId: storedToken.user_id, email: authData.user.email }, 
       JWT_SECRET, 
       { expiresIn: '15m' }
     );

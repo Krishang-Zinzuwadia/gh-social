@@ -4,6 +4,7 @@ import activityRoutes from './routes/activityRoutes.js';
 import commentRoutes from './routes/commentRoutes.js';
 import repoRoutes from './routes/repoRoutes.js';
 import userRoutes from './routes/userRoutes.js';
+import authRoutes from './routes/authRoutes.js'; // <-- ADD THIS IMPORT
 
 const app = express();
 
@@ -15,6 +16,9 @@ app.use(express.json());
 app.get('/', (_req: Request, res: Response) => {
   res.json({ message: 'GH Social backend is running' });
 });
+
+// Auth API routes 
+app.use('/api/auth', authRoutes);
 
 // Activity API routes.
 app.use('/api/activity', activityRoutes);

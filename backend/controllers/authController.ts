@@ -114,7 +114,8 @@ export async function logout(req: Request, res: Response): Promise<void> {
 
   try {
     const tokenHash = hashToken(refreshToken);
-    await supabase.from('refresh_tokens').delete().eq('refresh_token_hash', tokenHash);
+    const { error: deleteError } = await supabase.from('refresh_tokens').delete().eq('refresh_token_hash', tokenHash);
+    if (deleteError) return sendError(res, 500, 'An error occurred during logout.');
     res.status(200).json({ success: true, message: 'Logged out successfully.' });
   } catch (err) {
     console.error('Failed to delete refresh token on logout:', err);

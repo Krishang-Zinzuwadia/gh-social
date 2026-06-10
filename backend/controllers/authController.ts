@@ -4,9 +4,28 @@ import supabase from '../config/supabase.js';
 import crypto from 'crypto';
 import { sendError, sendSuccess, sendControllerError } from '../utils/response.js';
 
-// Ensure the secret is available
 const JWT_SECRET = process.env.JWT_SECRET as string;
+
+// Helper to hash tokens
 const hashToken = (token: string) => crypto.createHash('sha256').update(token).digest('hex');
+
+// HELPER: Generate, hash, and store a new 30-day refresh token
+const createAndStoreRefreshToken = async (userId: string) => {
+  const rawToken = crypto.randomBytes(64).toString('hex');
+  const tokenHash = hashToken(rawToken);
+  
+  const expiresAt = new Date();
+  expiresAt.setDate(expiresAt.getDate() + 30); // Valid for 30 days
+
+  const { error } = await supabase.from('refresh_tokens').insert({
+    user_id: userId,
+    refresh_token_hash: tokenHash,
+    expires_at: expiresAt.toISOString(),
+  });
+
+  if (error) throw error;
+  return rawToken;
+};
 
 export async function signUp(req: Request, res: Response): Promise<void> {
   const { email, password, username } = req.body;
@@ -24,8 +43,6 @@ export async function signUp(req: Request, res: Response): Promise<void> {
 
     if (error || !data.user) return sendError(res, 400, error?.message || 'Signup failed');
 
-    // SECURITY FIX: Check if email confirmation is pending
-    // Supabase returns null for data.session if they need to verify their email
     if (!data.session) {
       return sendSuccess(res, 202, { 
         message: 'Signup successful! Please check your email to verify your account.',
@@ -33,10 +50,11 @@ export async function signUp(req: Request, res: Response): Promise<void> {
       });
     }
 
-    // Mint custom stateless JWT (only runs if verified or confirmation is disabled)
+    // Mint access token AND generate refresh token
     const token = jwt.sign({ userId: data.user.id, email: data.user.email }, JWT_SECRET, { expiresIn: '15m' });
+    const refreshToken = await createAndStoreRefreshToken(data.user.id);
 
-    return sendSuccess(res, 201, { user: data.user, token });
+    return sendSuccess(res, 201, { user: data.user, token, refreshToken });
   } catch (err) {
     return sendControllerError(res, err as Error);
   }
@@ -45,19 +63,18 @@ export async function signUp(req: Request, res: Response): Promise<void> {
 export async function login(req: Request, res: Response): Promise<void> {
   const { email, password } = req.body;
 
-  if (!email || !password) {
-    return sendError(res, 400, 'Email and password are required.');
-  }
+  if (!email || !password) return sendError(res, 400, 'Email and password are required.');
 
   try {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
     if (error || !data.user) return sendError(res, 401, 'Invalid login credentials.');
 
-    // Mint custom stateless JWT
+    // Mint access token AND generate refresh token
     const token = jwt.sign({ userId: data.user.id, email: data.user.email }, JWT_SECRET, { expiresIn: '15m' });
+    const refreshToken = await createAndStoreRefreshToken(data.user.id);
 
-    return sendSuccess(res, 200, { user: data.user, token });
+    return sendSuccess(res, 200, { user: data.user, token, refreshToken });
   } catch (err) {
     return sendControllerError(res, err as Error);
   }
@@ -65,10 +82,7 @@ export async function login(req: Request, res: Response): Promise<void> {
 
 export async function getOAuthUrl(req: Request, res: Response): Promise<void> {
   const { provider } = req.params;
-  
-  if (provider !== 'github' && provider !== 'google') {
-    return sendError(res, 400, 'Invalid provider.');
-  }
+  if (provider !== 'github' && provider !== 'google') return sendError(res, 400, 'Invalid provider.');
 
   try {
     const { data, error } = await supabase.auth.signInWithOAuth({
@@ -77,7 +91,6 @@ export async function getOAuthUrl(req: Request, res: Response): Promise<void> {
     });
 
     if (error) return sendError(res, 500, 'Failed to initialize OAuth.');
-    
     return sendSuccess(res, 200, { url: data.url });
   } catch (err) {
     return sendControllerError(res, err as Error);
@@ -85,16 +98,29 @@ export async function getOAuthUrl(req: Request, res: Response): Promise<void> {
 }
 
 export async function logout(req: Request, res: Response): Promise<void> { 
-  // The frontend simply deletes the token from storage.
+  const { refreshToken } = req.body;
+
+  // SECURITY FIX: Delete the session from the database
+  if (refreshToken) {
+    try {
+      const tokenHash = hashToken(refreshToken);
+      await supabase.from('refresh_tokens').delete().eq('refresh_token_hash', tokenHash);
+    } catch (err) {
+      console.error('Failed to delete refresh token on logout:', err);
+    }
+  }
+
   res.status(200).json({ success: true, message: 'Logged out successfully.' });
 }
 
 export async function refreshToken(req: Request, res: Response): Promise<void> {
-  const { refreshToken } = req.body;
-  if (!refreshToken) return sendError(res, 400, 'Refresh token required.');
+  const { refreshToken: currentToken } = req.body;
+  if (!currentToken) return sendError(res, 400, 'Refresh token required.');
 
   try {
-    const tokenHash = hashToken(refreshToken);
+    const tokenHash = hashToken(currentToken);
+    
+    // 1. Validate existing token
     const { data: storedToken, error } = await supabase
       .from('refresh_tokens')
       .select('*')
@@ -105,14 +131,27 @@ export async function refreshToken(req: Request, res: Response): Promise<void> {
       return sendError(res, 403, 'Invalid or expired token.');
     }
 
-    // Issue a fresh 15-minute access token
+    // 2. Fetch user email for the new access token payload
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select('email')
+      .eq('user_id', storedToken.user_id)
+      .single();
+
+    if (userError || !userData) return sendError(res, 404, 'User not found.');
+
+    // 3. SECURITY FIX: Delete the old token (Token Rotation)
+    await supabase.from('refresh_tokens').delete().eq('refresh_token_hash', tokenHash);
+
+    // 4. Generate a fresh access token (now with email) AND a fresh refresh token
     const newAccessToken = jwt.sign(
-      { userId: storedToken.user_id }, 
-      process.env.JWT_SECRET as string, 
+      { userId: storedToken.user_id, email: userData.email }, 
+      JWT_SECRET, 
       { expiresIn: '15m' }
     );
+    const newRefreshToken = await createAndStoreRefreshToken(storedToken.user_id);
     
-    return sendSuccess(res, 200, { token: newAccessToken });
+    return sendSuccess(res, 200, { token: newAccessToken, refreshToken: newRefreshToken });
   } catch (err) {
     return sendControllerError(res, err as Error);
   }

@@ -44,7 +44,7 @@ export async function toggleRepoSave(userId: string, repoId: string) {
     return supabase
       .from("activity")
       .update({ is_saved: newValue })
-    .eq("user_id", userId)
+      .eq("user_id", userId)
       .eq("repo_id", repoId)
       .select()
       .single();

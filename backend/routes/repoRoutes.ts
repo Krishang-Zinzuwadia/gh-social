@@ -3,6 +3,7 @@ import {
   getAllRepos,
   getRepoById,
   importRepo,
+  viewRepo,
   syncRepo,
 } from '../controllers/repoController.js';
 
@@ -18,6 +19,9 @@ router.post('/import', importRepo);
 
 // Get one repository record by repo id.
 router.get('/:repoId', getRepoById);
+
+// Increment view count for a repo.
+router.post('/:repoId/view', viewRepo);
 
 // Refresh one repository record from GitHub.
 router.post('/:repoId/sync', syncRepo);

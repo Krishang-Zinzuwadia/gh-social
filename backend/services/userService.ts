@@ -51,3 +51,20 @@ export function unfollowUser(followerId: string, followingId: string) {
       following_id: followingId,
     });
 }
+
+// List all users (public profiles).
+export function getAllUsers() {
+  return supabase
+    .from("users")
+    .select(USER_PROFILE_COLUMNS)
+    .order("created_at", { ascending: false });
+}
+
+// Fetch a user's public profile by UUID.
+export function getUserById(userId: string) {
+  return supabase
+    .from("users")
+    .select(USER_PROFILE_COLUMNS)
+    .eq("user_id", userId)
+    .single();
+}

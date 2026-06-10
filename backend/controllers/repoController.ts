@@ -52,6 +52,7 @@ async function buildRepoPayload(body: RepoBodyInput): Promise<RepoInsert> {
     language_used: githubRepo.language_breakdown || [],
     topics: githubRepo.topics || [],
     readme_summary: summaryService.summarizeReadme(githubRepo.readme),
+    likes_count: githubRepo.stars_count || 0,
     forks_count: githubRepo.forks_count || 0,
     pr_count: githubRepo.pr_count || 0,
   };
@@ -115,6 +116,22 @@ export async function importRepo(req: Request, res: Response): Promise<void> {
   } catch (err) {
     return sendControllerError(res, err as Error);
   }
+}
+
+export async function viewRepo(req: Request, res: Response): Promise<void> {
+  const repoId = req.params.repoId as string;
+
+  if (!isValidUuid(repoId)) {
+    return sendError(res, 400, "repoId must be a valid UUID.");
+  }
+
+  const { error } = await repoService.incrementRepoViews(repoId);
+
+  if (error) {
+    return sendRepoDatabaseError(res, error);
+  }
+
+  return sendSuccess(res, 200, { message: "View counted." });
 }
 
 export async function syncRepo(req: Request, res: Response): Promise<void> {

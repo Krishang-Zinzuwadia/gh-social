@@ -11,7 +11,7 @@ interface AuthRequest extends Request {
   user?: { userId: string; email: string };
 }
 
-// SECURITY FIX: Create a dedicated Admin client to securely fetch user emails
+// SECURITY FIX: Create a dedicated Admin client to securely bypass RLS
 const supabaseAdmin = createClient(
   process.env.SUPABASE_URL as string,
   process.env.SUPABASE_SERVICE_ROLE_KEY as string
@@ -28,7 +28,8 @@ const createAndStoreRefreshToken = async (userId: string) => {
   const expiresAt = new Date();
   expiresAt.setDate(expiresAt.getDate() + 30); // Valid for 30 days
 
-  const { error } = await supabase.from('refresh_tokens').insert({
+  // SECURITY FIX: Use Admin client to bypass RLS for insertion
+  const { error } = await supabaseAdmin.from('refresh_tokens').insert({
     user_id: userId,
     refresh_token_hash: tokenHash,
     expires_at: expiresAt.toISOString(),
@@ -124,8 +125,8 @@ export async function logout(req: AuthRequest, res: Response): Promise<void> {
   try {
     const tokenHash = hashToken(refreshToken);
     
-    // SECURITY FIX: Chained an extra .eq() to scope the delete to the authenticated user
-    const { error: deleteError } = await supabase
+    // SECURITY FIX: Use Admin client for deletion and chain .eq() to scope to authenticated user
+    const { error: deleteError } = await supabaseAdmin
       .from('refresh_tokens')
       .delete()
       .eq('refresh_token_hash', tokenHash)
@@ -147,8 +148,8 @@ export async function refreshToken(req: Request, res: Response): Promise<void> {
   try {
     const tokenHash = hashToken(currentToken);
     
-    // 1. Validate existing token
-    const { data: storedToken, error } = await supabase
+    // 1. Validate existing token (SECURITY FIX: Use Admin client)
+    const { data: storedToken, error } = await supabaseAdmin
       .from('refresh_tokens')
       .select('*')
       .eq('refresh_token_hash', tokenHash)
@@ -159,15 +160,15 @@ export async function refreshToken(req: Request, res: Response): Promise<void> {
       return sendError(res, 403, 'Invalid, expired, or revoked token.');
     }
 
-    // 2. SECURITY FIX: Fetch user email securely using the dedicated Admin API client
+    // 2. Fetch user email securely using the dedicated Admin API client
     const { data: authData, error: userError } = await supabaseAdmin.auth.admin.getUserById(storedToken.user_id);
 
     if (userError || !authData?.user) return sendError(res, 404, 'User not found in Auth system.');
 
-    // 3. Delete the old token (Token Rotation)
-    await supabase.from('refresh_tokens').delete().eq('refresh_token_hash', tokenHash);
+    // 3. Delete the old token (SECURITY FIX: Use Admin client)
+    await supabaseAdmin.from('refresh_tokens').delete().eq('refresh_token_hash', tokenHash);
 
-    // 4. Generate a fresh access token (now with email) AND a fresh refresh token
+    // 4. Generate a fresh access token AND a fresh refresh token
     const newAccessToken = jwt.sign(
       { userId: storedToken.user_id, email: authData.user.email }, 
       JWT_SECRET, 

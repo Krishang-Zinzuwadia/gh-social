@@ -127,7 +127,7 @@ export async function refreshToken(req: Request, res: Response): Promise<void> {
       .eq('refresh_token_hash', tokenHash)
       .single();
 
-    if (error || !storedToken || new Date() > new Date(storedToken.expires_at)) {
+    if (error || !storedToken || storedToken.is_revoked || new Date() > new Date(storedToken.expires_at)) {
       return sendError(res, 403, 'Invalid or expired token.');
     }
 

@@ -106,15 +106,4 @@ ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.follows ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Public profiles are viewable" ON public.users FOR SELECT USING (true);
-CREATE POLICY "Users can update own profile" ON public.users FOR UPDATE USING (auth.uid() = user_id);
-CREATE POLICY "Users can insert own profile" ON public.users FOR INSERT WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "Users can delete own profile" ON public.users FOR DELETE USING (auth.uid() = user_id);
-
 CREATE POLICY "Anyone can view follows" ON public.follows FOR SELECT USING (true);
-CREATE POLICY "Users can follow" ON public.follows FOR INSERT WITH CHECK (auth.uid() = follower_id);
-CREATE POLICY "Users can unfollow" ON public.follows FOR DELETE USING (auth.uid() = follower_id);
-
--- 6. INDEXES
-CREATE INDEX idx_users_username ON public.users(username);
-CREATE INDEX idx_follows_follower ON public.follows(follower_id);
-CREATE INDEX idx_follows_following ON public.follows(following_id);

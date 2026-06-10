@@ -6,7 +6,7 @@ import crypto from 'crypto';
 import { sendError, sendSuccess, sendControllerError } from '../utils/response.js';
 
 const JWT_SECRET = process.env.JWT_SECRET as string;
-const redirectUrl = process.env.CLIENT_URL || 'http://localhost:5000';
+
 
 interface AuthRequest extends Request {
   user?: { userId: string; email: string };
@@ -100,7 +100,7 @@ export async function getOAuthUrl(req: Request, res: Response): Promise<void> {
   try {
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider,
-      options: { redirectTo: `${process.env.CLIENT_URL}/auth/callback` },
+      options: { redirectTo: `${process.env.BACKEND_URL}/api/auth/callback` },
     });
 
     if (error) return sendError(res, 500, 'Failed to initialize OAuth.');
@@ -209,7 +209,7 @@ export async function handleOAuthCallback(req: Request, res: Response) {
 
     // 3. Redirect to your frontend with your custom tokens
     // Using a URL fragment (#) is more secure than query parameters for tokens
-    res.redirect(`${process.env.CLIENT_URL}/auth/callback?token=${token}&refreshToken=${refreshToken}`);
+    res.redirect(`${process.env.CLIENT_URL}/auth/callback#token=${token}&refreshToken=${refreshToken}`);
 
   } catch (err) {
     return sendControllerError(res, err as Error);

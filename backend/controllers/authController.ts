@@ -6,6 +6,7 @@ import crypto from 'crypto';
 import { sendError, sendSuccess, sendControllerError } from '../utils/response.js';
 
 const JWT_SECRET = process.env.JWT_SECRET as string;
+const redirectUrl = process.env.CLIENT_URL || 'http://localhost:5000';
 
 interface AuthRequest extends Request {
   user?: { userId: string; email: string };
@@ -177,6 +178,39 @@ export async function refreshToken(req: Request, res: Response): Promise<void> {
     const newRefreshToken = await createAndStoreRefreshToken(storedToken.user_id);
     
     return sendSuccess(res, 200, { token: newAccessToken, refreshToken: newRefreshToken });
+  } catch (err) {
+    return sendControllerError(res, err as Error);
+  }
+}
+
+export async function handleOAuthCallback(req: Request, res: Response) {
+  const code = req.query.code as string;
+  
+  if (!code) {
+    return sendError(res, 400, "No code provided");
+  }
+
+  try {
+    // 1. Exchange the code for the Supabase session
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+    
+    if (error || !data.user) {
+      return sendError(res, 400, error?.message || 'OAuth verification failed');
+    }
+
+    // 2. NOW: Mint YOUR OWN JWT and Refresh Token (exactly like you do in login())
+    const token = jwt.sign(
+      { userId: data.user.id, email: data.user.email }, 
+      JWT_SECRET, 
+      { expiresIn: '15m' }
+    );
+    
+    const refreshToken = await createAndStoreRefreshToken(data.user.id);
+
+    // 3. Redirect to your frontend with your custom tokens
+    // Using a URL fragment (#) is more secure than query parameters for tokens
+    res.redirect(`${process.env.CLIENT_URL}/auth/callback?token=${token}&refreshToken=${refreshToken}`);
+
   } catch (err) {
     return sendControllerError(res, err as Error);
   }

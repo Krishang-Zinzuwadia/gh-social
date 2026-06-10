@@ -1,10 +1,12 @@
 import type { Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import  supabase  from '../config/supabase.js';
+import crypto from 'crypto';
 import { sendError, sendSuccess, sendControllerError } from '../utils/response.js';
 
 // Ensure the secret is available
 const JWT_SECRET = process.env.JWT_SECRET as string;
+const hashToken = (token: string) => crypto.createHash('sha256').update(token).digest('hex');
 
 export async function signUp(req: Request, res: Response): Promise<void> {
   const { email, password, username } = req.body;
@@ -76,4 +78,33 @@ export async function getOAuthUrl(req: Request, res: Response): Promise<void> {
 export async function logout(req: Request, res: Response): Promise<void> { 
   // The frontend simply deletes the token from storage.
   res.status(200).json({ success: true, message: 'Logged out successfully.' });
+}
+
+export async function refreshToken(req: Request, res: Response): Promise<void> {
+  const { refreshToken } = req.body;
+  if (!refreshToken) return sendError(res, 400, 'Refresh token required.');
+
+  try {
+    const tokenHash = hashToken(refreshToken);
+    const { data: storedToken, error } = await supabase
+      .from('refresh_tokens')
+      .select('*')
+      .eq('refresh_token_hash', tokenHash)
+      .single();
+
+    if (error || !storedToken || new Date() > new Date(storedToken.expires_at)) {
+      return sendError(res, 403, 'Invalid or expired token.');
+    }
+
+    // Issue a fresh 15-minute access token
+    const newAccessToken = jwt.sign(
+      { userId: storedToken.user_id }, 
+      process.env.JWT_SECRET as string, 
+      { expiresIn: '15m' }
+    );
+    
+    return sendSuccess(res, 200, { token: newAccessToken });
+  } catch (err) {
+    return sendControllerError(res, err as Error);
+  }
 }

@@ -7,6 +7,10 @@ import { sendError, sendSuccess, sendControllerError } from '../utils/response.j
 
 const JWT_SECRET = process.env.JWT_SECRET as string;
 
+interface AuthRequest extends Request {
+  user?: { userId: string; email: string };
+}
+
 // SECURITY FIX: Create a dedicated Admin client to securely fetch user emails
 const supabaseAdmin = createClient(
   process.env.SUPABASE_URL as string,
@@ -104,7 +108,7 @@ export async function getOAuthUrl(req: Request, res: Response): Promise<void> {
   }
 }
 
-export async function logout(req: Request, res: Response): Promise<void> { 
+export async function logout(req: AuthRequest, res: Response): Promise<void> { 
   const { refreshToken } = req.body;
 
   // SECURITY FIX: Reject logout if the token is missing entirely
@@ -112,10 +116,23 @@ export async function logout(req: Request, res: Response): Promise<void> {
     return sendError(res, 400, 'Refresh token required for logout.');
   }
 
+  // SECURITY FIX: Ensure the auth middleware actually attached the user
+  if (!req.user || !req.user.userId) {
+    return sendError(res, 401, 'Unauthorized request.');
+  }
+
   try {
     const tokenHash = hashToken(refreshToken);
-    const { error: deleteError } = await supabase.from('refresh_tokens').delete().eq('refresh_token_hash', tokenHash);
+    
+    // SECURITY FIX: Chained an extra .eq() to scope the delete to the authenticated user
+    const { error: deleteError } = await supabase
+      .from('refresh_tokens')
+      .delete()
+      .eq('refresh_token_hash', tokenHash)
+      .eq('user_id', req.user.userId); 
+
     if (deleteError) return sendError(res, 500, 'An error occurred during logout.');
+    
     res.status(200).json({ success: true, message: 'Logged out successfully.' });
   } catch (err) {
     console.error('Failed to delete refresh token on logout:', err);

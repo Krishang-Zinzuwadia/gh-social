@@ -19,6 +19,34 @@ export async function getUserProfile(req: Request, res: Response): Promise<void>
   return sendSuccess(res, 200, data);
 }
 
+// Update current user's profile (Uses AuthRequest)
+export async function updateProfile(req: AuthRequest, res: Response): Promise<void> {
+  const userId = req.user?.userId;
+
+  if (!userId) {
+    return sendError(res, 401, 'Unauthorized request. Please log in.');
+  }
+
+  const { username, full_name, date_of_birth, bio, github_url, avatar_url } = req.body;
+
+  // Build the updates object
+  const updates: any = {};
+  if (username !== undefined) updates.username = username;
+  if (full_name !== undefined) updates.full_name = full_name;
+  if (date_of_birth !== undefined) updates.date_of_birth = date_of_birth;
+  if (bio !== undefined) updates.bio = bio;
+  if (github_url !== undefined) updates.github_url = github_url;
+  if (avatar_url !== undefined) updates.avatar_url = avatar_url;
+
+  const { data, error } = await userService.updateUserProfile(userId, updates);
+
+  if (error) {
+    return sendSupabaseError(res, error);
+  }
+
+  return sendSuccess(res, 200, data);
+}
+
 // Follow a user (Uses AuthRequest)
 export async function followUser(req: AuthRequest, res: Response): Promise<void> {
   const username = req.params.username as string;

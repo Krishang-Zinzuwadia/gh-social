@@ -1,7 +1,12 @@
 import supabase from '../config/supabase.js';
+import type { UserUpdate } from '../types/database.js';
 
 const USER_PROFILE_COLUMNS = [
   "username",
+  "full_name",
+  "date_of_birth",
+  "bio",
+  "github_url",
   "github_handle",
   "avatar_url",
   "followers_count",
@@ -50,4 +55,14 @@ export function unfollowUser(followerId: string, followingId: string) {
       follower_id: followerId,
       following_id: followingId,
     });
+}
+
+// Update a user's profile
+export function updateUserProfile(userId: string, updates: UserUpdate) {
+  return supabase
+    .from("users")
+    .update(updates)
+    .eq("user_id", userId)
+    .select(USER_PROFILE_COLUMNS)
+    .single();
 }

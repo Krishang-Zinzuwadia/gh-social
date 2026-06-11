@@ -24,6 +24,10 @@ export type ActivityUpdate = Partial<ActivityInsert>;
 export interface UserRow {
   user_id: string;
   username: string;
+  full_name: string | null;
+  date_of_birth: string | null;
+  bio: string | null;
+  github_url: string | null;
   github_id: string | null;
   github_handle: string | null;
   avatar_url: string | null;
@@ -47,6 +51,10 @@ export type UserUpdate = Partial<UserInsert>;
 export type UserProfile = Pick<
   UserRow,
   | 'username'
+  | 'full_name'
+  | 'date_of_birth'
+  | 'bio'
+  | 'github_url'
   | 'github_handle'
   | 'avatar_url'
   | 'followers_count'

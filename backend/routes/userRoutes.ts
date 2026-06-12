@@ -3,9 +3,11 @@ import {
   getAllUsers,
   getUserById,
   getUserProfile,
+  updateProfile,
   followUser,
   unfollowUser,
 } from '../controllers/userController.js';
+import { requireAuth } from '../middlewares/authMiddleware.js';
 
 const router: Router = Router();
 
@@ -15,13 +17,16 @@ router.get('/', getAllUsers);
 // GET /api/users/id/:userId - Fetch a user's public profile by UUID
 router.get('/id/:userId', getUserById);
 
+// PATCH /api/users/me - Update current user's profile
+router.patch('/me', requireAuth, updateProfile);
+
 // GET /api/users/:username - Fetch a user's public profile
 router.get('/:username', getUserProfile);
 
 // POST /api/users/:username/follow - Follow a user
-router.post('/:username/follow', followUser);
+router.post('/:username/follow', requireAuth, followUser);
 
 // DELETE /api/users/:username/follow - Unfollow a user
-router.delete('/:username/follow', unfollowUser);
+router.delete('/:username/follow', requireAuth, unfollowUser);
 
 export default router;

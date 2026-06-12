@@ -1,5 +1,6 @@
 import express, { type Request, type Response, type NextFunction } from 'express';
 import cors from 'cors';
+import authRoutes from './routes/authRoutes.js';
 import activityRoutes from './routes/activityRoutes.js';
 import commentRoutes from './routes/commentRoutes.js';
 import repoRoutes from './routes/repoRoutes.js';
@@ -17,6 +18,9 @@ app.use(express.json());
 app.get('/', (_req: Request, res: Response) => {
   res.json({ message: 'GH Social backend is running' });
 });
+
+// Auth API routes 
+app.use('/api/auth', authRoutes);
 
 // Activity API routes.
 app.use('/api/activity', activityRoutes);

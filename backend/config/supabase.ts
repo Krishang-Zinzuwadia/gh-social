@@ -9,7 +9,7 @@ if (!supabaseUrl || !supabaseKey) {
 
 const supabase: SupabaseClient = createClient(supabaseUrl, supabaseKey, {
   auth: {
-    flowType: 'implicit',
+    flowType: 'pkce',
   },
 });
 

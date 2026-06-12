@@ -5,6 +5,12 @@ import crypto from 'crypto';
 import { sendError, sendSuccess, sendControllerError } from '../utils/response.js';
 
 const JWT_SECRET = process.env.JWT_SECRET as string;
+const BACKEND_URL = process.env.BACKEND_URL as string;
+const CLIENT_URL = process.env.CLIENT_URL as string;
+
+if (!BACKEND_URL || !CLIENT_URL) {
+  throw new Error('FATAL ERROR: BACKEND_URL and CLIENT_URL must be defined in environment variables.');
+}
 
 
 interface AuthRequest extends Request {
@@ -101,7 +107,7 @@ export async function getOAuthUrl(req: Request, res: Response): Promise<void> {
   try {
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider,
-      options: { redirectTo: `${process.env.BACKEND_URL}/api/auth/callback` },
+      options: { redirectTo: `${BACKEND_URL}/api/auth/callback` },
     });
 
     if (error) return sendError(res, 500, 'Failed to initialize OAuth.');
@@ -218,14 +224,14 @@ export async function handleOAuthCallback(req: Request, res: Response) {
 
     if (codeError || !codeData) {
       console.error('OAuth Code Insert Error:', codeError);
-      return res.redirect(`${process.env.CLIENT_URL}/auth/callback?error=Failed to generate auth code`);
+      return res.redirect(`${CLIENT_URL}/auth/callback?error=Failed to generate auth code`);
     }
 
     // 3. Redirect to your frontend with the short-lived code
-    res.redirect(`${process.env.CLIENT_URL}/auth/callback?code=${codeData.code}`);
+    res.redirect(`${CLIENT_URL}/auth/callback?code=${codeData.code}`);
   } catch (error) {
     console.error('OAuth Callback Error:', error);
-    res.redirect(`${process.env.CLIENT_URL}/auth/callback?error=Internal server error`);
+    res.redirect(`${CLIENT_URL}/auth/callback?error=Internal server error`);
   }
 }
 

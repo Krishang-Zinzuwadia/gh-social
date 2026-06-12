@@ -9,4 +9,11 @@ if (!supabaseUrl || !supabaseKey) {
 
 const supabase: SupabaseClient = createClient(supabaseUrl, supabaseKey);
 
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+if (!supabaseServiceKey) {
+  throw new Error('Missing SUPABASE_SERVICE_ROLE_KEY in environment');
+}
+
+export const supabaseAdmin: SupabaseClient = createClient(supabaseUrl, supabaseServiceKey);
+
 export default supabase;

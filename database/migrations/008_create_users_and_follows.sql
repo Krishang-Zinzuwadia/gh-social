@@ -36,6 +36,9 @@ BEGIN
         user_id,
         username,
         full_name,                -- NEW
+        date_of_birth,
+        bio,
+        github_url,
         github_id,
         github_handle,
         avatar_url
@@ -47,6 +50,9 @@ BEGIN
             'user_' || SUBSTRING(NEW.id::text, 1, 8)
         ),
         NEW.raw_user_meta_data->>'full_name',  -- NEW
+        (NEW.raw_user_meta_data->>'date_of_birth')::DATE,
+        NEW.raw_user_meta_data->>'bio',
+        NEW.raw_user_meta_data->>'github_url',
         NEW.raw_user_meta_data->>'provider_id',
         NEW.raw_user_meta_data->>'preferred_username',
         NEW.raw_user_meta_data->>'avatar_url'

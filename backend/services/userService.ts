@@ -1,4 +1,4 @@
-import supabase from '../config/supabase.js';
+import supabase, { supabaseAdmin } from '../config/supabase.js';
 import type { UserUpdate } from '../types/database.js';
 
 const USER_PROFILE_COLUMNS = [
@@ -36,7 +36,7 @@ export function getUserIdByUsername(username: string) {
 
 // Create a follower/following relationship.
 export function followUser(followerId: string, followingId: string) {
-  return supabase
+  return supabaseAdmin
     .from("follows")
     .insert([
       {
@@ -48,7 +48,7 @@ export function followUser(followerId: string, followingId: string) {
 
 // Delete a follower/following relationship.
 export function unfollowUser(followerId: string, followingId: string) {
-  return supabase
+  return supabaseAdmin
     .from("follows")
     .delete({ count: 'exact' })
     .match({
@@ -76,7 +76,7 @@ export function getUserById(userId: string) {
 
 // Update a user's profile
 export function updateUserProfile(userId: string, updates: UserUpdate) {
-  return supabase
+  return supabaseAdmin
     .from("users")
     .update(updates)
     .eq("user_id", userId)

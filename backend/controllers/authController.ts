@@ -1,7 +1,6 @@
 import type { Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
-import supabase from '../config/supabase.js'; // Normal client for public/anon actions
-import { createClient } from '@supabase/supabase-js'; // To create our Admin client
+import supabase, { supabaseAdmin } from '../config/supabase.js'; 
 import crypto from 'crypto';
 import { sendError, sendSuccess, sendControllerError } from '../utils/response.js';
 
@@ -11,12 +10,6 @@ const JWT_SECRET = process.env.JWT_SECRET as string;
 interface AuthRequest extends Request {
   user?: { userId: string; email: string };
 }
-
-// SECURITY FIX: Create a dedicated Admin client to securely bypass RLS
-const supabaseAdmin = createClient(
-  process.env.SUPABASE_URL as string,
-  process.env.SUPABASE_SERVICE_ROLE_KEY as string
-);
 
 // Helper to hash tokens
 const hashToken = (token: string) => crypto.createHash('sha256').update(token).digest('hex');
@@ -175,7 +168,11 @@ export async function refreshToken(req: Request, res: Response): Promise<void> {
     if (userError || !authData?.user) return sendError(res, 404, 'User not found in Auth system.');
 
     // 3. Delete the old token (SECURITY FIX: Use Admin client)
-    await supabaseAdmin.from('refresh_tokens').delete().eq('refresh_token_hash', tokenHash);
+    const { error: deleteError } = await supabaseAdmin.from('refresh_tokens').delete().eq('refresh_token_hash', tokenHash);
+    
+    if (deleteError) {
+      return sendError(res, 500, 'Failed to rotate refresh token. Please log in again.');
+    }
 
     // 4. Generate a fresh access token AND a fresh refresh token
     const newAccessToken = jwt.sign(

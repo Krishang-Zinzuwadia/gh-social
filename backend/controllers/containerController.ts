@@ -140,9 +140,9 @@ export async function getBoardsForContainer(req: Request, res: Response): Promis
   const { data, error } = await containerService.getBoardsForContainer(containerId);
   if (error) return sendSupabaseError(res, error);
 
-  const entries = data as { board: { visibility: string; user_id: string }[] }[];
+  const entries = data as unknown as { board: { visibility: string; user_id: string } }[];
   const filtered = entries.filter(
-    entry => entry.board[0]?.visibility === 'public' || entry.board[0]?.user_id === viewerId
+    entry => entry.board.visibility === 'public' || entry.board.user_id === viewerId
   );
 
   return sendSuccess(res, 200, filtered);

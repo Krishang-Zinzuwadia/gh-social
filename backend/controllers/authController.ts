@@ -202,8 +202,7 @@ export async function handleOAuthCallback(req: Request, res: Response) {
   }
 
   try {
-    // 1. Exchange the code for the Supabase session
-    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+    const { data, error } = await supabaseAdmin.auth.exchangeCodeForSession(code);
     
     if (error || !data.user) {
       return sendError(res, 400, error?.message || 'OAuth verification failed');

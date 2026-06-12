@@ -6,6 +6,7 @@
  */
 import type { Request, Response } from 'express';
 import * as containerService from '../services/containerService.js';
+import * as boardService from '../services/boardService.js';
 import { sendError, sendSuccess, sendSupabaseError, sendControllerError } from '../utils/response.js';
 import { isValidUuid } from '../utils/validators.js';
 import type { PostgresError } from '../types/index.js';
@@ -67,6 +68,12 @@ export async function addBoardToContainer(req: Request, res: Response): Promise<
   if (containerError) return sendSupabaseError(res, containerError, { notFoundMessage: 'Container not found.' });
   if (container.user_id !== userId) return sendError(res, 403, 'You do not own this container.');
 
+  const { data: board, error: boardError } = await boardService.getBoardById(boardId);
+  if (boardError) return sendSupabaseError(res, boardError, { notFoundMessage: 'Board not found.' });
+  if (board.visibility !== 'public' && board.user_id !== userId) {
+    return sendError(res, 403, 'You cannot add a private board you do not own.');
+  }
+
   try {
     const { data, error } = await containerService.addBoardToContainer(containerId, boardId);
     if (error) return sendSupabaseError(res, error);
@@ -127,9 +134,16 @@ export async function deleteContainerById(req: Request, res: Response): Promise<
  */
 export async function getBoardsForContainer(req: Request, res: Response): Promise<void> {
   const containerId = req.params.containerId as string;
+  const viewerId = req.query.viewer_id as string | undefined;
   if (!isValidUuid(containerId)) return sendError(res, 400, 'containerId must be a valid UUID.');
 
   const { data, error } = await containerService.getBoardsForContainer(containerId);
   if (error) return sendSupabaseError(res, error);
-  return sendSuccess(res, 200, data);
+
+  const entries = data as { board: { visibility: string; user_id: string }[] }[];
+  const filtered = entries.filter(
+    entry => entry.board[0]?.visibility === 'public' || entry.board[0]?.user_id === viewerId
+  );
+
+  return sendSuccess(res, 200, filtered);
 }

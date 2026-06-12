@@ -5,6 +5,8 @@ CREATE TABLE comment (
     parent_comment_id UUID,
     comment TEXT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT comment_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(user_id) ON DELETE CASCADE,
+    CONSTRAINT comment_repo_id_fkey FOREIGN KEY (repo_id) REFERENCES repo(repo_id) ON DELETE CASCADE,
     CONSTRAINT comment_parent_comment_id_fkey
         FOREIGN KEY (parent_comment_id)
         REFERENCES comment(comment_id)

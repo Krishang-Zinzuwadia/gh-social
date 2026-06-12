@@ -117,6 +117,26 @@ export async function importRepo(req: Request, res: Response): Promise<void> {
   }
 }
 
+export async function viewRepo(req: Request, res: Response): Promise<void> {
+  const repoId = req.params.repoId as string;
+
+  if (!isValidUuid(repoId)) {
+    return sendError(res, 400, "repoId must be a valid UUID.");
+  }
+
+  const { data, error } = await repoService.incrementRepoViews(repoId);
+
+  if (error) {
+    return sendRepoDatabaseError(res, error);
+  }
+
+  if (data === false) {
+    return sendError(res, 404, "Repository not found.");
+  }
+
+  return sendSuccess(res, 200, { message: "View counted." });
+}
+
 export async function syncRepo(req: Request, res: Response): Promise<void> {
   const repoId = req.params.repoId as string;
   const { github_repo_url: githubRepoUrl, owner_id: ownerId } =

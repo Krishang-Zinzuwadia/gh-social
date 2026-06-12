@@ -4,6 +4,8 @@ import activityRoutes from './routes/activityRoutes.js';
 import commentRoutes from './routes/commentRoutes.js';
 import repoRoutes from './routes/repoRoutes.js';
 import userRoutes from './routes/userRoutes.js';
+import boardRoutes from './routes/boardRoutes.js';
+import containersRoutes from './routes/containersRoutes.js';
 
 const app = express();
 
@@ -27,6 +29,12 @@ app.use('/api/repos', repoRoutes);
 
 // User API routes.
 app.use('/api/users', userRoutes);
+
+// Board API routes.
+app.use('/api/boards', boardRoutes);
+
+// Container API routes.
+app.use('/api/containers', containersRoutes);
 
 // Global error handler.
 app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {

@@ -30,6 +30,11 @@ export function createRepo(repoData: RepoInsert) {
     .single();
 }
 
+// Increment view count for a repo.
+export function incrementRepoViews(repoId: string) {
+  return supabase.rpc('increment_repo_views', { rid: repoId });
+}
+
 // Update one repo by primary key.
 export function updateRepoById(repoId: string, repoData: RepoUpdate) {
   return supabase

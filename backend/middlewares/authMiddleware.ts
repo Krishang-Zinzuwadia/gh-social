@@ -2,8 +2,10 @@ import type { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { sendError } from '../utils/response.js';
 
-// Configuration constant
-const JWT_SECRET = process.env.JWT_SECRET || 'your_fallback_super_secret_key';
+const JWT_SECRET = process.env.JWT_SECRET as string;
+if (!JWT_SECRET) {
+  throw new Error('FATAL ERROR: JWT_SECRET is not defined in environment variables.');
+}
 
 // Extend the Express Request to include our custom decoded JWT payload
 export interface AuthRequest extends Request {

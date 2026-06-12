@@ -206,9 +206,6 @@ export async function handleOAuthCallback(req: Request, res: Response) {
   const code = req.query.code as string;
   
   if (!code) {
-    // This endpoint is always reached via a browser redirect from the OAuth provider.
-    // Returning JSON here (sendError) would show raw JSON to the user.
-    // Redirect to the frontend error page so the user sees a proper UI.
     const reason = (req.query.error as string) || 'no_code';
     return res.redirect(`${CLIENT_URL}/auth/callback?error=${encodeURIComponent(reason)}`);
   }
@@ -217,7 +214,8 @@ export async function handleOAuthCallback(req: Request, res: Response) {
     const { data, error } = await supabaseAdmin.auth.exchangeCodeForSession(code);
     
     if (error || !data.user) {
-      return sendError(res, 400, error?.message || 'OAuth verification failed');
+      const reason = error?.message || 'OAuth verification failed';
+      return res.redirect(`${CLIENT_URL}/auth/callback?error=${encodeURIComponent(reason)}`);
     }
 
     // 2. Insert a short-lived (5 minute) authorization code into the DB

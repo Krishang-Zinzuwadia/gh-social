@@ -22,19 +22,32 @@ export async function createBoard(req: Request, res: Response): Promise<void> {
 
 export async function getBoardsByUser(req: Request, res: Response): Promise<void> {
   const userId = req.params.userId as string;
+  const viewerId = req.query.viewer_id as string | undefined;
   if (!isValidUuid(userId)) return sendError(res, 400, 'userId must be a valid UUID.');
 
   const { data, error } = await boardService.getBoardsByUser(userId);
   if (error) return sendSupabaseError(res, error);
-  return sendSuccess(res, 200, data);
+
+  if (viewerId === userId) {
+    return sendSuccess(res, 200, data);
+  }
+
+  const publicBoards = (data as { visibility: string }[]).filter(b => b.visibility === 'public');
+  return sendSuccess(res, 200, publicBoards);
 }
 
 export async function getBoardById(req: Request, res: Response): Promise<void> {
   const boardId = req.params.boardId as string;
+  const viewerId = req.query.viewer_id as string | undefined;
   if (!isValidUuid(boardId)) return sendError(res, 400, 'boardId must be a valid UUID.');
 
   const { data, error } = await boardService.getBoardById(boardId);
-  if (error) return sendSupabaseError(res, error);
+  if (error) return sendSupabaseError(res, error, { notFoundMessage: 'Board not found.' });
+
+  if (data.visibility === 'private' && data.user_id !== viewerId) {
+    return sendError(res, 404, 'Board not found.');
+  }
+
   return sendSuccess(res, 200, data);
 }
 
@@ -117,7 +130,15 @@ export async function deleteBoardById(req: Request, res: Response): Promise<void
 
 export async function getReposForBoard(req: Request, res: Response): Promise<void> {
   const boardId = req.params.boardId as string;
+  const viewerId = req.query.viewer_id as string | undefined;
   if (!isValidUuid(boardId)) return sendError(res, 400, 'boardId must be a valid UUID.');
+
+  const { data: board, error: boardError } = await boardService.getBoardById(boardId);
+  if (boardError) return sendSupabaseError(res, boardError, { notFoundMessage: 'Board not found.' });
+
+  if (board.visibility === 'private' && board.user_id !== viewerId) {
+    return sendError(res, 404, 'Board not found.');
+  }
 
   const { data, error } = await boardService.getReposForBoard(boardId);
   if (error) return sendSupabaseError(res, error);

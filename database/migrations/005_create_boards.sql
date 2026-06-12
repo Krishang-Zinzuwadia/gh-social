@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS boards (
     board_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES public.users(user_id) ON DELETE CASCADE,
     board_name VARCHAR(100) NOT NULL,
-    visibility VARCHAR(20) NOT NULL DEFAULT 'public',
+    visibility VARCHAR(20) NOT NULL DEFAULT 'public' CHECK (visibility IN ('public', 'private')),
     description TEXT,
     repos_count INT DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -72,9 +72,5 @@ DROP TRIGGER IF EXISTS trg_boards_repos_count ON board_repos;
 CREATE TRIGGER trg_boards_repos_count
 AFTER INSERT OR DELETE ON board_repos
 FOR EACH ROW EXECUTE FUNCTION boards_repos_count_update();
-
--- Optional: ensure users cannot create boards with invalid visibility
-ALTER TABLE boards
-    ADD CONSTRAINT boards_visibility_check CHECK (visibility IN ('public', 'private'));
 
 -- End of migration

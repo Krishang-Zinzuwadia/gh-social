@@ -206,7 +206,11 @@ export async function handleOAuthCallback(req: Request, res: Response) {
   const code = req.query.code as string;
   
   if (!code) {
-    return sendError(res, 400, "No code provided");
+    // This endpoint is always reached via a browser redirect from the OAuth provider.
+    // Returning JSON here (sendError) would show raw JSON to the user.
+    // Redirect to the frontend error page so the user sees a proper UI.
+    const reason = (req.query.error as string) || 'no_code';
+    return res.redirect(`${CLIENT_URL}/auth/callback?error=${encodeURIComponent(reason)}`);
   }
 
   try {

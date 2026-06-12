@@ -13,3 +13,7 @@ CREATE TABLE public.refresh_tokens (
 -- INDEXES: Crucial for performance
 CREATE INDEX idx_refresh_tokens_hash ON public.refresh_tokens(refresh_token_hash);
 CREATE INDEX idx_refresh_tokens_user_id ON public.refresh_tokens(user_id);
+
+-- SECURITY: Lock down the table so only the service role can access it
+ALTER TABLE public.refresh_tokens ENABLE ROW LEVEL SECURITY;
+-- No permissive policies — all access goes through the admin client (service role bypasses RLS)

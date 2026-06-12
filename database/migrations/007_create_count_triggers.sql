@@ -100,6 +100,36 @@ AFTER INSERT OR UPDATE OR DELETE ON activity
 FOR EACH ROW
 EXECUTE FUNCTION update_repo_saves_count();
 
+-- ─── Atomic toggle functions for like/save (TOCTOU-safe) ─────────────────────
+
+CREATE OR REPLACE FUNCTION toggle_repo_like(uid UUID, rid UUID)
+RETURNS SETOF activity
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  RETURN QUERY
+  INSERT INTO activity (user_id, repo_id, likelihood_count)
+  VALUES (uid, rid, 1)
+  ON CONFLICT (user_id, repo_id) DO UPDATE
+    SET likelihood_count = CASE WHEN activity.likelihood_count = 1 THEN 0 ELSE 1 END
+  RETURNING *;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION toggle_repo_save(uid UUID, rid UUID)
+RETURNS SETOF activity
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  RETURN QUERY
+  INSERT INTO activity (user_id, repo_id, is_saved)
+  VALUES (uid, rid, true)
+  ON CONFLICT (user_id, repo_id) DO UPDATE
+    SET is_saved = NOT activity.is_saved
+  RETURNING *;
+END;
+$$;
+
 -- ─── Views count (increment from backend) ────────────────────────────────────
 
 CREATE OR REPLACE FUNCTION increment_repo_views(rid UUID)
@@ -112,5 +142,43 @@ BEGIN
   WHERE repo_id = rid;
 
   RETURN FOUND;
+END;
+$$;
+
+-- ─── Atomic container-with-boards creation (transactional) ──────────────────
+
+CREATE OR REPLACE FUNCTION create_container_with_defaults(
+  uid UUID,
+  container_name TEXT DEFAULT 'Default Boards Container'
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+AS $$
+DECLARE
+  v_container JSONB;
+  v_board1    JSONB;
+  v_board2    JSONB;
+BEGIN
+  INSERT INTO boards_containers (user_id, container_name, description)
+  VALUES (uid, container_name, NULL)
+  RETURNING row_to_json(boards_containers.*)::JSONB INTO v_container;
+
+  INSERT INTO boards (user_id, board_name, visibility, description)
+  VALUES (uid, 'Saved Repos', 'public', NULL)
+  RETURNING row_to_json(boards.*)::JSONB INTO v_board1;
+
+  INSERT INTO boards (user_id, board_name, visibility, description)
+  VALUES (uid, 'GitHub Repos', 'public', NULL)
+  RETURNING row_to_json(boards.*)::JSONB INTO v_board2;
+
+  INSERT INTO container_boards (container_id, board_id)
+  VALUES
+    ((v_container->>'container_id')::UUID, (v_board1->>'board_id')::UUID),
+    ((v_container->>'container_id')::UUID, (v_board2->>'board_id')::UUID);
+
+  RETURN jsonb_build_object(
+    'container', v_container,
+    'boards', jsonb_build_array(v_board1, v_board2)
+  );
 END;
 $$;

@@ -69,13 +69,18 @@ export async function addRepoToBoard(req: Request, res: Response): Promise<void>
 
 export async function removeRepoFromBoard(req: Request, res: Response): Promise<void> {
   const { boardId, repoId } = req.params as { boardId: string; repoId: string };
+  const userId = req.body.user_id as string | undefined;
   if (!isValidUuid(boardId) || !isValidUuid(repoId)) return sendError(res, 400, 'boardId and repoId must be valid UUIDs.');
+  if (!userId || !isValidUuid(userId)) return sendError(res, 400, 'user_id is required and must be a valid UUID.');
+
+  const { data: board, error: boardError } = await boardService.getBoardById(boardId);
+  if (boardError) return sendSupabaseError(res, boardError, { notFoundMessage: 'Board not found.' });
+  if (board.user_id !== userId) return sendError(res, 403, 'You do not own this board.');
 
   try {
     const { error, count } = await boardService.removeRepoFromBoard(boardId, repoId);
     if (error) return sendSupabaseError(res, error);
 
-    // supabase delete returns count in some clients; if none, return 200 OK
     if (typeof count === 'number' && count === 0) return sendError(res, 404, 'Repo not found on board.');
 
     return sendSuccess(res, 200, { message: 'Repo removed from board.' });
@@ -86,7 +91,13 @@ export async function removeRepoFromBoard(req: Request, res: Response): Promise<
 
 export async function deleteBoardById(req: Request, res: Response): Promise<void> {
   const boardId = req.params.boardId as string;
+  const userId = req.body.user_id as string | undefined;
   if (!isValidUuid(boardId)) return sendError(res, 400, 'boardId must be a valid UUID.');
+  if (!userId || !isValidUuid(userId)) return sendError(res, 400, 'user_id is required and must be a valid UUID.');
+
+  const { data: board, error: boardError } = await boardService.getBoardById(boardId);
+  if (boardError) return sendSupabaseError(res, boardError, { notFoundMessage: 'Board not found.' });
+  if (board.user_id !== userId) return sendError(res, 403, 'You do not own this board.');
 
   try {
     const { error, count } = await boardService.deleteBoard(boardId);

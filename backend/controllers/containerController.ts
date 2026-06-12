@@ -8,6 +8,7 @@ import type { Request, Response } from 'express';
 import * as containerService from '../services/containerService.js';
 import { sendError, sendSuccess, sendSupabaseError, sendControllerError } from '../utils/response.js';
 import { isValidUuid } from '../utils/validators.js';
+import type { PostgresError } from '../types/index.js';
 
 /**
  * POST / - create a container and auto-seed two public boards for the user.
@@ -20,8 +21,8 @@ export async function createContainer(req: Request, res: Response): Promise<void
 
   try {
     const result = await containerService.createContainerWithDefaults(user_id, container_name);
-    if ((result as any).error) return sendSupabaseError(res, (result as any).error);
-    return sendSuccess(res, 201, (result as any).data);
+    if (result.error) return sendSupabaseError(res, result.error as PostgresError);
+    return sendSuccess(res, 201, result.data);
   } catch (err) {
     return sendControllerError(res, err);
   }
@@ -74,7 +75,13 @@ export async function addBoardToContainer(req: Request, res: Response): Promise<
  */
 export async function removeBoardFromContainer(req: Request, res: Response): Promise<void> {
   const { containerId, boardId } = req.params as { containerId: string; boardId: string };
+  const userId = req.body.user_id as string | undefined;
   if (!isValidUuid(containerId) || !isValidUuid(boardId)) return sendError(res, 400, 'containerId and boardId must be valid UUIDs.');
+  if (!userId || !isValidUuid(userId)) return sendError(res, 400, 'user_id is required and must be a valid UUID.');
+
+  const { data: container, error: containerError } = await containerService.getContainerById(containerId);
+  if (containerError) return sendSupabaseError(res, containerError, { notFoundMessage: 'Container not found.' });
+  if (container.user_id !== userId) return sendError(res, 403, 'You do not own this container.');
 
   try {
     const { error, count } = await containerService.removeBoardFromContainer(containerId, boardId);
@@ -91,7 +98,13 @@ export async function removeBoardFromContainer(req: Request, res: Response): Pro
  */
 export async function deleteContainerById(req: Request, res: Response): Promise<void> {
   const containerId = req.params.containerId as string;
+  const userId = req.body.user_id as string | undefined;
   if (!isValidUuid(containerId)) return sendError(res, 400, 'containerId must be a valid UUID.');
+  if (!userId || !isValidUuid(userId)) return sendError(res, 400, 'user_id is required and must be a valid UUID.');
+
+  const { data: container, error: containerError } = await containerService.getContainerById(containerId);
+  if (containerError) return sendSupabaseError(res, containerError, { notFoundMessage: 'Container not found.' });
+  if (container.user_id !== userId) return sendError(res, 403, 'You do not own this container.');
 
   try {
     const { error, count } = await containerService.deleteContainer(containerId);

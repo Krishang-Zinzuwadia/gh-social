@@ -1,60 +1,14 @@
 import supabase from '../config/supabase.js';
 import type { ActivityInsert, ActivityUpdate } from '../types/index.js';
 
-// Toggle like for a user/repo pair (0 ↔ 1).
-export async function toggleRepoLike(userId: string, repoId: string) {
-  const { data: existing } = await supabase
-    .from("activity")
-    .select("likelihood_count")
-    .eq("user_id", userId)
-    .eq("repo_id", repoId)
-    .maybeSingle();
-
-  const newValue = existing?.likelihood_count === 1 ? 0 : 1;
-
-  if (existing) {
-    return supabase
-      .from("activity")
-      .update({ likelihood_count: newValue })
-      .eq("user_id", userId)
-      .eq("repo_id", repoId)
-      .select()
-      .single();
-  }
-
-  return supabase
-    .from("activity")
-    .insert({ user_id: userId, repo_id: repoId, likelihood_count: newValue })
-    .select()
-    .single();
+// Toggle like for a user/repo pair (0 ↔ 1). Atomic upsert, no TOCTOU.
+export function toggleRepoLike(userId: string, repoId: string) {
+  return supabase.rpc('toggle_repo_like', { uid: userId, rid: repoId }).single();
 }
 
-// Toggle save for a user/repo pair.
-export async function toggleRepoSave(userId: string, repoId: string) {
-  const { data: existing } = await supabase
-    .from("activity")
-    .select("is_saved")
-    .eq("user_id", userId)
-    .eq("repo_id", repoId)
-    .maybeSingle();
-
-  const newValue = existing?.is_saved ? false : true;
-
-  if (existing) {
-    return supabase
-      .from("activity")
-      .update({ is_saved: newValue })
-      .eq("user_id", userId)
-      .eq("repo_id", repoId)
-      .select()
-      .single();
-  }
-
-  return supabase
-    .from("activity")
-    .insert({ user_id: userId, repo_id: repoId, is_saved: newValue })
-    .select()
-    .single();
+// Toggle save for a user/repo pair. Atomic upsert, no TOCTOU.
+export function toggleRepoSave(userId: string, repoId: string) {
+  return supabase.rpc('toggle_repo_save', { uid: userId, rid: repoId }).single();
 }
 
 // Fetch all activity records.

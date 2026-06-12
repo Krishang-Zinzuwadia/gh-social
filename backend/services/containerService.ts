@@ -8,9 +8,11 @@
  * - Create a container pre-seeded with two primary public boards for a user
  */
 import supabase from '../config/supabase.js';
-import * as boardService from './boardService.js';
-import type { BoardsContainerInsert, BoardsContainerRow, ContainerBoardInsert } from '../types/database.js';
-import type { BoardInsert, BoardRow } from '../types/database.js';
+import type { BoardsContainerInsert, BoardsContainerRow, BoardRow } from '../types/index.js';
+
+type CreateContainerResult =
+  | { data: { container: BoardsContainerRow; boards: BoardRow[] }; error?: undefined }
+  | { data?: undefined; error: unknown };
 
 const containerTable = 'boards_containers';
 const containerBoardsTable = 'container_boards';
@@ -84,27 +86,13 @@ export function getBoardsForContainer(containerId: string) {
 
 /**
  * Create a container and seed it with two primary public boards owned by the same user.
+ * Runs atomically in a single PG transaction — no orphaned rows on failure.
  * Returns { data: { container, boards } } on success or { error } on failure.
  */
-export async function createContainerWithDefaults(userId: string, containerName = 'Default Boards Container') {
-  const { data: container, error: containerError } = await createContainer({ user_id: userId, container_name: containerName, description: null });
-  if (containerError) return { error: containerError };
+export async function createContainerWithDefaults(userId: string, containerName = 'Default Boards Container'): Promise<CreateContainerResult> {
+  const { data, error } = await supabase
+    .rpc('create_container_with_defaults', { uid: userId, container_name: containerName });
 
-  const primaryBoards: BoardInsert[] = [
-      { user_id: userId, board_name: 'Saved Repos', visibility: 'public', description: null },
-      { user_id: userId, board_name: 'GitHub Repos', visibility: 'public', description: null }
-  ];
-
-  const createdBoards: BoardRow[] = [];
-
-  for (const b of primaryBoards) {
-    const { data: boardData, error: boardErr } = await boardService.createBoard(b);
-    if (boardErr) return { error: boardErr };
-    createdBoards.push(boardData as BoardRow);
-
-    const { error: linkErr } = await supabase.from(containerBoardsTable).insert({ container_id: (container as any).container_id, board_id: (boardData as any).board_id } as ContainerBoardInsert);
-    if (linkErr) return { error: linkErr };
-  }
-
-  return { data: { container, boards: createdBoards } };
+  if (error) return { error };
+  return { data };
 }

@@ -24,9 +24,9 @@ router.patch('/me', requireAuth, updateProfile);
 router.get('/:username', getUserProfile);
 
 // POST /api/users/:username/follow - Follow a user
-router.post('/:username/follow', followUser);
+router.post('/:username/follow', requireAuth, followUser);
 
 // DELETE /api/users/:username/follow - Unfollow a user
-router.delete('/:username/follow', unfollowUser);
+router.delete('/:username/follow', requireAuth, unfollowUser);
 
 export default router;

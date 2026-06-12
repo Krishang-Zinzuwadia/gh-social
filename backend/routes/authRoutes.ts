@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { signUp, login, logout, getOAuthUrl } from '../controllers/authController.js';
+import { signUp, login, logout, getOAuthUrl, refreshToken, handleOAuthCallback} from '../controllers/authController.js';
 import { requireAuth } from '../middlewares/authMiddleware.js';
 
 const router: Router = Router();
@@ -8,11 +8,8 @@ const router: Router = Router();
 router.post('/signup', signUp);
 router.post('/login', login);
 router.get('/oauth/:provider', getOAuthUrl);
-
-// Protected routes (requires Bearer token)
+router.post('/refresh', refreshToken);
 router.post('/logout', requireAuth, logout);
-
-// Example of how to protect another route:
-// router.get('/me', requireAuth, getMyProfile);
+router.get('/callback', handleOAuthCallback);
 
 export default router;

@@ -203,20 +203,100 @@ export async function handleOAuthCallback(req: Request, res: Response) {
       return sendError(res, 400, error?.message || 'OAuth verification failed');
     }
 
-    // 2. NOW: Mint YOUR OWN JWT and Refresh Token (exactly like you do in login())
+    // 2. Insert a short-lived (5 minute) authorization code into the DB
+    // SECURITY FIX: We don't send the tokens directly in the URL anymore.
+    const { data: codeData, error: codeError } = await supabaseAdmin
+      .from('oauth_codes')
+      .insert([
+        { 
+          user_id: data.user.id, 
+          expires_at: new Date(Date.now() + 5 * 60 * 1000).toISOString() 
+        }
+      ])
+      .select('code')
+      .single();
+
+    if (codeError || !codeData) {
+      console.error('OAuth Code Insert Error:', codeError);
+      return res.redirect(`${process.env.CLIENT_URL}/auth/callback?error=Failed to generate auth code`);
+    }
+
+    // 3. Redirect to your frontend with the short-lived code
+    res.redirect(`${process.env.CLIENT_URL}/auth/callback?code=${codeData.code}`);
+  } catch (error) {
+    console.error('OAuth Callback Error:', error);
+    res.redirect(`${process.env.CLIENT_URL}/auth/callback?error=Internal server error`);
+  }
+}
+
+// POST /api/auth/exchange
+export async function exchangeAuthCode(req: Request, res: Response): Promise<void> {
+  const { code } = req.body;
+
+  if (!code) {
+    return sendError(res, 400, 'Authorization code is required');
+  }
+
+  try {
+    // 1. Look up the code
+    const { data: codeData, error: codeError } = await supabaseAdmin
+      .from('oauth_codes')
+      .select('user_id, expires_at')
+      .eq('code', code)
+      .single();
+
+    if (codeError || !codeData) {
+      return sendError(res, 400, 'Invalid authorization code');
+    }
+
+    // 2. Delete the code immediately (one-time use)
+    await supabaseAdmin.from('oauth_codes').delete().eq('code', code);
+
+    // 3. Check expiration
+    if (new Date(codeData.expires_at) < new Date()) {
+      return sendError(res, 400, 'Authorization code expired');
+    }
+
+    const userId = codeData.user_id;
+
+    // 4. Fetch the user's email to embed in the JWT
+    const { data: userData, error: userError } = await supabaseAdmin.auth.admin.getUserById(userId);
+    if (userError || !userData?.user) {
+      return sendError(res, 404, 'User not found');
+    }
+
+    const email = userData.user.email || '';
+
+    // 5. Mint tokens
     const token = jwt.sign(
-      { userId: data.user.id, email: data.user.email }, 
-      JWT_SECRET, 
+      { userId, email },
+      JWT_SECRET,
       { expiresIn: '15m' }
     );
-    
-    const refreshToken = await createAndStoreRefreshToken(data.user.id);
 
-    // 3. Redirect to your frontend with your custom tokens
-    // Using a URL fragment (#) is more secure than query parameters for tokens
-    res.redirect(`${process.env.CLIENT_URL}/auth/callback#token=${token}&refreshToken=${refreshToken}`);
+    const refreshToken = crypto.randomBytes(40).toString('hex');
+    const tokenHash = hashToken(refreshToken);
 
-  } catch (err) {
-    return sendControllerError(res, err as Error);
+    const { error: insertError } = await supabaseAdmin.from('refresh_tokens').insert([
+      {
+        user_id: userId,
+        refresh_token_hash: tokenHash,
+        expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+      }
+    ]);
+
+    if (insertError) {
+      return sendError(res, 500, 'Failed to secure session');
+    }
+
+    // 6. Return tokens securely in the body
+    return sendSuccess(res, 200, {
+      user: userData.user,
+      token,
+      refreshToken
+    });
+
+  } catch (error) {
+    sendControllerError(res, error as Error);
   }
 }

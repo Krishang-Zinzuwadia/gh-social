@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { signUp, login, logout, getOAuthUrl, refreshToken, handleOAuthCallback} from '../controllers/authController.js';
+import { signUp, login, logout, getOAuthUrl, refreshToken, handleOAuthCallback, exchangeAuthCode } from '../controllers/authController.js';
 import { requireAuth } from '../middlewares/authMiddleware.js';
 
 const router: Router = Router();
@@ -11,5 +11,8 @@ router.get('/oauth/:provider', getOAuthUrl);
 router.post('/refresh', refreshToken);
 router.post('/logout', requireAuth, logout);
 router.get('/callback', handleOAuthCallback);
+
+// POST /api/auth/exchange
+router.post('/exchange', exchangeAuthCode);
 
 export default router;

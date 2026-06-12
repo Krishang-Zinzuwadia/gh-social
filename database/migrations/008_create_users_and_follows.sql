@@ -1,5 +1,5 @@
 
-CREATE TABLE public.users (
+CREATE TABLE IF NOT EXISTS public.users (
     user_id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
     username VARCHAR(50) UNIQUE NOT NULL,
     full_name VARCHAR(100),       
@@ -17,7 +17,7 @@ CREATE TABLE public.users (
 );
 
 -- 2. FOLLOWS TABLE
-CREATE TABLE public.follows (
+CREATE TABLE IF NOT EXISTS public.follows (
     follower_id UUID REFERENCES public.users(user_id) ON DELETE CASCADE,
     following_id UUID REFERENCES public.users(user_id) ON DELETE CASCADE,
     created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -111,5 +111,8 @@ EXECUTE FUNCTION public.update_follow_counts();
 ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.follows ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Public profiles are viewable" ON public.users;
 CREATE POLICY "Public profiles are viewable" ON public.users FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Anyone can view follows" ON public.follows;
 CREATE POLICY "Anyone can view follows" ON public.follows FOR SELECT USING (true);

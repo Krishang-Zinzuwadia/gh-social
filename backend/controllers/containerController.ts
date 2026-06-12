@@ -59,7 +59,13 @@ export async function getContainerById(req: Request, res: Response): Promise<voi
 export async function addBoardToContainer(req: Request, res: Response): Promise<void> {
   const containerId = req.params.containerId as string;
   const boardId = req.body.board_id as string;
+  const userId = req.body.user_id as string | undefined;
   if (!isValidUuid(containerId) || !isValidUuid(boardId)) return sendError(res, 400, 'containerId and board_id must be valid UUIDs.');
+  if (!userId || !isValidUuid(userId)) return sendError(res, 400, 'user_id is required and must be a valid UUID.');
+
+  const { data: container, error: containerError } = await containerService.getContainerById(containerId);
+  if (containerError) return sendSupabaseError(res, containerError, { notFoundMessage: 'Container not found.' });
+  if (container.user_id !== userId) return sendError(res, 403, 'You do not own this container.');
 
   try {
     const { data, error } = await containerService.addBoardToContainer(containerId, boardId);

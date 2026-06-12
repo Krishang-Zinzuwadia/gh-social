@@ -41,8 +41,14 @@ export async function getBoardById(req: Request, res: Response): Promise<void> {
 export async function addRepoToBoard(req: Request, res: Response): Promise<void> {
   const boardId = req.params.boardId as string;
   const repoId = req.body.repo_id as string;
+  const userId = req.body.user_id as string | undefined;
 
   if (!isValidUuid(boardId) || !isValidUuid(repoId)) return sendError(res, 400, 'boardId and repo_id must be valid UUIDs.');
+  if (!userId || !isValidUuid(userId)) return sendError(res, 400, 'user_id is required and must be a valid UUID.');
+
+  const { data: board, error: boardError } = await boardService.getBoardById(boardId);
+  if (boardError) return sendSupabaseError(res, boardError, { notFoundMessage: 'Board not found.' });
+  if (board.user_id !== userId) return sendError(res, 403, 'You do not own this board.');
 
   try {
     const { data, error } = await boardService.addRepoToBoard(boardId, repoId);

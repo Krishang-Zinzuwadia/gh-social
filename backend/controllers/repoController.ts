@@ -52,7 +52,6 @@ async function buildRepoPayload(body: RepoBodyInput): Promise<RepoInsert> {
     language_used: githubRepo.language_breakdown || [],
     topics: githubRepo.topics || [],
     readme_summary: summaryService.summarizeReadme(githubRepo.readme),
-    likes_count: githubRepo.stars_count || 0,
     forks_count: githubRepo.forks_count || 0,
     pr_count: githubRepo.pr_count || 0,
   };

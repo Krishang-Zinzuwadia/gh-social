@@ -105,13 +105,21 @@ export async function getOAuthUrl(req: Request, res: Response): Promise<void> {
   if (provider !== 'github' && provider !== 'google') return sendError(res, 400, 'Invalid provider.');
 
   try {
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider,
-      options: { redirectTo: `${BACKEND_URL}/api/auth/callback` },
-    });
+    // Manually construct the Supabase authorize URL instead of using
+    // supabase.auth.signInWithOAuth(). The SDK method generates a PKCE
+    // code_verifier and stores it in the client's in-memory storage.
+    // Since this is a server-side singleton, that verifier is on the anon
+    // client and is never accessible to the admin client that handles the
+    // callback — causing exchangeCodeForSession to fail with a missing verifier.
+    //
+    // By constructing the URL directly (no code_challenge parameter),
+    // Supabase's auth server will not enforce PKCE during the code exchange,
+    // so the admin client can complete the exchange without any stored state.
+    const url = new URL(`${process.env.SUPABASE_URL}/auth/v1/authorize`);
+    url.searchParams.set('provider', provider);
+    url.searchParams.set('redirect_to', `${BACKEND_URL}/api/auth/callback`);
 
-    if (error) return sendError(res, 500, 'Failed to initialize OAuth.');
-    return sendSuccess(res, 200, { url: data.url });
+    return sendSuccess(res, 200, { url: url.toString() });
   } catch (err) {
     return sendControllerError(res, err as Error);
   }

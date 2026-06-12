@@ -11,6 +11,10 @@ export async function createBoard(req: Request, res: Response): Promise<void> {
     return sendError(res, 400, 'user_id and board_name are required.');
   }
 
+  if (!isValidUuid(body.user_id)) {
+    return sendError(res, 400, 'user_id must be a valid UUID.');
+  }
+
   try {
     const { data, error } = await boardService.createBoard(body);
     if (error) return sendSupabaseError(res, error);

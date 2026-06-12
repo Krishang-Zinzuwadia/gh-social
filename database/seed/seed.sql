@@ -210,6 +210,32 @@ VALUES
 )
 ON CONFLICT (id) DO NOTHING;
 
+-- Ensure public.users rows exist regardless of trigger (idempotent re-run).
+INSERT INTO public.users (user_id, username, github_id, github_handle, avatar_url)
+VALUES
+(
+    '22222222-2222-2222-2222-222222222222',
+    'seeduser1',
+    'github_seed_1',
+    'seeduser1',
+    'https://avatars.githubusercontent.com/u/1001?v=4'
+),
+(
+    '55555555-5555-5555-5555-555555555555',
+    'seeduser2',
+    'github_seed_2',
+    'seeduser2',
+    'https://avatars.githubusercontent.com/u/1002?v=4'
+),
+(
+    '88888888-8888-8888-8888-888888888888',
+    'seeduser3',
+    'github_seed_3',
+    'seeduser3',
+    'https://avatars.githubusercontent.com/u/1003?v=4'
+)
+ON CONFLICT (user_id) DO NOTHING;
+
 UPDATE public.users SET
     interests = '["AI", "Backend", "Productivity"]'::jsonb,
     saved_repos_count = 2

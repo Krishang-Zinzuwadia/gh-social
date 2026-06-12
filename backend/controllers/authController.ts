@@ -41,7 +41,7 @@ const createAndStoreRefreshToken = async (userId: string) => {
 };
 
 export async function signUp(req: Request, res: Response): Promise<void> {
-  const { email, password, username, full_name } = req.body;
+  const { email, password, username, full_name, date_of_birth, github_url, bio } = req.body;
 
   if (!email || !password || !username) {
     return sendError(res, 400, 'Email, password, and username are required.');
@@ -51,7 +51,15 @@ export async function signUp(req: Request, res: Response): Promise<void> {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { user_name: username, full_name } }
+      options: { 
+        data: { 
+          user_name: username, 
+          full_name,
+          date_of_birth,
+          github_url,
+          bio
+        } 
+      }
     });
 
     if (error || !data.user) return sendError(res, 400, error?.message || 'Signup failed');

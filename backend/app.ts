@@ -1,5 +1,6 @@
 import express, { type Request, type Response, type NextFunction } from 'express';
 import cors from 'cors';
+import authRoutes from './routes/authRoutes.js';
 import activityRoutes from './routes/activityRoutes.js';
 import commentRoutes from './routes/commentRoutes.js';
 import repoRoutes from './routes/repoRoutes.js';

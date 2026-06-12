@@ -256,7 +256,11 @@ export async function exchangeAuthCode(req: Request, res: Response): Promise<voi
     }
 
     // 2. Delete the code immediately (one-time use)
-    await supabaseAdmin.from('oauth_codes').delete().eq('code', code);
+    const { error: deleteError } = await supabaseAdmin.from('oauth_codes').delete().eq('code', code);
+
+    if (deleteError) {
+      return sendError(res, 500, 'Failed to consume authorization code. Please try again.');
+    }
 
     // 3. Check expiration
     if (new Date(codeData.expires_at) < new Date()) {

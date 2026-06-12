@@ -8,3 +8,7 @@ CREATE TABLE public.oauth_codes (
 
 -- Index for quick lookups
 CREATE INDEX idx_oauth_codes_code ON public.oauth_codes(code);
+
+-- SECURITY: Enable Row Level Security (RLS)
+-- By enabling RLS and NOT creating any policies, we strictly deny all access 
+ALTER TABLE public.oauth_codes ENABLE ROW LEVEL SECURITY;

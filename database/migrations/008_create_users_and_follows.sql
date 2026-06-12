@@ -50,7 +50,7 @@ BEGIN
             'user_' || SUBSTRING(NEW.id::text, 1, 8)
         ),
         NEW.raw_user_meta_data->>'full_name',  -- NEW
-        (NEW.raw_user_meta_data->>'date_of_birth')::DATE,
+        NULLIF(NEW.raw_user_meta_data->>'date_of_birth', '')::DATE,
         NEW.raw_user_meta_data->>'bio',
         NEW.raw_user_meta_data->>'github_url',
         NEW.raw_user_meta_data->>'provider_id',

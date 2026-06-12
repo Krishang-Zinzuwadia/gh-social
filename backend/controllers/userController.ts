@@ -105,3 +105,33 @@ export async function unfollowUser(req: Request, res: Response): Promise<void> {
 
   return sendSuccess(res, 200, { message: `Successfully unfollowed ${username}` });
 }
+
+// List all users.
+export async function getAllUsers(_req: Request, res: Response): Promise<void> {
+  const { data, error } = await userService.getAllUsers();
+
+  if (error) {
+    return sendSupabaseError(res, error);
+  }
+
+  return sendSuccess(res, 200, data);
+}
+
+// Fetch a user's public profile by UUID.
+export async function getUserById(req: Request, res: Response): Promise<void> {
+  const userId = req.params.userId as string;
+
+  if (!isValidUuid(userId)) {
+    return sendError(res, 400, 'userId must be a valid UUID.');
+  }
+
+  const { data, error } = await userService.getUserById(userId);
+
+  if (error) {
+    return sendSupabaseError(res, error, {
+      notFoundMessage: 'User not found',
+    });
+  }
+
+  return sendSuccess(res, 200, data);
+}

@@ -119,3 +119,54 @@ export interface RepoInsert extends Omit<RepoRow, 'repo_id' | 'language_used' | 
 }
 
 export type RepoUpdate = Partial<RepoInsert>;
+
+// ─── Boards Table ───────────────────────────────────────────────────────────
+
+export interface BoardRow {
+  board_id: string;
+  user_id: string;
+  board_name: string;
+  visibility: 'public' | 'private';
+  description: string | null;
+  repos_count: number;
+  created_at: string | null;
+}
+
+export interface BoardInsert extends Omit<BoardRow, 'board_id' | 'repos_count' | 'created_at'> {
+  repos_count?: number;
+  created_at?: string | null;
+}
+
+export type BoardUpdate = Partial<BoardInsert>;
+
+// Board - Repo join table
+export interface BoardRepoRow {
+  board_id: string;
+  repo_id: string;
+  added_at: string | null;
+}
+
+export type BoardRepoInsert = Omit<BoardRepoRow, 'added_at'> & { added_at?: string | null };
+
+// ─── Boards Containers (containers that hold multiple boards) ────────────────
+
+export interface BoardsContainerRow {
+  container_id: string;
+  user_id: string;
+  container_name: string;
+  description: string | null;
+  created_at: string | null;
+}
+
+export interface BoardsContainerInsert extends Omit<BoardsContainerRow, 'container_id' | 'created_at'> {
+  created_at?: string | null;
+}
+
+export interface ContainerBoardRow {
+  container_id: string;
+  board_id: string;
+  added_at: string | null;
+}
+
+export type ContainerBoardInsert = Omit<ContainerBoardRow, 'added_at'> & { added_at?: string | null };
+

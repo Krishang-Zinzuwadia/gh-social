@@ -9,6 +9,8 @@ import {
   createActivity,
   updateActivityById,
   deleteActivityById,
+  likeRepo,
+  saveRepo,
 } from '../controllers/activityController.js';
 
 const router: Router = Router();
@@ -41,5 +43,11 @@ router.patch('/:activityId', updateActivityById);
 
 // Delete one activity record by activity id.
 router.delete('/:activityId', deleteActivityById);
+
+// Toggle like for a user/repo pair.
+router.post('/user/:userId/repo/:repoId/like', likeRepo);
+
+// Toggle save for a user/repo pair.
+router.post('/user/:userId/repo/:repoId/save', saveRepo);
 
 export default router;

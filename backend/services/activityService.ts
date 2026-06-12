@@ -1,6 +1,16 @@
 import supabase from '../config/supabase.js';
 import type { ActivityInsert, ActivityUpdate } from '../types/index.js';
 
+// Toggle like for a user/repo pair (0 ↔ 1). Atomic upsert, no TOCTOU.
+export function toggleRepoLike(userId: string, repoId: string) {
+  return supabase.rpc('toggle_repo_like', { uid: userId, rid: repoId }).single();
+}
+
+// Toggle save for a user/repo pair. Atomic upsert, no TOCTOU.
+export function toggleRepoSave(userId: string, repoId: string) {
+  return supabase.rpc('toggle_repo_save', { uid: userId, rid: repoId }).single();
+}
+
 // Fetch all activity records.
 export function getAllActivity() {
   return supabase

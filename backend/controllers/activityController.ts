@@ -1,6 +1,7 @@
 import type { Request, Response } from 'express';
 import * as activityService from '../services/activityService.js';
 import { sendError, sendSuccess, sendSupabaseError } from '../utils/response.js';
+import { isValidUuid } from '../utils/validators.js';
 
 // Return every activity row.
 export async function getAllActivity(_req: Request, res: Response): Promise<void> {
@@ -122,4 +123,38 @@ export async function deleteActivityById(req: Request, res: Response): Promise<v
   }
 
   res.status(204).send();
+}
+
+// Toggle like for a user/repo pair.
+export async function likeRepo(req: Request, res: Response): Promise<void> {
+  const { userId, repoId } = req.params as { userId: string; repoId: string };
+
+  if (!isValidUuid(userId) || !isValidUuid(repoId)) {
+    return sendError(res, 400, 'userId and repoId must be valid UUIDs.');
+  }
+
+  const { data, error } = await activityService.toggleRepoLike(userId, repoId);
+
+  if (error) {
+    return sendSupabaseError(res, error);
+  }
+
+  return sendSuccess(res, 200, data);
+}
+
+// Toggle save for a user/repo pair.
+export async function saveRepo(req: Request, res: Response): Promise<void> {
+  const { userId, repoId } = req.params as { userId: string; repoId: string };
+
+  if (!isValidUuid(userId) || !isValidUuid(repoId)) {
+    return sendError(res, 400, 'userId and repoId must be valid UUIDs.');
+  }
+
+  const { data, error } = await activityService.toggleRepoSave(userId, repoId);
+
+  if (error) {
+    return sendSupabaseError(res, error);
+  }
+
+  return sendSuccess(res, 200, data);
 }

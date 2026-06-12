@@ -9,7 +9,7 @@ router.post('/signup', signUp);
 router.post('/login', login);
 router.get('/oauth/:provider', getOAuthUrl);
 router.post('/refresh', refreshToken);
-router.post('/logout', requireAuth, logout);
+router.post('/logout', logout);
 router.get('/callback', handleOAuthCallback);
 
 // POST /api/auth/exchange

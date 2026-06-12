@@ -125,7 +125,7 @@ export async function getOAuthUrl(req: Request, res: Response): Promise<void> {
   }
 }
 
-export async function logout(req: AuthRequest, res: Response): Promise<void> { 
+export async function logout(req: Request, res: Response): Promise<void> { 
   const { refreshToken } = req.body;
 
   // SECURITY FIX: Reject logout if the token is missing entirely
@@ -133,20 +133,16 @@ export async function logout(req: AuthRequest, res: Response): Promise<void> {
     return sendError(res, 400, 'Refresh token required for logout.');
   }
 
-  // SECURITY FIX: Ensure the auth middleware actually attached the user
-  if (!req.user || !req.user.userId) {
-    return sendError(res, 401, 'Unauthorized request.');
-  }
-
   try {
     const tokenHash = hashToken(refreshToken);
     
-    // SECURITY FIX: Use Admin client for deletion and chain .eq() to scope to authenticated user
+    // SECURITY FIX: Use Admin client for deletion.
+    // We only need the token hash to identify the record. This allows users with 
+    // expired access tokens (no req.user) to still revoke their refresh tokens.
     const { error: deleteError } = await supabaseAdmin
       .from('refresh_tokens')
       .delete()
-      .eq('refresh_token_hash', tokenHash)
-      .eq('user_id', req.user.userId); 
+      .eq('refresh_token_hash', tokenHash); 
 
     if (deleteError) return sendError(res, 500, 'An error occurred during logout.');
     

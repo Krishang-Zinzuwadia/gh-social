@@ -24,11 +24,9 @@ const hashToken = (token: string) => crypto.createHash('sha256').update(token).d
 const createAndStoreRefreshToken = async (userId: string) => {
   const rawToken = crypto.randomBytes(64).toString('hex');
   const tokenHash = hashToken(rawToken);
-  
   const expiresAt = new Date();
-  expiresAt.setDate(expiresAt.getDate() + 30); // Valid for 30 days
+  expiresAt.setDate(expiresAt.getDate() + 30);
 
-  // SECURITY FIX: Use Admin client to bypass RLS for insertion
   const { error } = await supabaseAdmin.from('refresh_tokens').insert({
     user_id: userId,
     refresh_token_hash: tokenHash,

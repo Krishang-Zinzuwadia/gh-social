@@ -22,6 +22,9 @@ app.get('/', (_req: Request, res: Response) => {
 // Auth API routes 
 app.use('/api/auth', authRoutes);
 
+import { requireAuth } from './middlewares/authMiddleware.js';
+
+
 // Activity API routes.
 app.use('/api/activity', activityRoutes);
 

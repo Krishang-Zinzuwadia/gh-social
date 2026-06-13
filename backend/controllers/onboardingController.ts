@@ -109,6 +109,7 @@ export async function syncGitHub(req: AuthRequest, res: Response): Promise<void>
     }
 
     return sendSuccess(res, 200, { synced: data, profile });
+    
   } catch (err) {
     if (err instanceof GitHubApiError) {
       const statusCode = err.statusCode === 404 ? 404 : err.statusCode >= 400 && err.statusCode < 500 ? err.statusCode : 502;

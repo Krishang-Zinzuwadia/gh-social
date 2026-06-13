@@ -1,4 +1,8 @@
 import 'dotenv/config';
+
+console.log('PORT from env =', process.env.PORT);
+
+
 import app from './app.js';
 
 const port: number = parseInt(process.env.PORT ?? '5000', 10);

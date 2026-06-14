@@ -25,6 +25,9 @@ CREATE TABLE IF NOT EXISTS public.users (
     following_count INT DEFAULT 0,
     saved_repos_count INT DEFAULT 0,
     interests JSONB DEFAULT '[]'::jsonb,
+    skills JSONB DEFAULT '[]'::jsonb,
+    tech_stack JSONB DEFAULT '[]'::jsonb,
+    onboarding_completed BOOLEAN DEFAULT false,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 

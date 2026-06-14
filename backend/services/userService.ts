@@ -58,7 +58,7 @@ type OnboardingProfileState = Pick<
 >;
 
 function isDefaultUsername(username: string): boolean {
-  return username.startsWith(DEFAULT_USERNAME_PREFIX);
+  return /^user_[0-9a-f]{8}$/.test(username);
 }
 
 function hasNonEmptyJsonArray(value: unknown): boolean {
@@ -118,23 +118,6 @@ function isOnboardingComplete(profile: OnboardingProfileState): boolean {
   return buildMissingFields(steps, profile).length === 0;
 }
 
-function mergeProfileState(
-  current: OnboardingProfileState,
-  updates: UserUpdate,
-): OnboardingProfileState {
-  return {
-    username: updates.username ?? current.username,
-    full_name: updates.full_name ?? current.full_name,
-    bio: updates.bio ?? current.bio,
-    avatar_url: updates.avatar_url ?? current.avatar_url,
-    github_url: updates.github_url ?? current.github_url,
-    github_handle: updates.github_handle ?? current.github_handle,
-    interests: updates.interests ?? current.interests,
-    skills: updates.skills ?? current.skills,
-    tech_stack: updates.tech_stack ?? current.tech_stack,
-    onboarding_completed: updates.onboarding_completed ?? current.onboarding_completed,
-  };
-}
 
 function buildOnboardingStatus(profile: UserProfile): OnboardingStatusResponse {
   const steps = evaluateOnboardingSteps(profile);
@@ -160,7 +143,8 @@ export async function getUserProfile(userId: string) {
     return { data: null, error };
   }
 
-  return { data: buildOnboardingStatus(data as UserProfile), error: null };
+  // Double cast to unknown first to avoid the "neither type sufficiently overlaps" error
+  return { data: buildOnboardingStatus(data as unknown as UserProfile), error: null };
 }
 
 // Fetch a user's public profile by username.
@@ -223,28 +207,38 @@ export function getUserById(userId: string) {
 
 // Update profile fields and auto-set onboarding_completed when all required data is present.
 export async function updateUserProfile(userId: string, updates: UserUpdate) {
-  const { data: currentRow, error: fetchError } = await supabaseAdmin
+  // 1. Atomic Update: Let Postgres safely merge the fields.
+  // The .select() gives us the guaranteed-fresh state AFTER the update.
+  const { data: updatedRow, error: updateError } = await supabaseAdmin
     .from('users')
-    .select(ONBOARDING_EVALUATION_COLUMNS)
-    .eq('user_id', userId)
-    .single();
-
-  if (fetchError) {
-    return { data: null, error: fetchError };
-  }
-
-  const mergedProfile = mergeProfileState(currentRow as OnboardingProfileState, updates);
-  const onboardingCompleted = isOnboardingComplete(mergedProfile);
-
-  const finalUpdates: UserUpdate = {
-    ...updates,
-    onboarding_completed: onboardingCompleted,
-  };
-
-  return supabaseAdmin
-    .from('users')
-    .update(finalUpdates)
+    .update(updates)
     .eq('user_id', userId)
     .select(USER_PROFILE_COLUMNS)
     .single();
+
+  if (updateError) {
+    return { data: null, error: updateError };
+  }
+
+  // Type assertion after the error check ensures TypeScript knows it's the correct shape.
+  // We use unknown as an intermediate step to satisfy strict typing rules if the types don't overlap perfectly.
+  const profileState = updatedRow as unknown as OnboardingProfileState;
+
+  // 2. Evaluate completion against the true database state
+  const onboardingCompleted = isOnboardingComplete(profileState);
+
+  // 3. If the state machine requires the flag to flip, run a targeted update
+  if (profileState.onboarding_completed !== onboardingCompleted) {
+    const { data: finalRow, error: finalError } = await supabaseAdmin
+      .from('users')
+      .update({ onboarding_completed: onboardingCompleted })
+      .eq('user_id', userId)
+      .select(USER_PROFILE_COLUMNS)
+      .single();
+
+    return { data: finalRow, error: finalError };
+  }
+
+  // 4. Return the initially updated row if no flag flip was needed
+  return { data: updatedRow, error: null };
 }

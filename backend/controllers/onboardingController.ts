@@ -74,6 +74,11 @@ export async function setupOnboarding(req: AuthRequest, res: Response): Promise<
     return sendError(res, 400, 'Each tech_stack item must be a non-empty string.');
   }
 
+  if (body.avatar_url !== undefined && body.avatar_url !== null) {
+    if (typeof body.avatar_url !== 'string' || !body.avatar_url.startsWith('http')) {
+      return sendError(res, 400, 'avatar_url must be a valid URL starting with http/https.');
+    }
+  }
 
   const { data, error } = await onboardingService.setupOnboardingProfile(userId, body);
 

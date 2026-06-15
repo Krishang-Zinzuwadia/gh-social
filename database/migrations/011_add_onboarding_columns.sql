@@ -38,3 +38,6 @@ WHERE
     skills IS NULL
     OR tech_stack IS NULL
     OR interests IS NULL;
+
+ALTER TABLE public.users ALTER COLUMN interests SET DEFAULT '[]'::jsonb;
+ALTER TABLE public.users ALTER COLUMN interests SET NOT NULL;

@@ -80,6 +80,16 @@ export async function setupOnboarding(req: AuthRequest, res: Response): Promise<
     }
   }
 
+  if (body.date_of_birth !== undefined && body.date_of_birth !== null) {
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    if (typeof body.date_of_birth !== 'string' || !dateRegex.test(body.date_of_birth)) {
+      return sendError(res, 400, 'date_of_birth must be a valid date string in YYYY-MM-DD format.');
+    }
+    if (isNaN(Date.parse(body.date_of_birth))) {
+      return sendError(res, 400, 'date_of_birth must be a valid calendar date.');
+    }
+  }
+
   const { data, error } = await onboardingService.setupOnboardingProfile(userId, body);
 
   if (error) {

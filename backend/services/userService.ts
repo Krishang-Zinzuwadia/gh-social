@@ -205,10 +205,9 @@ export function getUserById(userId: string) {
     .single();
 }
 
-// Update profile fields and auto-set onboarding_completed when all required data is present.
+// Update profile fields. The PostgreSQL trigger 'tr_evaluate_onboarding' 
+// will automatically compute and persist 'onboarding_completed' atomically.
 export async function updateUserProfile(userId: string, updates: UserUpdate) {
-  // 1. Atomic Update: Let Postgres safely merge the fields.
-  // The .select() gives us the guaranteed-fresh state AFTER the update.
   const { data: updatedRow, error: updateError } = await supabaseAdmin
     .from('users')
     .update(updates)
@@ -220,25 +219,5 @@ export async function updateUserProfile(userId: string, updates: UserUpdate) {
     return { data: null, error: updateError };
   }
 
-  // Type assertion after the error check ensures TypeScript knows it's the correct shape.
-  // We use unknown as an intermediate step to satisfy strict typing rules if the types don't overlap perfectly.
-  const profileState = updatedRow as unknown as OnboardingProfileState;
-
-  // 2. Evaluate completion against the true database state
-  const onboardingCompleted = isOnboardingComplete(profileState);
-
-  // 3. If the state machine requires the flag to flip, run a targeted update
-  if (profileState.onboarding_completed !== onboardingCompleted) {
-    const { data: finalRow, error: finalError } = await supabaseAdmin
-      .from('users')
-      .update({ onboarding_completed: onboardingCompleted })
-      .eq('user_id', userId)
-      .select(USER_PROFILE_COLUMNS)
-      .single();
-
-    return { data: finalRow, error: finalError };
-  }
-
-  // 4. Return the initially updated row if no flag flip was needed
   return { data: updatedRow, error: null };
 }

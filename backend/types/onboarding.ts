@@ -30,7 +30,7 @@ export interface OnboardingSetupBody {
   avatar_url?: string | null;
 }
 
-/** POST /onboarding/sync-github — optional override when GitHub OAuth is not linked */
+/** Response payload for POST /onboarding/sync-github */
 
 export interface SyncGitHubResponse {
   github_id: string;

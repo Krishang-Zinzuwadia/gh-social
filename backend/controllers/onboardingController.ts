@@ -74,11 +74,6 @@ export async function setupOnboarding(req: AuthRequest, res: Response): Promise<
     return sendError(res, 400, 'Each tech_stack item must be a non-empty string.');
   }
 
-  if (body.github_url !== undefined && body.github_url !== null) {
-    if (typeof body.github_url !== 'string' || !body.github_url.startsWith('https://github.com/')) {
-      return sendError(res, 400, 'github_url must be a valid GitHub profile URL starting with https://github.com/');
-    }
-  }
 
   const { data, error } = await onboardingService.setupOnboardingProfile(userId, body);
 

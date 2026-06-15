@@ -28,14 +28,9 @@ export interface OnboardingSetupBody {
   skills?: string[];
   tech_stack?: string[];
   avatar_url?: string | null;
-  github_url?: string | null;
 }
 
 /** POST /onboarding/sync-github — optional override when GitHub OAuth is not linked */
-
-export interface SyncGitHubBody {
-  github_handle?: string;
-}
 
 export interface SyncGitHubResponse {
   github_id: string;

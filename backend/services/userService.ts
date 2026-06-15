@@ -71,7 +71,7 @@ function evaluateOnboardingSteps(profile: OnboardingProfileState): OnboardingSte
     !isDefaultUsername(profile.username) &&
     Boolean(profile.full_name?.trim());
 
-  const githubComplete = Boolean(profile.github_handle?.trim() || profile.github_url?.trim());
+  const githubComplete = Boolean(profile.github_handle?.trim());
 
   return {
     profile: profileComplete,

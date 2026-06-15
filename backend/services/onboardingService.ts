@@ -34,10 +34,6 @@ export function buildSetupUpdates(body: OnboardingSetupBody): UserUpdate {
     updates.avatar_url = body.avatar_url;
   }
 
-  if (body.github_url !== undefined) {
-    updates.github_url = body.github_url;
-  }
-
   return updates;
 }
 

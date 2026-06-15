@@ -8,7 +8,7 @@ import {
   sendSupabaseError,
 } from '../utils/response.js';
 import { GitHubApiError } from '../services/githubService.js';
-import type { OnboardingSetupBody, SyncGitHubBody } from '../types/onboarding.js';
+import type { OnboardingSetupBody } from '../types/onboarding.js';
 
 function getAuthenticatedUserId(req: AuthRequest, res: Response): string | null {
   const userId = req.user?.userId;

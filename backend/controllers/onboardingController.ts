@@ -95,13 +95,9 @@ export async function syncGitHub(req: AuthRequest, res: Response): Promise<void>
   const userId = getAuthenticatedUserId(req, res);
   if (!userId) return;
 
-  const { github_handle } = req.body as SyncGitHubBody;
-
   try {
-    const { data, error, profile } = await onboardingService.syncGitHubProfile(
-      userId,
-      github_handle,
-    );
+    // Pass ONLY the userId. The service will extract the safe handle from Auth.
+    const { data, error, profile } = await onboardingService.syncGitHubProfile(userId);
 
     if (error) {
       if (error.code === 'GITHUB_NOT_LINKED') {

@@ -76,22 +76,22 @@ function extractGitHubHandleFromAuthIdentity(user: {
   return null;
 }
 
-export async function syncGitHubProfile(userId: string, githubHandleOverride?: string) {
+export async function syncGitHubProfile(userId: string) {
   const { data: authData, error: authError } = await supabaseAdmin.auth.admin.getUserById(userId);
 
   if (authError || !authData?.user) {
     return { data: null, error: authError ?? { code: 'PGRST116', message: 'User not found' } };
   }
 
-  const githubHandle =
-    githubHandleOverride?.trim() || extractGitHubHandleFromAuthIdentity(authData.user);
+  // FORCE the use of the securely extracted handle. No overrides allowed.
+  const githubHandle = extractGitHubHandleFromAuthIdentity(authData.user);
 
   if (!githubHandle) {
     return {
       data: null,
       error: {
         code: 'GITHUB_NOT_LINKED',
-        message: 'No GitHub account linked. Sign in with GitHub or provide github_handle.',
+        message: 'No GitHub account linked. You must sign in using the GitHub provider.',
       },
     };
   }
@@ -105,6 +105,7 @@ export async function syncGitHubProfile(userId: string, githubHandleOverride?: s
     avatar_url: githubProfile.avatar_url,
   };
 
+  // Only safely update bio/name if they exist
   if (githubProfile.bio) {
     updates.bio = githubProfile.bio;
   }

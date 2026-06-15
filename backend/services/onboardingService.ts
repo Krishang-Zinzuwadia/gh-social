@@ -64,11 +64,6 @@ function extractGitHubHandleFromAuthIdentity(user: {
     }
   }
 
-  const metadataUsername = user.user_metadata?.preferred_username ?? user.user_metadata?.user_name;
-  if (typeof metadataUsername === 'string' && metadataUsername.trim()) {
-    return metadataUsername.trim();
-  }
-
   return null;
 }
 

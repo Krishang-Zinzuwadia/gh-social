@@ -41,3 +41,9 @@ WHERE
 
 ALTER TABLE public.users ALTER COLUMN interests SET DEFAULT '[]'::jsonb;
 ALTER TABLE public.users ALTER COLUMN interests SET NOT NULL;
+
+ALTER TABLE public.users ALTER COLUMN skills SET DEFAULT '[]'::jsonb;
+ALTER TABLE public.users ALTER COLUMN skills SET NOT NULL;
+
+ALTER TABLE public.users ALTER COLUMN tech_stack SET DEFAULT '[]'::jsonb;
+ALTER TABLE public.users ALTER COLUMN tech_stack SET NOT NULL;

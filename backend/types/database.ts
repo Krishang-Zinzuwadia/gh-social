@@ -35,14 +35,23 @@ export interface UserRow {
   following_count: number;
   saved_repos_count: number;
   interests: string[];
+  skills: string[];
+  tech_stack: string[];
+  onboarding_completed: boolean;
   created_at: string;
 }
 
-export interface UserInsert extends Omit<UserRow, 'created_at' | 'followers_count' | 'following_count' | 'saved_repos_count' | 'interests'> {
+export interface UserInsert extends Omit<
+  UserRow,
+  'created_at' | 'followers_count' | 'following_count' | 'saved_repos_count' | 'interests' | 'skills' | 'tech_stack' | 'onboarding_completed'
+> {
   followers_count?: number;
   following_count?: number;
   saved_repos_count?: number;
   interests?: string[];
+  skills?: string[];
+  tech_stack?: string[];
+  onboarding_completed?: boolean;
   created_at?: string;
 }
 
@@ -61,6 +70,9 @@ export type UserProfile = Pick<
   | 'following_count'
   | 'saved_repos_count'
   | 'interests'
+  | 'skills'
+  | 'tech_stack'
+  | 'onboarding_completed'
   | 'created_at'
 >;
 

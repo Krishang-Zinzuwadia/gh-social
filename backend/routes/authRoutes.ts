@@ -1,6 +1,5 @@
 import { Router } from 'express';
 import { signUp, login, logout, getOAuthUrl, refreshToken, handleOAuthCallback, exchangeAuthCode } from '../controllers/authController.js';
-import { requireAuth } from '../middlewares/authMiddleware.js';
 
 const router: Router = Router();
 

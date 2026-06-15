@@ -8,7 +8,7 @@ import { isValidUuid } from '../utils/validators.js'; // You might not need this
 export async function getUserProfile(req: Request, res: Response): Promise<void> {
   const username = req.params.username as string;
 
-  const { data, error } = await userService.getUserProfile(username);
+  const { data, error } = await userService.getUserProfileByUsername(username);
 
   if (error) {
     return sendSupabaseError(res, error, {

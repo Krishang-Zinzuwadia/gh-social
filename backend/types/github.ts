@@ -99,3 +99,12 @@ export interface GitHubReadmeResponse {
   content: string;
   encoding: string;
 }
+
+export interface GitHubUserProfile {
+  id: number;
+  login: string;
+  avatar_url: string;
+  html_url: string;
+  bio: string | null;
+  name: string | null;
+}

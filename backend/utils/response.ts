@@ -14,6 +14,11 @@ export function sendControllerError(
   err: unknown,
   fallbackStatusCode: number = 500
 ): void {
+  if (isPostgresError(err)) {
+    sendSupabaseError(res, err);
+    return;
+  }
+
   if (err instanceof Error) {
     const statusCode = 'statusCode' in err ? (err as { statusCode: number }).statusCode : fallbackStatusCode;
     // Don't expose internal error details for 500s
@@ -22,6 +27,17 @@ export function sendControllerError(
   } else {
     sendError(res, fallbackStatusCode, 'An unexpected error occurred');
   }
+}
+
+export function isPostgresError(error: unknown): error is PostgresError {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'code' in error &&
+    typeof (error as PostgresError).code === 'string' &&
+    'message' in error &&
+    typeof (error as PostgresError).message === 'string'
+  );
 }
 
 export function sendSupabaseError(
@@ -52,6 +68,9 @@ export function sendSupabaseError(
       break;
     case '22P02':
       sendError(res, 400, invalidFormatMessage);
+      break;
+    case 'PGRST205':
+      sendError(res, 503, 'Database schema is not initialized. Run project migrations.');
       break;
     default:
       sendError(res, 500, 'Database error');

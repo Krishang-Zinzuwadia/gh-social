@@ -1,5 +1,5 @@
-import { pgTable, uuid, varchar, text, date, integer, jsonb, boolean, timestamp, primaryKey, unique, interval } from 'drizzle-orm/pg-core';
-import { relations } from 'drizzle-orm';
+import { pgTable, uuid, varchar, text, date, integer, jsonb, boolean, timestamp, primaryKey, unique, interval, check } from 'drizzle-orm/pg-core';
+import { relations, sql } from 'drizzle-orm';
 
 // 1. USERS
 export const users = pgTable('users', {
@@ -29,6 +29,7 @@ export const follows = pgTable('follows', {
   created_at: timestamp('created_at', { withTimezone: true, mode: 'string' }).defaultNow(),
 }, (t) => ({
   pk: primaryKey({ columns: [t.follower_id, t.following_id] }),
+  noSelfFollow: check('no_self_follow', sql`${t.follower_id} <> ${t.following_id}`),
 }));
 
 // 3. REFRESH TOKENS

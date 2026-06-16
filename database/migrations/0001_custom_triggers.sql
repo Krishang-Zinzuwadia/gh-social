@@ -170,3 +170,19 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 DROP TRIGGER IF EXISTS tr_evaluate_onboarding ON public.users;
 CREATE TRIGGER tr_evaluate_onboarding BEFORE INSERT OR UPDATE OF username, full_name, github_handle, interests, skills, tech_stack ON public.users FOR EACH ROW EXECUTE FUNCTION public.evaluate_onboarding_status();
+
+-- 13. Enable RLS on sensitive auth tables
+ALTER TABLE oauth_codes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE refresh_tokens ENABLE ROW LEVEL SECURITY;
+
+-- 14. Link public.users to auth.users
+ALTER TABLE public.users 
+  ADD CONSTRAINT users_user_id_fkey 
+  FOREIGN KEY (user_id) 
+  REFERENCES auth.users(id) 
+  ON DELETE CASCADE;
+
+-- 15. Prevent self-following
+ALTER TABLE public.follows
+  ADD CONSTRAINT no_self_follow 
+  CHECK (follower_id <> following_id);

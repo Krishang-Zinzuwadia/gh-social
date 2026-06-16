@@ -4,7 +4,7 @@ import crypto from 'crypto';
 import { sendError, sendSuccess, sendControllerError } from '../utils/response.js';
 import { isValidUuid } from '../utils/validators.js';
 import { db } from '../db/index.js';
-import { refreshTokens, oauthCodes } from '../db/schema.js';
+import { refreshTokens, oauthCodes, users } from '../db/schema.js';
 import { eq } from 'drizzle-orm';
 import jwt from 'jsonwebtoken';
 
@@ -44,12 +44,26 @@ const createAndStoreRefreshToken = async (userId: string) => {
 
 // POST /api/auth/signup
 export async function signUp(req: Request, res: Response): Promise<void> {
-  const { email, password } = req.body;
+  const { email, password, username, full_name } = req.body;
 
   try {
+    // 0. Pre-emptively check if username is taken to avoid messy trigger constraint violations
+    if (username) {
+      const existingUser = await db.select().from(users).where(eq(users.username, username));
+      if (existingUser.length > 0) {
+        return sendError(res, 409, 'Username is already taken');
+      }
+    }
+
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
+      options: {
+        data: {
+          user_name: username,
+          full_name: full_name,
+        }
+      }
     });
 
     if (error) return sendError(res, error.status || 400, error.message);

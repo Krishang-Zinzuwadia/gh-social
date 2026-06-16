@@ -19,7 +19,12 @@ const sql = postgres(DATABASE_URL, { max: 1 });
 async function runMigrations() {
   try {
     const migrationsDir = path.join(__dirname, '..', '..', 'database', 'migrations');
-    const files = ['0000_initial_schema.sql', '0001_custom_triggers.sql'];
+    
+    // Read all .sql files and sort them alphabetically
+    const allFiles = fs.readdirSync(migrationsDir);
+    const files = allFiles
+      .filter(f => f.endsWith('.sql'))
+      .sort((a, b) => a.localeCompare(b));
     
     console.log('Connecting to database...');
     

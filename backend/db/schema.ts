@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, text, date, integer, jsonb, boolean, timestamp, primaryKey, unique, interval, check, AnyPgColumn } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, text, date, integer, jsonb, boolean, timestamp, primaryKey, unique, interval, check, AnyPgColumn, index } from 'drizzle-orm/pg-core';
 import { relations, sql } from 'drizzle-orm';
 
 // 1. USERS
@@ -30,6 +30,8 @@ export const follows = pgTable('follows', {
 }, (t) => ({
   pk: primaryKey({ columns: [t.follower_id, t.following_id] }),
   noSelfFollow: check('no_self_follow', sql`${t.follower_id} <> ${t.following_id}`),
+  followerIdx: index('follows_follower_id_idx').on(t.follower_id),
+  followingIdx: index('follows_following_id_idx').on(t.following_id),
 }));
 
 // 3. REFRESH TOKENS
@@ -69,7 +71,9 @@ export const repos = pgTable('repo', {
   pr_count: integer('pr_count').default(0),
   created_at: timestamp('created_at', { mode: 'string' }).defaultNow(),
   updated_at: timestamp('updated_at', { mode: 'string' }).defaultNow(),
-});
+}, (t) => ({
+  ownerIdx: index('repos_owner_id_idx').on(t.owner_id),
+}));
 
 // 6. ACTIVITY
 export const activities = pgTable('activity', {
@@ -80,7 +84,8 @@ export const activities = pgTable('activity', {
   likelihood_count: integer('likelihood_count').default(0),
   is_saved: boolean('is_saved').default(false),
 }, (t) => ({
-  unq: unique('activity_user_repo_unique').on(t.user_id, t.repo_id)
+  unq: unique('activity_user_repo_unique').on(t.user_id, t.repo_id),
+  repoIdx: index('activity_repo_id_idx').on(t.repo_id),
 }));
 
 // 7. COMMENT
@@ -91,7 +96,11 @@ export const comments = pgTable('comment', {
   parent_comment_id: uuid('parent_comment_id').references((): AnyPgColumn => comments.comment_id, { onDelete: 'cascade' }),
   comment: text('comment').notNull(),
   created_at: timestamp('created_at', { mode: 'string' }).defaultNow(),
-});
+}, (t) => ({
+  repoIdx: index('comment_repo_id_idx').on(t.repo_id),
+  userIdx: index('comment_user_id_idx').on(t.user_id),
+  parentCommentIdx: index('comment_parent_comment_id_idx').on(t.parent_comment_id),
+}));
 
 // 8. BOARDS
 export const boards = pgTable('boards', {
@@ -104,6 +113,7 @@ export const boards = pgTable('boards', {
   created_at: timestamp('created_at', { mode: 'string' }).defaultNow(),
 }, (t) => ({
   visibilityCheck: check('visibility_check', sql`${t.visibility} IN ('public', 'private')`),
+  userIdx: index('boards_user_id_idx').on(t.user_id),
 }));
 
 // 9. BOARD REPOS
@@ -113,6 +123,7 @@ export const boardRepos = pgTable('board_repos', {
   added_at: timestamp('added_at', { mode: 'string' }).defaultNow(),
 }, (t) => ({
   pk: primaryKey({ columns: [t.board_id, t.repo_id] }),
+  repoIdx: index('board_repos_repo_id_idx').on(t.repo_id),
 }));
 
 // 10. BOARDS CONTAINERS
@@ -122,7 +133,9 @@ export const boardsContainers = pgTable('boards_containers', {
   container_name: varchar('container_name', { length: 100 }).default('boards_container').notNull(),
   description: text('description'),
   created_at: timestamp('created_at', { mode: 'string' }).defaultNow(),
-});
+}, (t) => ({
+  userIdx: index('boards_containers_user_id_idx').on(t.user_id),
+}));
 
 // 11. CONTAINER BOARDS
 export const containerBoards = pgTable('container_boards', {
@@ -131,4 +144,5 @@ export const containerBoards = pgTable('container_boards', {
   added_at: timestamp('added_at', { mode: 'string' }).defaultNow(),
 }, (t) => ({
   pk: primaryKey({ columns: [t.container_id, t.board_id] }),
+  boardIdx: index('container_boards_board_id_idx').on(t.board_id),
 }));

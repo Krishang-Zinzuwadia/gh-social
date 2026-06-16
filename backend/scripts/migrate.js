@@ -44,6 +44,7 @@ async function runMigrations() {
     
   } catch (err) {
     console.error('\nMigration failed:', err.message || err);
+    process.exitCode = 1;
   } finally {
     await sql.end();
   }

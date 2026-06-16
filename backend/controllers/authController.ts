@@ -81,6 +81,7 @@ export async function signUp(req: Request, res: Response): Promise<void> {
     return sendSuccess(res, 201, {
       message: 'Signup successful',
       accessToken,
+      token: accessToken, // Alias for backward compatibility
       user: data.user,
     });
   } catch (error) {
@@ -121,6 +122,7 @@ export async function login(req: Request, res: Response): Promise<void> {
     return sendSuccess(res, 200, {
       message: 'Login successful',
       accessToken,
+      token: accessToken, // Alias for backward compatibility
       user: data.user,
     });
   } catch (error) {
@@ -222,6 +224,7 @@ export async function refreshToken(req: Request, res: Response): Promise<void> {
 
     return sendSuccess(res, 200, {
       accessToken: newAccessToken,
+      token: newAccessToken, // Alias for backward compatibility
       user: authData.user,
     });
 
@@ -356,6 +359,7 @@ export async function exchangeAuthCode(req: Request, res: Response): Promise<voi
 
     return sendSuccess(res, 200, {
       accessToken: token,
+      token: token, // Alias for backward compatibility
       user: authData.user,
     });
   } catch (error) {

@@ -8,8 +8,12 @@ import { refreshTokens, oauthCodes } from '../db/schema.js';
 import { eq } from 'drizzle-orm';
 import jwt from 'jsonwebtoken';
 
-const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:3000';
-const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:5000';
+const CLIENT_URL = process.env.CLIENT_URL;
+const BACKEND_URL = process.env.BACKEND_URL;
+
+if (!CLIENT_URL) throw new Error('Missing required environment variable: CLIENT_URL');
+if (!BACKEND_URL) throw new Error('Missing required environment variable: BACKEND_URL');
+
 const JWT_SECRET = process.env.JWT_SECRET as string;
 
 if (!JWT_SECRET) {

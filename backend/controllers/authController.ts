@@ -26,14 +26,14 @@ const hashToken = (token: string) => {
 };
 
 // Helper: Create and store a refresh token securely
-const createAndStoreRefreshToken = async (userId: string) => {
+const createAndStoreRefreshToken = async (userId: string, tx: any = db) => {
   const refreshToken = crypto.randomBytes(40).toString('hex');
   const tokenHash = hashToken(refreshToken);
   
   // Expiration set to 30 days
   const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
 
-  await db.insert(refreshTokens).values({
+  await tx.insert(refreshTokens).values({
     user_id: userId,
     refresh_token_hash: tokenHash,
     expires_at: expiresAt.toISOString()
@@ -191,7 +191,7 @@ export async function refreshToken(req: Request, res: Response): Promise<void> {
   try {
     const tokenHash = hashToken(incomingToken);
 
-    // 1. Look up the hash in the DB
+    // 1. Look up the hash in the DB without locking
     const [tokenData] = await db.select({
       user_id: refreshTokens.user_id,
       expires_at: refreshTokens.expires_at,
@@ -199,38 +199,43 @@ export async function refreshToken(req: Request, res: Response): Promise<void> {
     }).from(refreshTokens).where(eq(refreshTokens.refresh_token_hash, tokenHash)).limit(1);
 
     if (!tokenData || tokenData.is_revoked) {
-      // SECURITY RISK: Token reuse detected or invalid token. 
-      // If we wanted to be extremely secure, we would revoke ALL tokens for this user here.
-      res.clearCookie('refresh_token', { path: '/api/auth' });
-      return sendError(res, 401, 'Invalid or revoked refresh token. Please log in again.');
+      throw new Error('InvalidToken');
     }
 
     if (new Date(tokenData.expires_at) < new Date()) {
-      res.clearCookie('refresh_token', { path: '/api/auth' });
-      return sendError(res, 401, 'Refresh token has expired. Please log in again.');
+      throw new Error('ExpiredToken');
     }
 
-    // 2. Fetch user metadata from Supabase Auth via Admin Client (Secure, bypasses RLS)
+    // 2. Fetch user metadata from Supabase Auth via Admin Client 
+    // IMPORTANT: We do this BEFORE the transaction so we don't hold database connections open across network calls!
     const { data: authData, error: userError } = await supabaseAdmin.auth.admin.getUserById(tokenData.user_id);
 
-    if (userError || !authData?.user) return sendError(res, 404, 'User not found in Auth system.');
+    if (userError || !authData?.user) {
+      throw new Error('UserNotFound');
+    }
 
-    // 3. Generate a fresh access token AND a fresh refresh token first
+    // 3. Generate a fresh access token (CPU bound, fast)
     const newAccessToken = jwt.sign(
       { userId: authData.user.id, email: authData.user.email },
       JWT_SECRET,
       { expiresIn: '15m' }
     );
 
-    const newRefreshToken = await createAndStoreRefreshToken(authData.user.id);
+    // 4. Run the actual DB mutation in a fast, isolated atomic transaction
+    const newRefreshToken = await db.transaction(async (tx) => {
+      // Atomically attempt to delete the exact token. 
+      // If another concurrent request beat us to it, this returns empty.
+      const deletedTokens = await tx.delete(refreshTokens)
+        .where(eq(refreshTokens.refresh_token_hash, tokenHash))
+        .returning();
 
-    // 4. Delete the old token ONLY after the new one is successfully stored
-    try {
-      await db.delete(refreshTokens).where(eq(refreshTokens.refresh_token_hash, tokenHash));
-    } catch (dbError) {
-      // It's safe to just log this; the new token works, and the old one will expire anyway
-      console.error('Failed to delete old refresh token:', dbError);
-    }
+      if (deletedTokens.length === 0) {
+        throw new Error('InvalidToken'); // Race condition lost! Safely abort.
+      }
+
+      // Generate and store the new token inside the same atomic transaction
+      return await createAndStoreRefreshToken(authData.user.id, tx);
+    });
 
     // 5. Send new refresh token in cookie
     res.cookie('refresh_token', newRefreshToken, {
@@ -247,7 +252,14 @@ export async function refreshToken(req: Request, res: Response): Promise<void> {
       user: authData.user,
     });
 
-  } catch (error) {
+  } catch (error: any) {
+    if (error.message === 'InvalidToken' || error.message === 'ExpiredToken') {
+      res.clearCookie('refresh_token', { path: '/api/auth' });
+      return sendError(res, 401, 'Invalid or expired refresh token. Please log in again.');
+    }
+    if (error.message === 'UserNotFound') {
+      return sendError(res, 404, 'User not found in Auth system.');
+    }
     sendControllerError(res, error as Error);
   }
 }

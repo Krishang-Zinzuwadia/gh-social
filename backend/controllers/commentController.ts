@@ -1,13 +1,13 @@
 import type { Request, Response } from 'express';
 import * as commentService from '../services/commentService.js';
-import { sendError, sendSuccess, sendSupabaseError } from '../utils/response.js';
+import { sendError, sendSuccess, sendDatabaseError } from '../utils/response.js';
 
 // Return every comment row.
 export async function getAllComments(_req: Request, res: Response): Promise<void> {
   const { data, error } = await commentService.getAllComments();
 
   if (error) {
-    return sendSupabaseError(res, error);
+    return sendDatabaseError(res, error);
   }
 
   return sendSuccess(res, 200, data);
@@ -19,7 +19,7 @@ export async function getCommentsByRepo(req: Request, res: Response): Promise<vo
   const { data, error } = await commentService.getCommentsByRepo(repoId);
 
   if (error) {
-    return sendSupabaseError(res, error);
+    return sendDatabaseError(res, error);
   }
 
   return sendSuccess(res, 200, data);
@@ -31,7 +31,7 @@ export async function getCommentsByUser(req: Request, res: Response): Promise<vo
   const { data, error } = await commentService.getCommentsByUser(userId);
 
   if (error) {
-    return sendSupabaseError(res, error);
+    return sendDatabaseError(res, error);
   }
 
   return sendSuccess(res, 200, data);
@@ -43,7 +43,7 @@ export async function getRepliesByParentComment(req: Request, res: Response): Pr
   const { data, error } = await commentService.getRepliesByParentComment(parentCommentId);
 
   if (error) {
-    return sendSupabaseError(res, error);
+    return sendDatabaseError(res, error);
   }
 
   return sendSuccess(res, 200, data);
@@ -55,7 +55,7 @@ export async function getCommentById(req: Request, res: Response): Promise<void>
   const { data, error } = await commentService.getCommentById(commentId);
 
   if (error) {
-    return sendSupabaseError(res, error, {
+    return sendDatabaseError(res, error, {
       notFoundMessage: 'Comment not found.',
     });
   }
@@ -68,7 +68,7 @@ export async function createComment(req: Request, res: Response): Promise<void> 
   const { data, error } = await commentService.createComment(req.body);
 
   if (error) {
-    return sendSupabaseError(res, error);
+    return sendDatabaseError(res, error);
   }
 
   return sendSuccess(res, 201, data);
@@ -80,7 +80,7 @@ export async function updateCommentById(req: Request, res: Response): Promise<vo
   const { data, error } = await commentService.updateCommentById(commentId, req.body);
 
   if (error) {
-    return sendSupabaseError(res, error, {
+    return sendDatabaseError(res, error, {
       notFoundMessage: 'Comment not found.',
     });
   }
@@ -94,7 +94,7 @@ export async function deleteCommentById(req: Request, res: Response): Promise<vo
   const { error, count } = await commentService.deleteCommentById(commentId);
 
   if (error) {
-    return sendSupabaseError(res, error, {
+    return sendDatabaseError(res, error, {
       notFoundMessage: 'Comment not found.',
     });
   }

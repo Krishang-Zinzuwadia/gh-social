@@ -5,7 +5,7 @@ import {
   sendControllerError,
   sendError,
   sendSuccess,
-  sendSupabaseError,
+  sendDatabaseError,
 } from '../utils/response.js';
 import { GitHubApiError } from '../services/githubService.js';
 import type { OnboardingSetupBody } from '../types/onboarding.js';
@@ -28,7 +28,7 @@ export async function getOnboardingStatus(req: AuthRequest, res: Response): Prom
   const { data, error } = await onboardingService.getOnboardingStatus(userId);
 
   if (error) {
-    return sendSupabaseError(res, error, {
+    return sendDatabaseError(res, error, {
       notFoundMessage: 'User profile not found',
     });
   }
@@ -93,7 +93,7 @@ export async function setupOnboarding(req: AuthRequest, res: Response): Promise<
   const { data, error } = await onboardingService.setupOnboardingProfile(userId, body);
 
   if (error) {
-    return sendSupabaseError(res, error as any, {
+    return sendDatabaseError(res, error as any, {
       conflictMessage: 'Username is already taken.',
     });
   }
@@ -114,7 +114,7 @@ export async function syncGitHub(req: AuthRequest, res: Response): Promise<void>
         return sendError(res, 400, error.message);
       }
 
-      return sendSupabaseError(res, error as any, {
+      return sendDatabaseError(res, error as any, {
         notFoundMessage: 'User profile not found',
         conflictMessage: 'This GitHub account is already linked to another user.',
       });

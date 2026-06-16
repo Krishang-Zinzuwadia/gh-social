@@ -1,5 +1,5 @@
 import type { Response } from 'express';
-import type { PostgresError, SupabaseErrorOptions } from '../types/index.js';
+import type { PostgresError, DatabaseErrorOptions } from '../types/index.js';
 
 export function sendSuccess<T>(res: Response, statusCode: number, data: T): void {
   res.status(statusCode).json({ success: true, data });
@@ -15,7 +15,7 @@ export function sendControllerError(
   fallbackStatusCode: number = 500
 ): void {
   if (isPostgresError(err)) {
-    sendSupabaseError(res, err);
+    sendDatabaseError(res, err);
     return;
   }
 
@@ -40,10 +40,10 @@ export function isPostgresError(error: unknown): error is PostgresError {
   );
 }
 
-export function sendSupabaseError(
+export function sendDatabaseError(
   res: Response,
   error: PostgresError,
-  options: SupabaseErrorOptions = {}
+  options: DatabaseErrorOptions = {}
 ): void {
   const {
     notFoundMessage = 'Resource not found',
@@ -69,10 +69,8 @@ export function sendSupabaseError(
     case '22P02':
       sendError(res, 400, invalidFormatMessage);
       break;
-    case 'PGRST205':
-      sendError(res, 503, 'Database schema is not initialized. Run project migrations.');
-      break;
     default:
+      console.error('Unhandled database error:', error);
       sendError(res, 500, 'Database error');
   }
 }

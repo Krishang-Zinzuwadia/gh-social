@@ -6,23 +6,19 @@ import {
   sendControllerError,
   sendError,
   sendSuccess,
-  sendSupabaseError,
+  sendDatabaseError,
 } from "../utils/response.js";
 import { isValidUuid, parsePaginationParams } from "../utils/validators.js";
 
-import type {
-  PostgresError,
-  RepoInsert,
-  SupabaseErrorOptions,
-} from "../types/index.js";
+import type { PostgresError, RepoInsert, DatabaseErrorOptions } from "../types/index.js";
 
 function sendRepoDatabaseError(res: Response, error: PostgresError): void {
-  return sendSupabaseError(res, error, {
+  return sendDatabaseError(res, error, {
     notFoundMessage: "Repository not found.",
     conflictMessage: "Repository already exists.",
     missingRequiredMessage: "Repository data is missing required fields.",
     invalidReferenceMessage: "Repository data references an invalid record.",
-  } satisfies SupabaseErrorOptions);
+  } satisfies DatabaseErrorOptions);
 }
 
 interface RepoBodyInput {

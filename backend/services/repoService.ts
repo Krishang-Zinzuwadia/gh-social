@@ -27,8 +27,8 @@ export async function createRepo(repoData: RepoInsert) {
 
 export async function incrementRepoViews(repoId: string) {
   try {
-    await db.execute(sql`SELECT increment_repo_views(${repoId}::uuid)`);
-    return { data: null, error: null };
+    const result = await db.execute(sql`SELECT increment_repo_views(${repoId}::uuid) as found`);
+    return { data: result[0]?.found ?? false, error: null };
   } catch (error) { return { data: null as any, error: error as any }; }
 }
 
@@ -36,7 +36,7 @@ export async function updateRepoById(repoId: string, repoData: RepoUpdate) {
   try {
     const [data] = await db.update(repos).set({
       ...repoData,
-      updated_at: new Date().toISOString()
+      updated_at: sql`now()`
     }).where(eq(repos.repo_id, repoId)).returning();
     if (!data) throw { code: 'PGRST116', message: 'Not found' };
     return { data, error: null };

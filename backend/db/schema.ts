@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, text, date, integer, jsonb, boolean, timestamp, primaryKey, unique, interval, check } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, text, date, integer, jsonb, boolean, timestamp, primaryKey, unique, interval, check, AnyPgColumn } from 'drizzle-orm/pg-core';
 import { relations, sql } from 'drizzle-orm';
 
 // 1. USERS
@@ -88,7 +88,7 @@ export const comments = pgTable('comment', {
   comment_id: uuid('comment_id').defaultRandom().primaryKey(),
   user_id: uuid('user_id').references(() => users.user_id, { onDelete: 'cascade' }).notNull(),
   repo_id: uuid('repo_id').references(() => repos.repo_id, { onDelete: 'cascade' }).notNull(),
-  parent_comment_id: uuid('parent_comment_id'), // Self referential added manually if needed
+  parent_comment_id: uuid('parent_comment_id').references((): AnyPgColumn => comments.comment_id, { onDelete: 'cascade' }),
   comment: text('comment').notNull(),
   created_at: timestamp('created_at', { mode: 'string' }).defaultNow(),
 });

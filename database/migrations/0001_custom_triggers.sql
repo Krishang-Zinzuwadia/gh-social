@@ -186,3 +186,10 @@ ALTER TABLE public.users
 ALTER TABLE public.follows
   ADD CONSTRAINT no_self_follow 
   CHECK (follower_id <> following_id);
+
+-- 16. Self-referential FK for comments
+ALTER TABLE public.comment 
+  ADD CONSTRAINT comment_parent_comment_id_fkey 
+  FOREIGN KEY (parent_comment_id) 
+  REFERENCES public.comment(comment_id) 
+  ON DELETE CASCADE;

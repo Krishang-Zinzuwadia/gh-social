@@ -331,21 +331,16 @@ export async function exchangeAuthCode(req: Request, res: Response): Promise<voi
   }
 
   try {
-    // 1. Look up the code
-    const [codeData] = await db.select({
-      user_id: oauthCodes.user_id,
-      expires_at: oauthCodes.expires_at
-    }).from(oauthCodes).where(eq(oauthCodes.code, code)).limit(1);
+    // 1 & 2. Atomically look up AND consume the code (DELETE ... RETURNING)
+    const [codeData] = await db.delete(oauthCodes)
+      .where(eq(oauthCodes.code, code))
+      .returning({
+        user_id: oauthCodes.user_id,
+        expires_at: oauthCodes.expires_at
+      });
 
     if (!codeData) {
-      return sendError(res, 400, 'Invalid authorization code');
-    }
-
-    // 2. Delete the code immediately (one-time use)
-    try {
-      await db.delete(oauthCodes).where(eq(oauthCodes.code, code));
-    } catch (dbError) {
-      return sendError(res, 500, 'Failed to consume authorization code. Please try again.');
+      return sendError(res, 400, 'Invalid or already consumed authorization code');
     }
 
     // 3. Check expiration

@@ -46,6 +46,10 @@ const createAndStoreRefreshToken = async (userId: string, tx: any = db) => {
 export async function signUp(req: Request, res: Response): Promise<void> {
   const { email, password, username, full_name } = req.body;
 
+  if (!username || username.trim() === '') {
+    return sendError(res, 400, 'Username is required');
+  }
+
   try {
     // 0. Pre-emptively check if username is taken to avoid messy trigger constraint violations
     if (username) {

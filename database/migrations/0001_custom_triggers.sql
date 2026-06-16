@@ -182,6 +182,7 @@ ALTER TABLE public.comment ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.boards ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.board_repos ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.boards_containers ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.container_boards ENABLE ROW LEVEL SECURITY;
 
 -- 14. Link public.users to auth.users
 ALTER TABLE public.users 

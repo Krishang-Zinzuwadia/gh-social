@@ -74,7 +74,7 @@ export async function signUp(req: Request, res: Response): Promise<void> {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      path: '/api/auth/refresh', // Restrict cookie to refresh endpoint
+      path: '/api/auth', // Restrict cookie to refresh endpoint
       maxAge: 30 * 24 * 60 * 60 * 1000, 
     });
 
@@ -114,7 +114,7 @@ export async function login(req: Request, res: Response): Promise<void> {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      path: '/api/auth/refresh',
+      path: '/api/auth',
       maxAge: 30 * 24 * 60 * 60 * 1000,
     });
 
@@ -141,7 +141,7 @@ export async function logout(req: Request, res: Response): Promise<void> {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
-    path: '/api/auth/refresh',
+    path: '/api/auth',
   });
 
   try {
@@ -181,12 +181,12 @@ export async function refreshToken(req: Request, res: Response): Promise<void> {
     if (!tokenData || tokenData.is_revoked) {
       // SECURITY RISK: Token reuse detected or invalid token. 
       // If we wanted to be extremely secure, we would revoke ALL tokens for this user here.
-      res.clearCookie('refresh_token', { path: '/api/auth/refresh' });
+      res.clearCookie('refresh_token', { path: '/api/auth' });
       return sendError(res, 401, 'Invalid or revoked refresh token. Please log in again.');
     }
 
     if (new Date(tokenData.expires_at) < new Date()) {
-      res.clearCookie('refresh_token', { path: '/api/auth/refresh' });
+      res.clearCookie('refresh_token', { path: '/api/auth' });
       return sendError(res, 401, 'Refresh token has expired. Please log in again.');
     }
 
@@ -216,7 +216,7 @@ export async function refreshToken(req: Request, res: Response): Promise<void> {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      path: '/api/auth/refresh',
+      path: '/api/auth',
       maxAge: 30 * 24 * 60 * 60 * 1000, 
     });
 
@@ -350,7 +350,7 @@ export async function exchangeAuthCode(req: Request, res: Response): Promise<voi
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      path: '/api/auth/refresh',
+      path: '/api/auth',
       maxAge: 30 * 24 * 60 * 60 * 1000,
     });
 

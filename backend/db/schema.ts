@@ -102,7 +102,9 @@ export const boards = pgTable('boards', {
   description: text('description'),
   repos_count: integer('repos_count').default(0),
   created_at: timestamp('created_at', { mode: 'string' }).defaultNow(),
-});
+}, (t) => ({
+  visibilityCheck: check('visibility_check', sql`${t.visibility} IN ('public', 'private')`),
+}));
 
 // 9. BOARD REPOS
 export const boardRepos = pgTable('board_repos', {

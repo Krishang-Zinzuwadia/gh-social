@@ -193,3 +193,8 @@ ALTER TABLE public.comment
   FOREIGN KEY (parent_comment_id) 
   REFERENCES public.comment(comment_id) 
   ON DELETE CASCADE;
+
+-- 17. Visibility constraint for boards
+ALTER TABLE public.boards
+  ADD CONSTRAINT visibility_check
+  CHECK (visibility IN ('public', 'private'));

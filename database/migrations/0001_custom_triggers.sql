@@ -171,9 +171,17 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 DROP TRIGGER IF EXISTS tr_evaluate_onboarding ON public.users;
 CREATE TRIGGER tr_evaluate_onboarding BEFORE INSERT OR UPDATE OF username, full_name, github_handle, interests, skills, tech_stack ON public.users FOR EACH ROW EXECUTE FUNCTION public.evaluate_onboarding_status();
 
--- 13. Enable RLS on sensitive auth tables
-ALTER TABLE oauth_codes ENABLE ROW LEVEL SECURITY;
-ALTER TABLE refresh_tokens ENABLE ROW LEVEL SECURITY;
+-- 13. Enable RLS on ALL tables to force traffic through the secure backend API
+ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.follows ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.refresh_tokens ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.oauth_codes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.repo ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.activity ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.comment ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.boards ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.board_repos ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.boards_containers ENABLE ROW LEVEL SECURITY;
 
 -- 14. Link public.users to auth.users
 ALTER TABLE public.users 

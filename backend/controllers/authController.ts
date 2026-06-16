@@ -197,14 +197,7 @@ export async function refreshToken(req: Request, res: Response): Promise<void> {
 
     if (userError || !authData?.user) return sendError(res, 404, 'User not found in Auth system.');
 
-    // 3. Delete the old token
-    try {
-      await db.delete(refreshTokens).where(eq(refreshTokens.refresh_token_hash, tokenHash));
-    } catch (dbError) {
-      return sendError(res, 500, 'Failed to rotate refresh token. Please log in again.');
-    }
-
-    // 4. Generate a fresh access token AND a fresh refresh token
+    // 3. Generate a fresh access token AND a fresh refresh token first
     const newAccessToken = jwt.sign(
       { userId: authData.user.id, email: authData.user.email },
       JWT_SECRET,
@@ -212,6 +205,14 @@ export async function refreshToken(req: Request, res: Response): Promise<void> {
     );
 
     const newRefreshToken = await createAndStoreRefreshToken(authData.user.id);
+
+    // 4. Delete the old token ONLY after the new one is successfully stored
+    try {
+      await db.delete(refreshTokens).where(eq(refreshTokens.refresh_token_hash, tokenHash));
+    } catch (dbError) {
+      // It's safe to just log this; the new token works, and the old one will expire anyway
+      console.error('Failed to delete old refresh token:', dbError);
+    }
 
     // 5. Send new refresh token in cookie
     res.cookie('refresh_token', newRefreshToken, {

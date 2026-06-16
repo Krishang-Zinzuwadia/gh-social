@@ -19,24 +19,42 @@ const sql = postgres(DATABASE_URL, { max: 1 });
 async function runMigrations() {
   try {
     const migrationsDir = path.join(__dirname, '..', '..', 'database', 'migrations');
-    
-    // We expect exactly two files in order
     const files = ['0000_initial_schema.sql', '0001_custom_triggers.sql'];
     
     console.log('Connecting to database...');
     
+    // 1. Ensure our migration history table exists (makes this idempotent!)
+    await sql`
+      CREATE TABLE IF NOT EXISTS public.migration_history (
+        id SERIAL PRIMARY KEY,
+        filename VARCHAR(255) UNIQUE NOT NULL,
+        applied_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+    `;
+
     for (const file of files) {
       const filePath = path.join(migrationsDir, file);
       if (!fs.existsSync(filePath)) {
         console.warn(`File ${file} not found, skipping.`);
         continue;
       }
-      
+
+      // 2. Check if this specific file has already been applied
+      const existing = await sql`SELECT * FROM public.migration_history WHERE filename = ${file}`;
+      if (existing.length > 0) {
+        console.log(`Skipping ${file} - already applied.`);
+        continue;
+      }
+
       console.log(`Executing ${file}...`);
       const query = fs.readFileSync(filePath, 'utf8');
       
-      // Execute the raw SQL
-      await sql.unsafe(query);
+      // 3. Apply the SQL and record it in the history table
+      await sql.begin(async (tx) => {
+        await tx.unsafe(query);
+        await tx`INSERT INTO public.migration_history (filename) VALUES (${file})`;
+      });
+
       console.log(`Successfully applied ${file}.`);
     }
     

@@ -1,69 +1,63 @@
-/*
- * Board service
- * Database access functions for boards and the board_repos join table.
- */
-import supabase from '../config/supabase.js';
-import type { BoardInsert, BoardRow, BoardRepoRow } from '../types/index.js';
+import { db } from '../db/index.js';
+import { boards, boardRepos, repos } from '../db/schema.js';
+import { eq, and, desc } from 'drizzle-orm';
+import type { BoardInsert } from '../types/index.js';
 
-const boardTable = 'boards';
-const boardReposTable = 'board_repos';
-
-/**
- * Insert a new board record.
- */
-export function createBoard(boardData: BoardInsert) {
-  return supabase.from(boardTable).insert(boardData).select().single();
+export async function createBoard(boardData: BoardInsert) {
+  try {
+    const [data] = await db.insert(boards).values(boardData).returning();
+    return { data, error: null };
+  } catch (error) { return { data: null as any, error: error as any }; }
 }
 
-/**
- * Fetch boards owned by a given user (newest first).
- */
-export function getBoardsByUser(userId: string) {
-  return supabase.from(boardTable).select('*').eq('user_id', userId).order('created_at', { ascending: false });
+export async function getBoardsByUser(userId: string) {
+  try {
+    const data = await db.select().from(boards).where(eq(boards.user_id, userId)).orderBy(desc(boards.created_at));
+    return { data, error: null };
+  } catch (error) { return { data: null as any, error: error as any }; }
 }
 
-/**
- * Fetch a single board by primary key.
- */
-export function getBoardById(boardId: string) {
-  return supabase.from(boardTable).select('*').eq('board_id', boardId).single();
+export async function getBoardById(boardId: string) {
+  try {
+    const [data] = await db.select().from(boards).where(eq(boards.board_id, boardId)).limit(1);
+    if (!data) throw { code: 'PGRST116', message: 'Not found' };
+    return { data, error: null };
+  } catch (error) { return { data: null as any, error: error as any }; }
 }
 
-/**
- * Add a repository to a board. The DB trigger enforces the repo was saved by the board owner.
- */
-export function addRepoToBoard(boardId: string, repoId: string) {
-  return supabase.from(boardReposTable).insert({ board_id: boardId, repo_id: repoId }).select().single();
+export async function addRepoToBoard(boardId: string, repoId: string) {
+  try {
+    const [data] = await db.insert(boardRepos).values({ board_id: boardId, repo_id: repoId }).returning();
+    return { data, error: null };
+  } catch (error) { return { data: null as any, error: error as any }; }
 }
 
-/**
- * Remove a repository from a board.
- */
-export function removeRepoFromBoard(boardId: string, repoId: string) {
-  return supabase
-    .from(boardReposTable)
-    .delete({ count: 'exact' })
-    .eq('board_id', boardId)
-    .eq('repo_id', repoId);
+export async function removeRepoFromBoard(boardId: string, repoId: string) {
+  try {
+    const result = await db.delete(boardRepos).where(and(eq(boardRepos.board_id, boardId), eq(boardRepos.repo_id, repoId))).returning();
+    return { data: null, error: null, count: result.length };
+  } catch (error) { return { data: null as any, error: error as any, count: 0 }; }
 }
 
-/**
- * Delete a board by primary key.
- */
-export function deleteBoard(boardId: string) {
-  return supabase
-    .from(boardTable)
-    .delete({ count: 'exact' })
-    .eq('board_id', boardId);
+export async function deleteBoard(boardId: string) {
+  try {
+    const result = await db.delete(boards).where(eq(boards.board_id, boardId)).returning();
+    return { data: null, error: null, count: result.length };
+  } catch (error) { return { data: null as any, error: error as any, count: 0 }; }
 }
 
-/**
- * List repo entries for a board, including a nested repo object when available.
- */
-export function getReposForBoard(boardId: string) {
-  return supabase
-    .from(boardReposTable)
-    .select('repo_id, added_at, repo:repo(*)')
-    .eq('board_id', boardId)
-    .order('added_at', { ascending: false });
+export async function getReposForBoard(boardId: string) {
+  try {
+    const result = await db.select({
+      repo_id: boardRepos.repo_id,
+      added_at: boardRepos.added_at,
+      repo: repos
+    })
+    .from(boardRepos)
+    .leftJoin(repos, eq(boardRepos.repo_id, repos.repo_id))
+    .where(eq(boardRepos.board_id, boardId))
+    .orderBy(desc(boardRepos.added_at));
+
+    return { data: result, error: null };
+  } catch (error) { return { data: null as any, error: error as any }; }
 }

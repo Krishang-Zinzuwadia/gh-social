@@ -1,49 +1,44 @@
-import supabase from '../config/supabase.js';
+import { db } from '../db/index.js';
+import { repos } from '../db/schema.js';
+import { eq, desc, sql } from 'drizzle-orm';
 import type { RepoInsert, RepoUpdate, PaginationParams } from '../types/index.js';
 
-const repoTable = "repo";
-
-// Fetch all repos with pagination, newest first.
-export function getAllRepos({ limit, offset }: PaginationParams) {
-  return supabase
-    .from(repoTable)
-    .select("*")
-    .order("created_at", { ascending: false })
-    .range(offset, offset + limit - 1);
+export async function getAllRepos({ limit, offset }: PaginationParams) {
+  try {
+    const data = await db.select().from(repos).orderBy(desc(repos.created_at)).limit(limit).offset(offset);
+    return { data, error: null };
+  } catch (error) { return { data: null as any, error: error as any }; }
 }
 
-// Fetch one repo by primary key.
-export function getRepoById(repoId: string) {
-  return supabase
-    .from(repoTable)
-    .select("*")
-    .eq("repo_id", repoId)
-    .single();
+export async function getRepoById(repoId: string) {
+  try {
+    const [data] = await db.select().from(repos).where(eq(repos.repo_id, repoId)).limit(1);
+    if (!data) throw { code: 'PGRST116', message: 'Not found' };
+    return { data, error: null };
+  } catch (error) { return { data: null as any, error: error as any }; }
 }
 
-// Insert a new repo record.
-export function createRepo(repoData: RepoInsert) {
-  return supabase
-    .from(repoTable)
-    .insert(repoData)
-    .select()
-    .single();
+export async function createRepo(repoData: RepoInsert) {
+  try {
+    const [data] = await db.insert(repos).values(repoData).returning();
+    return { data, error: null };
+  } catch (error) { return { data: null as any, error: error as any }; }
 }
 
-// Increment view count for a repo.
-export function incrementRepoViews(repoId: string) {
-  return supabase.rpc('increment_repo_views', { rid: repoId });
+export async function incrementRepoViews(repoId: string) {
+  try {
+    await db.execute(sql`SELECT increment_repo_views(${repoId}::uuid)`);
+    return { data: null, error: null };
+  } catch (error) { return { data: null as any, error: error as any }; }
 }
 
-// Update one repo by primary key.
-export function updateRepoById(repoId: string, repoData: RepoUpdate) {
-  return supabase
-    .from(repoTable)
-    .update({
+export async function updateRepoById(repoId: string, repoData: RepoUpdate) {
+  try {
+    const [data] = await db.update(repos).set({
       ...repoData,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("repo_id", repoId)
-    .select()
-    .single();
+      updated_at: new Date().toISOString()
+    }).where(eq(repos.repo_id, repoId)).returning();
+    if (!data) throw { code: 'PGRST116', message: 'Not found' };
+    return { data, error: null };
+  } catch (error) { return { data: null as any, error: error as any }; }
 }

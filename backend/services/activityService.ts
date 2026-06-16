@@ -1,96 +1,88 @@
-import supabase from '../config/supabase.js';
+import { db } from '../db/index.js';
+import { activities } from '../db/schema.js';
+import { eq, and, desc, sql } from 'drizzle-orm';
 import type { ActivityInsert, ActivityUpdate } from '../types/index.js';
 
-// Toggle like for a user/repo pair (0 ↔ 1). Atomic upsert, no TOCTOU.
-export function toggleRepoLike(userId: string, repoId: string) {
-  return supabase.rpc('toggle_repo_like', { uid: userId, rid: repoId }).single();
+export async function toggleRepoLike(userId: string, repoId: string) {
+  try {
+    const result = await db.execute(sql`SELECT * FROM toggle_repo_like(${userId}::uuid, ${repoId}::uuid)`);
+    return { data: result[0] || null, error: null };
+  } catch (error) { return { data: null as any, error: error as any }; }
 }
 
-// Toggle save for a user/repo pair. Atomic upsert, no TOCTOU.
-export function toggleRepoSave(userId: string, repoId: string) {
-  return supabase.rpc('toggle_repo_save', { uid: userId, rid: repoId }).single();
+export async function toggleRepoSave(userId: string, repoId: string) {
+  try {
+    const result = await db.execute(sql`SELECT * FROM toggle_repo_save(${userId}::uuid, ${repoId}::uuid)`);
+    return { data: result[0] || null, error: null };
+  } catch (error) { return { data: null as any, error: error as any }; }
 }
 
-// Fetch all activity records.
-export function getAllActivity() {
-  return supabase
-    .from("activity")
-    .select("*")
-    .order("time_spent", { ascending: false });
+export async function getAllActivity() {
+  try {
+    const data = await db.select().from(activities).orderBy(desc(activities.time_spent));
+    return { data, error: null };
+  } catch (error) { return { data: null as any, error: error as any }; }
 }
 
-// Fetch activity records for one user.
-export function getUserActivity(userId: string) {
-  return supabase
-    .from("activity")
-    .select("*")
-    .eq("user_id", userId)
-    .order("time_spent", { ascending: false });
+export async function getUserActivity(userId: string) {
+  try {
+    const data = await db.select().from(activities).where(eq(activities.user_id, userId)).orderBy(desc(activities.time_spent));
+    return { data, error: null };
+  } catch (error) { return { data: null as any, error: error as any }; }
 }
 
-// Fetch saved activity records for one user.
-export function getSavedActivity(userId: string) {
-  return supabase
-    .from("activity")
-    .select("*")
-    .eq("user_id", userId)
-    .eq("is_saved", true)
-    .order("time_spent", { ascending: false });
+export async function getSavedActivity(userId: string) {
+  try {
+    const data = await db.select().from(activities).where(and(eq(activities.user_id, userId), eq(activities.is_saved, true))).orderBy(desc(activities.time_spent));
+    return { data, error: null };
+  } catch (error) { return { data: null as any, error: error as any }; }
 }
 
-// Fetch one activity record using the user/repo pair.
-export function getActivityByUserAndRepo(userId: string, repoId: string) {
-  return supabase
-    .from("activity")
-    .select("*")
-    .eq("user_id", userId)
-    .eq("repo_id", repoId)
-    .maybeSingle();
+export async function getActivityByUserAndRepo(userId: string, repoId: string) {
+  try {
+    const [data] = await db.select().from(activities).where(and(eq(activities.user_id, userId), eq(activities.repo_id, repoId))).limit(1);
+    if (!data) throw { code: 'PGRST116', message: 'Not found' };
+    return { data, error: null };
+  } catch (error) { return { data: null as any, error: error as any }; }
 }
 
-// Update one activity record using the user/repo pair.
-export function updateActivityByUserAndRepo(userId: string, repoId: string, activityData: ActivityUpdate) {
-  return supabase
-    .from("activity")
-    .update(activityData)
-    .eq("user_id", userId)
-    .eq("repo_id", repoId)
-    .select()
-    .single();
+export async function updateActivityByUserAndRepo(userId: string, repoId: string, activityData: ActivityUpdate) {
+  try {
+    const [data] = await db.update(activities)
+      .set(activityData)
+      .where(and(eq(activities.user_id, userId), eq(activities.repo_id, repoId)))
+      .returning();
+    if (!data) throw { code: 'PGRST116', message: 'Not found' };
+    return { data, error: null };
+  } catch (error) { return { data: null as any, error: error as any }; }
 }
 
-// Fetch one activity record by primary key.
-export function getActivityById(activityId: string) {
-  return supabase
-    .from("activity")
-    .select("*")
-    .eq("activity_id", activityId)
-    .single();
+export async function getActivityById(activityId: string) {
+  try {
+    const [data] = await db.select().from(activities).where(eq(activities.activity_id, activityId)).limit(1);
+    if (!data) throw { code: 'PGRST116', message: 'Not found' };
+    return { data, error: null };
+  } catch (error) { return { data: null as any, error: error as any }; }
 }
 
-// Insert a new activity record.
-export function createActivity(activityData: ActivityInsert) {
-  return supabase
-    .from("activity")
-    .insert(activityData)
-    .select()
-    .single();
+export async function createActivity(activityData: ActivityInsert) {
+  try {
+    const [data] = await db.insert(activities).values(activityData).returning();
+    return { data, error: null };
+  } catch (error) { return { data: null as any, error: error as any }; }
 }
 
-// Update one activity record by primary key.
-export function updateActivityById(activityId: string, activityData: ActivityUpdate) {
-  return supabase
-    .from("activity")
-    .update(activityData)
-    .eq("activity_id", activityId)
-    .select()
-    .single();
+export async function updateActivityById(activityId: string, activityData: ActivityUpdate) {
+  try {
+    const [data] = await db.update(activities).set(activityData).where(eq(activities.activity_id, activityId)).returning();
+    if (!data) throw { code: 'PGRST116', message: 'Not found' };
+    return { data, error: null };
+  } catch (error) { return { data: null as any, error: error as any }; }
 }
 
-// Delete one activity record by primary key.
-export function deleteActivityById(activityId: string) {
-  return supabase
-    .from("activity")
-    .delete({ count: 'exact' })
-    .eq("activity_id", activityId);
+export async function deleteActivityById(activityId: string) {
+  try {
+    const result = await db.delete(activities).where(eq(activities.activity_id, activityId)).returning();
+    return { data: null, error: null, count: result.length };
+  } catch (error) { return { data: null as any, error: error as any, count: 0 }; }
 }

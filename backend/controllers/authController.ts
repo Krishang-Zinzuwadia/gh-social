@@ -44,11 +44,15 @@ const createAndStoreRefreshToken = async (userId: string, tx: any = db) => {
 
 // POST /api/auth/signup
 export async function signUp(req: Request, res: Response): Promise<void> {
-  const { email, password, username, full_name } = req.body;
+  let { email, password, username, full_name } = req.body;
 
-  if (!username || username.trim() === '') {
+  if (!username || typeof username !== 'string' || username.trim() === '') {
     return sendError(res, 400, 'Username is required');
   }
+
+  // Normalize username to prevent whitespace bypasses (" alice " vs "alice")
+  username = username.trim();
+
 
   try {
     // 0. Pre-emptively check if username is taken to avoid messy trigger constraint violations

@@ -1,60 +1,26 @@
-import type { LanguageBreakdown } from './github.js';
+import type { InferSelectModel, InferInsertModel } from 'drizzle-orm';
+import {
+  activities,
+  users,
+  follows,
+  comments,
+  repos,
+  boards,
+  boardRepos,
+  boardsContainers,
+  containerBoards,
+  oauthCodes,
+  refreshTokens,
+} from '../db/schema.js';
 
 // ─── Activity Table ─────────────────────────────────────────────────────────
-
-export interface ActivityRow {
-  activity_id: string;
-  user_id: string;
-  repo_id: string;
-  time_spent: string | null;
-  likelihood_count: number;
-  is_saved: boolean;
-}
-
-export interface ActivityInsert extends Omit<ActivityRow, 'activity_id' | 'time_spent' | 'likelihood_count' | 'is_saved'> {
-  time_spent?: string | null;
-  likelihood_count?: number;
-  is_saved?: boolean;
-}
-
+export type ActivityRow = InferSelectModel<typeof activities>;
+export type ActivityInsert = InferInsertModel<typeof activities>;
 export type ActivityUpdate = Partial<ActivityInsert>;
 
 // ─── Users Table ────────────────────────────────────────────────────────────
-
-export interface UserRow {
-  user_id: string;
-  username: string;
-  full_name: string | null;
-  date_of_birth: string | null;
-  bio: string | null;
-  github_url: string | null;
-  github_id: string | null;
-  github_handle: string | null;
-  avatar_url: string | null;
-  followers_count: number;
-  following_count: number;
-  saved_repos_count: number;
-  interests: string[];
-  skills: string[];
-  tech_stack: string[];
-  onboarding_completed: boolean;
-  created_at: string;
-}
-
-export interface UserInsert extends Omit<
-  UserRow,
-  'created_at' | 'followers_count' | 'following_count' | 'saved_repos_count' | 'interests' | 'skills' | 'tech_stack' | 'onboarding_completed'
-> {
-  followers_count?: number;
-  following_count?: number;
-  saved_repos_count?: number;
-  interests?: string[];
-  skills?: string[];
-  tech_stack?: string[];
-  onboarding_completed?: boolean;
-  created_at?: string;
-}
-
+export type UserRow = InferSelectModel<typeof users>;
+export type UserInsert = InferInsertModel<typeof users>;
 export type UserUpdate = Partial<UserInsert>;
 
 export type UserProfile = Pick<
@@ -77,116 +43,46 @@ export type UserProfile = Pick<
 >;
 
 // ─── Follows Table ──────────────────────────────────────────────────────────
-
-export interface FollowRow {
-  follower_id: string;
-  following_id: string;
-  created_at: string;
-}
-
-export type FollowInsert = Omit<FollowRow, 'created_at'> & { created_at?: string };
-
+export type FollowRow = InferSelectModel<typeof follows>;
+export type FollowInsert = InferInsertModel<typeof follows>;
 export type FollowUpdate = Partial<FollowInsert>;
 
 // ─── Comment Table ──────────────────────────────────────────────────────────
-
-export interface CommentRow {
-  comment_id: string;
-  user_id: string;
-  repo_id: string;
-  parent_comment_id: string | null;
-  comment: string;
-  created_at: string;
-}
-
-export type CommentInsert = Omit<CommentRow, 'comment_id' | 'created_at'> & { created_at?: string };
-
+export type CommentRow = InferSelectModel<typeof comments>;
+export type CommentInsert = InferInsertModel<typeof comments>;
 export type CommentUpdate = Partial<CommentInsert>;
 
 // ─── Repo Table ─────────────────────────────────────────────────────────────
-
-export interface RepoRow {
-  repo_id: string;
-  github_repo_url: string;
-  owner_id: string;
-  repo_name: string;
-  full_name: string;
-  description: string | null;
-  language_used: LanguageBreakdown[];
-  topics: string[];
-  readme_summary: string | null;
-  likes_count: number;
-  comments_count: number;
-  saves_count: number;
-  views_count: number;
-  forks_count: number;
-  pr_count: number;
-  created_at: string | null;
-  updated_at: string | null;
-}
-
-export interface RepoInsert extends Omit<RepoRow, 'repo_id' | 'language_used' | 'topics' | 'likes_count' | 'comments_count' | 'saves_count' | 'views_count' | 'forks_count' | 'pr_count' | 'created_at' | 'updated_at'> {
-  language_used?: LanguageBreakdown[];
-  topics?: string[];
-  likes_count?: number;
-  comments_count?: number;
-  saves_count?: number;
-  views_count?: number;
-  forks_count?: number;
-  pr_count?: number;
-  created_at?: string | null;
-  updated_at?: string | null;
-}
-
+export type RepoRow = InferSelectModel<typeof repos>;
+export type RepoInsert = InferInsertModel<typeof repos>;
 export type RepoUpdate = Partial<RepoInsert>;
 
 // ─── Boards Table ───────────────────────────────────────────────────────────
-
-export interface BoardRow {
-  board_id: string;
-  user_id: string;
-  board_name: string;
-  visibility: 'public' | 'private';
-  description: string | null;
-  repos_count: number;
-  created_at: string | null;
-}
-
-export interface BoardInsert extends Omit<BoardRow, 'board_id' | 'repos_count' | 'created_at'> {
-  repos_count?: number;
-  created_at?: string | null;
-}
-
+export type BoardRow = InferSelectModel<typeof boards>;
+export type BoardInsert = InferInsertModel<typeof boards>;
 export type BoardUpdate = Partial<BoardInsert>;
 
-// Board - Repo join table
-export interface BoardRepoRow {
-  board_id: string;
-  repo_id: string;
-  added_at: string | null;
-}
+// ─── Board Repos Table ──────────────────────────────────────────────────────
+export type BoardRepoRow = InferSelectModel<typeof boardRepos>;
+export type BoardRepoInsert = InferInsertModel<typeof boardRepos>;
+export type BoardRepoUpdate = Partial<BoardRepoInsert>;
 
-export type BoardRepoInsert = Omit<BoardRepoRow, 'added_at'> & { added_at?: string | null };
+// ─── Boards Containers Table ────────────────────────────────────────────────
+export type BoardsContainerRow = InferSelectModel<typeof boardsContainers>;
+export type BoardsContainerInsert = InferInsertModel<typeof boardsContainers>;
+export type BoardsContainerUpdate = Partial<BoardsContainerInsert>;
 
-// ─── Boards Containers (containers that hold multiple boards) ────────────────
+// ─── Container Boards Table ─────────────────────────────────────────────────
+export type ContainerBoardRow = InferSelectModel<typeof containerBoards>;
+export type ContainerBoardInsert = InferInsertModel<typeof containerBoards>;
+export type ContainerBoardUpdate = Partial<ContainerBoardInsert>;
 
-export interface BoardsContainerRow {
-  container_id: string;
-  user_id: string;
-  container_name: string;
-  description: string | null;
-  created_at: string | null;
-}
+// ─── OAuth Codes Table ──────────────────────────────────────────────────────
+export type OAuthCodeRow = InferSelectModel<typeof oauthCodes>;
+export type OAuthCodeInsert = InferInsertModel<typeof oauthCodes>;
+export type OAuthCodeUpdate = Partial<OAuthCodeInsert>;
 
-export interface BoardsContainerInsert extends Omit<BoardsContainerRow, 'container_id' | 'created_at'> {
-  created_at?: string | null;
-}
-
-export interface ContainerBoardRow {
-  container_id: string;
-  board_id: string;
-  added_at: string | null;
-}
-
-export type ContainerBoardInsert = Omit<ContainerBoardRow, 'added_at'> & { added_at?: string | null };
-
+// ─── Refresh Tokens Table ───────────────────────────────────────────────────
+export type RefreshTokenRow = InferSelectModel<typeof refreshTokens>;
+export type RefreshTokenInsert = InferInsertModel<typeof refreshTokens>;
+export type RefreshTokenUpdate = Partial<RefreshTokenInsert>;

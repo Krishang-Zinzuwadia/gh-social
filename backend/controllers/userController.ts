@@ -1,7 +1,7 @@
 import type { Request, Response } from 'express';
 import type { AuthRequest } from '../middlewares/authMiddleware.js'; // Bring in your custom type
 import * as userService from '../services/userService.js';
-import { sendError, sendSuccess, sendSupabaseError } from '../utils/response.js';
+import { sendError, sendSuccess, sendDatabaseError } from '../utils/response.js';
 import { isValidUuid } from '../utils/validators.js'; // You might not need this anymore for the follower, but keep it if you use it elsewhere
 
 // Fetch a user's public profile (Remains standard Request as it is a public route)
@@ -11,7 +11,7 @@ export async function getUserProfile(req: Request, res: Response): Promise<void>
   const { data, error } = await userService.getUserProfileByUsername(username);
 
   if (error) {
-    return sendSupabaseError(res, error, {
+    return sendDatabaseError(res, error, {
       notFoundMessage: 'User not found',
     });
   }
@@ -41,7 +41,7 @@ export async function updateProfile(req: AuthRequest, res: Response): Promise<vo
   const { data, error } = await userService.updateUserProfile(userId, updates);
 
   if (error) {
-    return sendSupabaseError(res, error);
+    return sendDatabaseError(res, error);
   }
 
   return sendSuccess(res, 200, data);
@@ -61,7 +61,7 @@ export async function followUser(req: AuthRequest, res: Response): Promise<void>
   const { data: targetUser, error: targetError } = await userService.getUserIdByUsername(username);
 
   if (targetError) {
-    return sendSupabaseError(res, targetError, {
+    return sendDatabaseError(res, targetError, {
       notFoundMessage: 'Target user not found',
     });
   }
@@ -79,7 +79,7 @@ export async function followUser(req: AuthRequest, res: Response): Promise<void>
   const { error: followError } = await userService.followUser(followerId, targetUserId);
 
   if (followError) {
-    return sendSupabaseError(res, followError, {
+    return sendDatabaseError(res, followError, {
       conflictMessage: 'You are already following this user.',
       invalidReferenceMessage: 'Invalid follower_id: User does not exist.',
     });
@@ -102,7 +102,7 @@ export async function unfollowUser(req: AuthRequest, res: Response): Promise<voi
   const { data: targetUser, error: targetError } = await userService.getUserIdByUsername(username);
 
   if (targetError) {
-    return sendSupabaseError(res, targetError, {
+    return sendDatabaseError(res, targetError, {
       notFoundMessage: 'Target user not found',
     });
   }
@@ -119,7 +119,7 @@ export async function unfollowUser(req: AuthRequest, res: Response): Promise<voi
   );
 
   if (unfollowError) {
-    return sendSupabaseError(res, unfollowError);
+    return sendDatabaseError(res, unfollowError);
   }
 
   if (count === 0) {
@@ -134,7 +134,7 @@ export async function getAllUsers(_req: Request, res: Response): Promise<void> {
   const { data, error } = await userService.getAllUsers();
 
   if (error) {
-    return sendSupabaseError(res, error);
+    return sendDatabaseError(res, error);
   }
 
   return sendSuccess(res, 200, data);
@@ -151,7 +151,7 @@ export async function getUserById(req: Request, res: Response): Promise<void> {
   const { data, error } = await userService.getUserById(userId);
 
   if (error) {
-    return sendSupabaseError(res, error, {
+    return sendDatabaseError(res, error, {
       notFoundMessage: 'User not found',
     });
   }

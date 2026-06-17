@@ -34,7 +34,7 @@ export interface PostgresError {
   hint?: string;
 }
 
-export interface SupabaseErrorOptions {
+export interface DatabaseErrorOptions {
   notFoundMessage?: string;
   conflictMessage?: string;
   missingRequiredMessage?: string;

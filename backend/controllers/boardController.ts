@@ -1,6 +1,6 @@
 import type { Request, Response } from 'express';
 import * as boardService from '../services/boardService.js';
-import { sendError, sendSuccess, sendSupabaseError, sendControllerError } from '../utils/response.js';
+import { sendError, sendSuccess, sendDatabaseError, sendControllerError } from '../utils/response.js';
 import { isValidUuid } from '../utils/validators.js';
 import type { BoardInsert } from '../types/index.js';
 
@@ -17,7 +17,7 @@ export async function createBoard(req: Request, res: Response): Promise<void> {
 
   try {
     const { data, error } = await boardService.createBoard(body);
-    if (error) return sendSupabaseError(res, error);
+    if (error) return sendDatabaseError(res, error);
     return sendSuccess(res, 201, data);
   } catch (err) {
     return sendControllerError(res, err);
@@ -30,7 +30,7 @@ export async function getBoardsByUser(req: Request, res: Response): Promise<void
   if (!isValidUuid(userId)) return sendError(res, 400, 'userId must be a valid UUID.');
 
   const { data, error } = await boardService.getBoardsByUser(userId);
-  if (error) return sendSupabaseError(res, error);
+  if (error) return sendDatabaseError(res, error);
 
   if (viewerId === userId) {
     return sendSuccess(res, 200, data);
@@ -46,7 +46,7 @@ export async function getBoardById(req: Request, res: Response): Promise<void> {
   if (!isValidUuid(boardId)) return sendError(res, 400, 'boardId must be a valid UUID.');
 
   const { data, error } = await boardService.getBoardById(boardId);
-  if (error) return sendSupabaseError(res, error, { notFoundMessage: 'Board not found.' });
+  if (error) return sendDatabaseError(res, error, { notFoundMessage: 'Board not found.' });
 
   if (data.visibility === 'private' && data.user_id !== viewerId) {
     return sendError(res, 404, 'Board not found.');
@@ -64,7 +64,7 @@ export async function addRepoToBoard(req: Request, res: Response): Promise<void>
   if (!userId || !isValidUuid(userId)) return sendError(res, 400, 'user_id is required and must be a valid UUID.');
 
   const { data: board, error: boardError } = await boardService.getBoardById(boardId);
-  if (boardError) return sendSupabaseError(res, boardError, { notFoundMessage: 'Board not found.' });
+  if (boardError) return sendDatabaseError(res, boardError, { notFoundMessage: 'Board not found.' });
   if (board.user_id !== userId) return sendError(res, 403, 'You do not own this board.');
 
   try {
@@ -80,7 +80,7 @@ export async function addRepoToBoard(req: Request, res: Response): Promise<void>
           'Repo must be saved by the board owner before it can be added to this board.',
         );
       }
-      return sendSupabaseError(res, error, {
+      return sendDatabaseError(res, error, {
         invalidReferenceMessage: 'Repo does not exist or is not linked to a valid record.',
       });
     }
@@ -97,12 +97,12 @@ export async function removeRepoFromBoard(req: Request, res: Response): Promise<
   if (!userId || !isValidUuid(userId)) return sendError(res, 400, 'user_id is required and must be a valid UUID.');
 
   const { data: board, error: boardError } = await boardService.getBoardById(boardId);
-  if (boardError) return sendSupabaseError(res, boardError, { notFoundMessage: 'Board not found.' });
+  if (boardError) return sendDatabaseError(res, boardError, { notFoundMessage: 'Board not found.' });
   if (board.user_id !== userId) return sendError(res, 403, 'You do not own this board.');
 
   try {
     const { error, count } = await boardService.removeRepoFromBoard(boardId, repoId);
-    if (error) return sendSupabaseError(res, error);
+    if (error) return sendDatabaseError(res, error);
 
     if (typeof count === 'number' && count === 0) return sendError(res, 404, 'Repo not found on board.');
 
@@ -119,12 +119,12 @@ export async function deleteBoardById(req: Request, res: Response): Promise<void
   if (!userId || !isValidUuid(userId)) return sendError(res, 400, 'user_id is required and must be a valid UUID.');
 
   const { data: board, error: boardError } = await boardService.getBoardById(boardId);
-  if (boardError) return sendSupabaseError(res, boardError, { notFoundMessage: 'Board not found.' });
+  if (boardError) return sendDatabaseError(res, boardError, { notFoundMessage: 'Board not found.' });
   if (board.user_id !== userId) return sendError(res, 403, 'You do not own this board.');
 
   try {
     const { error, count } = await boardService.deleteBoard(boardId);
-    if (error) return sendSupabaseError(res, error);
+    if (error) return sendDatabaseError(res, error);
     if (typeof count === 'number' && count === 0) return sendError(res, 404, 'Board not found.');
     return sendSuccess(res, 200, { message: 'Board deleted.' });
   } catch (err) {
@@ -138,13 +138,13 @@ export async function getReposForBoard(req: Request, res: Response): Promise<voi
   if (!isValidUuid(boardId)) return sendError(res, 400, 'boardId must be a valid UUID.');
 
   const { data: board, error: boardError } = await boardService.getBoardById(boardId);
-  if (boardError) return sendSupabaseError(res, boardError, { notFoundMessage: 'Board not found.' });
+  if (boardError) return sendDatabaseError(res, boardError, { notFoundMessage: 'Board not found.' });
 
   if (board.visibility === 'private' && board.user_id !== viewerId) {
     return sendError(res, 404, 'Board not found.');
   }
 
   const { data, error } = await boardService.getReposForBoard(boardId);
-  if (error) return sendSupabaseError(res, error);
+  if (error) return sendDatabaseError(res, error);
   return sendSuccess(res, 200, data);
 }

@@ -7,12 +7,20 @@ import repoRoutes from './routes/repoRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 import boardRoutes from './routes/boardRoutes.js';
 import containersRoutes from './routes/containersRoutes.js';
+import onboardingRoutes from './routes/onboardingRoutes.js';
+import cookieParser from 'cookie-parser';
 
 const app = express();
 
 // Global middleware used by every route.
-app.use(cors());
+app.use(
+  cors({
+    origin: process.env.CLIENT_URL,
+    credentials: true,
+  })
+);
 app.use(express.json());
+app.use(cookieParser());
 
 // Basic health route to confirm the backend is running.
 app.get('/', (_req: Request, res: Response) => {
@@ -39,6 +47,9 @@ app.use('/api/boards', boardRoutes);
 
 // Container API routes.
 app.use('/api/containers', containersRoutes);
+
+// Onboarding API routes.
+app.use('/api/onboarding', onboardingRoutes);
 
 // Global error handler.
 app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {

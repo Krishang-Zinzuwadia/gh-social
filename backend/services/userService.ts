@@ -1,60 +1,35 @@
-import supabase, { supabaseAdmin } from '../config/supabase.js';
+import { db } from '../db/index.js';
+import { users, follows } from '../db/schema.js';
+import { eq, desc, and } from 'drizzle-orm';
 import type { UserProfile, UserUpdate } from '../types/database.js';
-import type {
-  OnboardingStatusResponse,
-  OnboardingStepStatus,
-} from '../types/onboarding.js';
+import type { OnboardingStatusResponse, OnboardingStepStatus } from '../types/onboarding.js';
 
-const USER_PROFILE_COLUMNS = [
-  'username',
-  'full_name',
-  'date_of_birth',
-  'bio',
-  'github_url',
-  'github_handle',
-  'avatar_url',
-  'followers_count',
-  'following_count',
-  'saved_repos_count',
-  'interests',
-  'skills',
-  'tech_stack',
-  'onboarding_completed',
-  'created_at',
-].join(', ');
+const USER_PROFILE_COLUMNS = {
+  username: users.username,
+  full_name: users.full_name,
+  date_of_birth: users.date_of_birth,
+  bio: users.bio,
+  github_url: users.github_url,
+  github_handle: users.github_handle,
+  avatar_url: users.avatar_url,
+  followers_count: users.followers_count,
+  following_count: users.following_count,
+  saved_repos_count: users.saved_repos_count,
+  interests: users.interests,
+  skills: users.skills,
+  tech_stack: users.tech_stack,
+  onboarding_completed: users.onboarding_completed,
+  created_at: users.created_at,
+};
 
-const ONBOARDING_EVALUATION_COLUMNS = [
-  'username',
-  'full_name',
-  'bio',
-  'avatar_url',
-  'github_url',
-  'github_handle',
-  'interests',
-  'skills',
-  'tech_stack',
-  'onboarding_completed',
-  'date_of_birth',
-  'followers_count',
-  'following_count',
-  'saved_repos_count',
-  'created_at',
-].join(', ');
+const ONBOARDING_EVALUATION_COLUMNS = { ...USER_PROFILE_COLUMNS };
 
 const DEFAULT_USERNAME_PREFIX = 'user_';
 
 type OnboardingProfileState = Pick<
   UserProfile,
-  | 'username'
-  | 'full_name'
-  | 'bio'
-  | 'avatar_url'
-  | 'github_url'
-  | 'github_handle'
-  | 'interests'
-  | 'skills'
-  | 'tech_stack'
-  | 'onboarding_completed'
+  | 'username' | 'full_name' | 'bio' | 'avatar_url' | 'github_url' | 'github_handle'
+  | 'interests' | 'skills' | 'tech_stack' | 'onboarding_completed'
 >;
 
 function isDefaultUsername(username: string): boolean {
@@ -84,32 +59,14 @@ function evaluateOnboardingSteps(profile: OnboardingProfileState): OnboardingSte
 
 function buildMissingFields(steps: OnboardingStepStatus, profile: OnboardingProfileState): string[] {
   const missing: string[] = [];
-
   if (!steps.profile) {
-    if (!profile.username.trim() || isDefaultUsername(profile.username)) {
-      missing.push('username');
-    }
-    if (!profile.full_name?.trim()) {
-      missing.push('full_name');
-    }
+    if (!profile.username.trim() || isDefaultUsername(profile.username)) missing.push('username');
+    if (!profile.full_name?.trim()) missing.push('full_name');
   }
-
-  if (!steps.github) {
-    missing.push('github');
-  }
-
-  if (!steps.interests) {
-    missing.push('interests');
-  }
-
-  if (!steps.skills) {
-    missing.push('skills');
-  }
-
-  if (!steps.tech_stack) {
-    missing.push('tech_stack');
-  }
-
+  if (!steps.github) missing.push('github');
+  if (!steps.interests) missing.push('interests');
+  if (!steps.skills) missing.push('skills');
+  if (!steps.tech_stack) missing.push('tech_stack');
   return missing;
 }
 
@@ -117,7 +74,6 @@ function isOnboardingComplete(profile: OnboardingProfileState): boolean {
   const steps = evaluateOnboardingSteps(profile);
   return buildMissingFields(steps, profile).length === 0;
 }
-
 
 function buildOnboardingStatus(profile: UserProfile): OnboardingStatusResponse {
   const steps = evaluateOnboardingSteps(profile);
@@ -131,93 +87,63 @@ function buildOnboardingStatus(profile: UserProfile): OnboardingStatusResponse {
   };
 }
 
-// Fetch onboarding status and profile for the authenticated user.
 export async function getUserProfile(userId: string) {
-  const { data, error } = await supabaseAdmin
-    .from('users')
-    .select(ONBOARDING_EVALUATION_COLUMNS)
-    .eq('user_id', userId)
-    .single();
-
-  if (error) {
-    return { data: null, error };
-  }
-
-  // Double cast to unknown first to avoid the "neither type sufficiently overlaps" error
-  return { data: buildOnboardingStatus(data as unknown as UserProfile), error: null };
+  try {
+    const [data] = await db.select(ONBOARDING_EVALUATION_COLUMNS).from(users).where(eq(users.user_id, userId)).limit(1);
+    if (!data) throw { code: 'PGRST116', message: 'Not found' };
+    return { data: buildOnboardingStatus(data as unknown as UserProfile), error: null };
+  } catch (error) { return { data: null as any, error: error as any }; }
 }
 
-// Fetch a user's public profile by username.
-export function getUserProfileByUsername(username: string) {
-  return supabase
-    .from('users')
-    .select(USER_PROFILE_COLUMNS)
-    .eq('username', username)
-    .single();
+export async function getUserProfileByUsername(username: string) {
+  try {
+    const [data] = await db.select(USER_PROFILE_COLUMNS).from(users).where(eq(users.username, username)).limit(1);
+    if (!data) throw { code: 'PGRST116', message: 'Not found' };
+    return { data, error: null };
+  } catch (error) { return { data: null as any, error: error as any }; }
 }
 
-// Fetch a user's UUID by username.
-export function getUserIdByUsername(username: string) {
-  return supabase
-    .from('users')
-    .select('user_id')
-    .eq('username', username)
-    .single();
+export async function getUserIdByUsername(username: string) {
+  try {
+    const [data] = await db.select({ user_id: users.user_id }).from(users).where(eq(users.username, username)).limit(1);
+    if (!data) throw { code: 'PGRST116', message: 'Not found' };
+    return { data, error: null };
+  } catch (error) { return { data: null as any, error: error as any }; }
 }
 
-// Create a follower/following relationship.
-export function followUser(followerId: string, followingId: string) {
-  return supabaseAdmin
-    .from('follows')
-    .insert([
-      {
-        follower_id: followerId,
-        following_id: followingId,
-      },
-    ]);
+export async function followUser(followerId: string, followingId: string) {
+  try {
+    const [data] = await db.insert(follows).values({ follower_id: followerId, following_id: followingId }).returning();
+    return { data, error: null };
+  } catch (error) { return { data: null as any, error: error as any }; }
 }
 
-// Delete a follower/following relationship.
-export function unfollowUser(followerId: string, followingId: string) {
-  return supabaseAdmin
-    .from('follows')
-    .delete({ count: 'exact' })
-    .match({
-      follower_id: followerId,
-      following_id: followingId,
-    });
+export async function unfollowUser(followerId: string, followingId: string) {
+  try {
+    const result = await db.delete(follows).where(and(eq(follows.follower_id, followerId), eq(follows.following_id, followingId))).returning();
+    return { data: null, error: null, count: result.length };
+  } catch (error) { return { data: null, error: error as any, count: 0 }; }
 }
 
-// List all users (public profiles).
-export function getAllUsers() {
-  return supabase
-    .from('users')
-    .select(USER_PROFILE_COLUMNS)
-    .order('created_at', { ascending: false });
+export async function getAllUsers() {
+  try {
+    const data = await db.select(USER_PROFILE_COLUMNS).from(users).orderBy(desc(users.created_at));
+    return { data, error: null };
+  } catch (error) { return { data: null as any, error: error as any }; }
 }
 
-// Fetch a user's public profile by UUID.
-export function getUserById(userId: string) {
-  return supabase
-    .from('users')
-    .select(USER_PROFILE_COLUMNS)
-    .eq('user_id', userId)
-    .single();
+export async function getUserById(userId: string) {
+  try {
+    const [data] = await db.select(USER_PROFILE_COLUMNS).from(users).where(eq(users.user_id, userId)).limit(1);
+    if (!data) throw { code: 'PGRST116', message: 'Not found' };
+    return { data, error: null };
+  } catch (error) { return { data: null as any, error: error as any }; }
 }
 
-// Update profile fields. The PostgreSQL trigger 'tr_evaluate_onboarding' 
-// will automatically compute and persist 'onboarding_completed' atomically.
 export async function updateUserProfile(userId: string, updates: UserUpdate) {
-  const { data: updatedRow, error: updateError } = await supabaseAdmin
-    .from('users')
-    .update(updates)
-    .eq('user_id', userId)
-    .select(USER_PROFILE_COLUMNS)
-    .single();
-
-  if (updateError) {
-    return { data: null, error: updateError };
-  }
-
-  return { data: updatedRow, error: null };
+  try {
+    const [updatedRow] = await db.update(users).set(updates).where(eq(users.user_id, userId)).returning(USER_PROFILE_COLUMNS);
+    if (!updatedRow) throw { code: 'PGRST116', message: 'Not found' };
+    return { data: updatedRow, error: null };
+  } catch (error) { return { data: null as any, error: error as any }; }
 }

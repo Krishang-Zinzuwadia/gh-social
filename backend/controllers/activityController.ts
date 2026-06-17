@@ -1,6 +1,6 @@
 import type { Request, Response } from 'express';
 import * as activityService from '../services/activityService.js';
-import { sendError, sendSuccess, sendSupabaseError } from '../utils/response.js';
+import { sendError, sendSuccess, sendDatabaseError } from '../utils/response.js';
 import { isValidUuid } from '../utils/validators.js';
 
 // Return every activity row.
@@ -8,7 +8,7 @@ export async function getAllActivity(_req: Request, res: Response): Promise<void
   const { data, error } = await activityService.getAllActivity();
 
   if (error) {
-    return sendSupabaseError(res, error);
+    return sendDatabaseError(res, error);
   }
 
   return sendSuccess(res, 200, data);
@@ -20,7 +20,7 @@ export async function getUserActivity(req: Request, res: Response): Promise<void
   const { data, error } = await activityService.getUserActivity(userId);
 
   if (error) {
-    return sendSupabaseError(res, error);
+    return sendDatabaseError(res, error);
   }
 
   return sendSuccess(res, 200, data);
@@ -32,7 +32,7 @@ export async function getSavedActivity(req: Request, res: Response): Promise<voi
   const { data, error } = await activityService.getSavedActivity(userId);
 
   if (error) {
-    return sendSupabaseError(res, error);
+    return sendDatabaseError(res, error);
   }
 
   return sendSuccess(res, 200, data);
@@ -44,7 +44,7 @@ export async function getActivityByUserAndRepo(req: Request, res: Response): Pro
   const { data, error } = await activityService.getActivityByUserAndRepo(userId, repoId);
 
   if (error) {
-    return sendSupabaseError(res, error);
+    return sendDatabaseError(res, error);
   }
 
   return sendSuccess(res, 200, data);
@@ -60,7 +60,7 @@ export async function updateActivityByUserAndRepo(req: Request, res: Response): 
   );
 
   if (error) {
-    return sendSupabaseError(res, error, {
+    return sendDatabaseError(res, error, {
       notFoundMessage: 'Activity not found for this user and repo.',
     });
   }
@@ -74,7 +74,7 @@ export async function getActivityById(req: Request, res: Response): Promise<void
   const { data, error } = await activityService.getActivityById(activityId);
 
   if (error) {
-    return sendSupabaseError(res, error, {
+    return sendDatabaseError(res, error, {
       notFoundMessage: 'Activity not found.',
     });
   }
@@ -87,7 +87,7 @@ export async function createActivity(req: Request, res: Response): Promise<void>
   const { data, error } = await activityService.createActivity(req.body);
 
   if (error) {
-    return sendSupabaseError(res, error);
+    return sendDatabaseError(res, error);
   }
 
   return sendSuccess(res, 201, data);
@@ -99,7 +99,7 @@ export async function updateActivityById(req: Request, res: Response): Promise<v
   const { data, error } = await activityService.updateActivityById(activityId, req.body);
 
   if (error) {
-    return sendSupabaseError(res, error, {
+    return sendDatabaseError(res, error, {
       notFoundMessage: 'Activity not found.',
     });
   }
@@ -113,7 +113,7 @@ export async function deleteActivityById(req: Request, res: Response): Promise<v
   const { error, count } = await activityService.deleteActivityById(activityId);
 
   if (error) {
-    return sendSupabaseError(res, error, {
+    return sendDatabaseError(res, error, {
       notFoundMessage: 'Activity not found.',
     });
   }
@@ -136,7 +136,7 @@ export async function likeRepo(req: Request, res: Response): Promise<void> {
   const { data, error } = await activityService.toggleRepoLike(userId, repoId);
 
   if (error) {
-    return sendSupabaseError(res, error);
+    return sendDatabaseError(res, error);
   }
 
   return sendSuccess(res, 200, data);
@@ -153,7 +153,7 @@ export async function saveRepo(req: Request, res: Response): Promise<void> {
   const { data, error } = await activityService.toggleRepoSave(userId, repoId);
 
   if (error) {
-    return sendSupabaseError(res, error);
+    return sendDatabaseError(res, error);
   }
 
   return sendSuccess(res, 200, data);

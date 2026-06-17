@@ -161,13 +161,6 @@ export async function logout(req: Request, res: Response): Promise<void> {
     return;
   }
 
-  res.clearCookie('refresh_token', {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    path: '/api/auth',
-  });
-
   try {
     const tokenHash = hashToken(incomingToken);
     
@@ -177,10 +170,17 @@ export async function logout(req: Request, res: Response): Promise<void> {
       return sendError(res, 500, 'Failed to revoke refresh token.');
     }
     
+    // Only clear the cookie AFTER the server-side token is successfully revoked!
+    res.clearCookie('refresh_token', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/api/auth',
+    });
+
     res.status(200).json({ success: true, message: 'Logged out successfully.' });
   } catch (err) {
-    // If it fails, we still cleared the cookie, so the user is effectively logged out
-    res.status(200).json({ success: true, message: 'Logged out locally.' });
+    return sendError(res, 500, 'Internal server error during logout');
   }
 }
 

@@ -21,6 +21,12 @@
       "version": "7",
       "when": 1781647983015,
       "tag": "0002_add_indexes",
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1781648000000,
+      "tag": "0003_container_boards_rls",
       "breakpoints": true
     }
   ]

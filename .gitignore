@@ -44,3 +44,15 @@ example
 
 # backend build output
 backend/dist/
+
+# IDEs and Editors
+.idea/
+.vscode/
+.commandcode/
+*.swp
+*.code-workspace
+
+# Environment variables
+.env
+.env.development
+.env.production

@@ -16,10 +16,17 @@ const regular = { fontFamily: 'NotoSans_400Regular' };
 const bold = { fontFamily: 'NotoSans_700Bold' };
 
 export default function TrendingRepoCard({ repo, onPress }: TrendingRepoCardProps): React.JSX.Element {
+  const formattedName = repo.name.replace(/-/g, '- ');
+
   return (
     <TouchableOpacity
       onPress={onPress}
-      className="bg-[#161716] rounded-xl p-4 mb-3 border border-[#242524]"
+      className="rounded-xl p-4"
+      style={{
+        backgroundColor: '#191F18',
+        borderColor: '#2E3D2E',
+        borderWidth: 1,
+      }}
       activeOpacity={0.7}
     >
       {/* Row 1: Icon and Name */}
@@ -29,8 +36,12 @@ export default function TrendingRepoCard({ repo, onPress }: TrendingRepoCardProp
             <MonitorIcon stroke="#22C55E" width={14} height={14} />
           </View>
         )}
-        <Text className="text-white text-sm flex-1" numberOfLines={1} style={bold}>
-          {repo.name}
+        <Text
+          className="text-white flex-1"
+          numberOfLines={1}
+          style={[bold, { fontSize: 14, lineHeight: 18, width: '100%' }]}
+        >
+          {formattedName}
         </Text>
       </View>
 

@@ -81,7 +81,7 @@ export default function TrendingScreen() {
         data={data}
         keyExtractor={(item) => item.id}
         renderItem={renderCard}
-        contentContainerStyle={{ paddingBottom: 24 }}
+        contentContainerStyle={{ paddingBottom: 24, gap: 12 }}
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={renderEmpty}
       />

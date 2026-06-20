@@ -14,7 +14,7 @@ export default function SearchBar({
   placeholder = 'Explore',
 }: SearchBarProps): React.JSX.Element {
   return (
-    <View className="flex-row items-center bg-[#1C1C1E] border border-[#2C2C2E] rounded-full px-4 py-2.5 mx-4 mb-4">
+    <View className="flex-row items-center bg-[#1C1C1E] border border-[#2C2C2E] rounded-full px-4 py-2.5 mx-4 mb-2">
       <SearchIcon stroke="#6B7280" width={16} height={16} />
       <TextInput
         className="flex-1 text-white text-sm ml-2"

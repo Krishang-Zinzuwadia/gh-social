@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import { useState, useEffect } from 'react';
-import { FlatList, ListRenderItemInfo, StatusBar, View, Text } from 'react-native';
+import { ScrollView, StatusBar, View, Text } from 'react-native';
 import Header from '../components/Header';
 import RepoCard from '../components/RepoCard';
 import SearchBar from '../components/SearchBar';
@@ -34,18 +34,11 @@ export default function ForYouScreen() {
     if (tab === 'Trending') router.push('/explore');
   };
 
-  const renderCard = ({ item }: ListRenderItemInfo<Repo | { id: string }>) => (
-    <View className="flex-1">
-      {isLoading ? (
-        <SkeletonCard height={85} />
-      ) : (
-        <RepoCard repo={item as Repo} />
-      )}
-    </View>
-  );
+  const leftColData = data.filter((_, idx) => idx % 2 === 0);
+  const rightColData = data.filter((_, idx) => idx % 2 !== 0);
 
   const renderEmpty = () => {
-    if (isLoading) return null;
+    if (isLoading || data.length > 0) return null;
     return (
       <View className="items-center justify-center py-16">
         <Text className="text-[#6B7280] text-sm" style={regular}>
@@ -63,16 +56,43 @@ export default function ForYouScreen() {
         <SearchBar value={searchQuery} onChangeText={setSearchQuery} />
       </View>
       <TabBar activeTab="For you" onTabChange={handleTabChange} />
-      <FlatList<any>
-        data={data}
-        keyExtractor={(item) => item.id}
-        renderItem={renderCard}
-        numColumns={2}
-        columnWrapperStyle={{ gap: 10, paddingHorizontal: 16 }}
-        contentContainerStyle={{ paddingBottom: 16 }}
+
+      <ScrollView
         showsVerticalScrollIndicator={false}
-        ListEmptyComponent={renderEmpty}
-      />
+        contentContainerStyle={{ paddingBottom: 24 }}
+      >
+        {renderEmpty()}
+        
+        {data.length > 0 && (
+          <View className="flex-row px-4" style={{ gap: 10 }}>
+            {/* Left Column */}
+            <View className="flex-1" style={{ gap: 8 }}>
+              {leftColData.map((item) => (
+                <View key={item.id}>
+                  {isLoading ? (
+                    <SkeletonCard height={85} />
+                  ) : (
+                    <RepoCard repo={item as Repo} />
+                  )}
+                </View>
+              ))}
+            </View>
+
+            {/* Right Column */}
+            <View className="flex-1" style={{ gap: 8 }}>
+              {rightColData.map((item) => (
+                <View key={item.id}>
+                  {isLoading ? (
+                    <SkeletonCard height={85} />
+                  ) : (
+                    <RepoCard repo={item as Repo} />
+                  )}
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
+      </ScrollView>
     </View>
   );
 }

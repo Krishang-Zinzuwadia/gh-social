@@ -14,14 +14,31 @@ const regular = { fontFamily: 'NotoSans_400Regular' };
 const bold = { fontFamily: 'NotoSans_700Bold' };
 
 export default function RepoCard({ repo, onPress }: RepoCardProps): React.JSX.Element {
+  // Replace hyphens with hyphen + space to guarantee wrapping on hyphens across all platforms
+  const formattedName = repo.name.replace(/-/g, '- ');
+
+  // Dynamic sizing: long names get a larger font size to emphasize wrapping/height,
+  // short names get a smaller font size to keep the box compact.
+  const isLongName = repo.name.length > 25;
+  const titleFontSize = isLongName ? 14 : 12;
+  const titleLineHeight = isLongName ? 18 : 16;
+
   return (
     <TouchableOpacity
       onPress={onPress}
-      className="bg-[#161716] rounded-xl p-3 mb-2 border border-[#242524]"
+      className="rounded-xl p-3"
+      style={{
+        backgroundColor: '#191F18',
+        borderColor: '#2E3D2E',
+        borderWidth: 1,
+      }}
       activeOpacity={0.7}
     >
-      <Text className="text-white text-xs leading-tight mb-2" numberOfLines={2} style={bold}>
-        {repo.name}
+      <Text
+        className="text-white mb-2"
+        style={[bold, { fontSize: titleFontSize, lineHeight: titleLineHeight, width: '100%' }]}
+      >
+        {formattedName}
       </Text>
       <View className="flex-row items-center" style={{ gap: 10 }}>
         <View className="flex-row items-center" style={{ gap: 3 }}>

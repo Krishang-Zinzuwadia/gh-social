@@ -18,7 +18,12 @@ export default function FeaturedRepoCard({ repo, onPress }: FeaturedRepoCardProp
   return (
     <TouchableOpacity
       onPress={onPress}
-      className="bg-[#161716] rounded-xl p-4 mb-3 border border-[#242524]"
+      className="rounded-xl p-4 mb-3"
+      style={{
+        backgroundColor: '#191F18',
+        borderColor: '#2E3D2E',
+        borderWidth: 1,
+      }}
       activeOpacity={0.7}
     >
       <View className="flex-row items-center mb-3" style={{ gap: 10 }}>

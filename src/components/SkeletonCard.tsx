@@ -31,11 +31,10 @@ export default function SkeletonCard({ height = 80 }: SkeletonCardProps): React.
     <Animated.View
       style={{
         height,
-        backgroundColor: '#1C1C1E',
+        backgroundColor: '#191F18',
         borderRadius: 12,
-        marginBottom: 12,
         borderWidth: 1,
-        borderColor: '#2C2C2E',
+        borderColor: '#2E3D2E',
         opacity,
       }}
     />

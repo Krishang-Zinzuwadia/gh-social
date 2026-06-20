@@ -26,8 +26,8 @@ export default function Layout() {
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: APP_THEME.background,
-          borderTopColor: APP_THEME.borderDark,
+          backgroundColor: APP_THEME.tabBarBackground,
+          borderTopColor: APP_THEME.tabBarBorder,
           height: 60,
         },
         tabBarItemStyle: {

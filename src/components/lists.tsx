@@ -1,8 +1,11 @@
-import { View, Text } from "react-native"
+import { View, Text, useWindowDimensions } from "react-native"
 import RecentPins from "./recentpins"
 import RecentSaves from "./recentsaves"
 
 export default function Lists() {
+  const { width } = useWindowDimensions();
+  const isTablet = width >= 768;
+
   const pinnedLists = [
     { id: 1, pin: "meal-planner" },
     { id: 2, pin: "QuickNotes" },
@@ -16,16 +19,40 @@ export default function Lists() {
     { id: 4, name: "App Development" }
   ]
 
+  if (isTablet) {
+    return (
+      <View className="w-full h-[467px] border border-[#6DA963] rounded-[10px] bg-[#191F18] px-4 pt-[24px] pb-[16px] justify-start">
+        <View className="w-full px-1 mb-3.5 items-center">
+          <Text style={{ top: -2 }} className="text-white text-[15px] font-bold font-nata sans">Lists</Text>
+        </View>
+        {pinnedLists.map((item) => (
+          <RecentPins key={item.id} title={item.pin} isPinned={true} />
+        ))}
+
+        <View className="w-full px-1 mb-3.5 mt-4">
+          <Text style={{ top: -2 }} className="text-[#6DA963] text-[12px] font-bold font-noto sans">Saved Collections</Text>
+        </View>
+        {savedCollections.map((item) => (
+          <RecentSaves key={item.id} title={item.name} />
+        ))}
+      </View>
+    )
+  }
+
   return (
-    // Lists Box: 336 x 467
-    <View style={{ width: 336, height: 467, borderWidth: 1, borderColor: '#6DA963', borderRadius: 10, backgroundColor: '#191F18', padding: 16 }}>
-      <Text style={{ color: '#FFFFFF', fontSize: 12, fontWeight: 'bold', textAlign: 'center', marginBottom: 12,fontFamily:'Nata Sans' }}>Lists</Text>
+    // Lists Box: 336 x 467 (mobile default)
+    <View className="w-full h-[467px] border border-[#6DA963] rounded-[10px] bg-[#191F18] px-4 pt-[24px] pb-[16px]">
+      <View className="w-full px-1 mb-3.5 items-center">
+        <Text style={{ top: -2 }} className="text-white text-[15px] font-bold font-nata sans">Lists</Text>
+      </View>
       
       {pinnedLists.map((item) => (
         <RecentPins key={item.id} title={item.pin} isPinned={true} />
       ))}
 
-      <Text style={{ color: '#6DA963', fontSize: 12, fontWeight: 'bold', marginTop: 12, marginBottom: 10 ,fontFamily:'Nata Sans'}}>Saved Collections</Text>
+      <View className="w-full px-1 mb-3.5">
+        <Text style={{ top: -2 }} className="text-[#6DA963] text-[12px] font-bold font-noto sans">Saved Collections</Text>
+      </View>
 
       {savedCollections.map((item) => (
         <RecentSaves key={item.id} title={item.name} />

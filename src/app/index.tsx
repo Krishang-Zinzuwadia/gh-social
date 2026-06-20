@@ -1,9 +1,11 @@
-import { View, Pressable, Text, Image, Modal, TextInput, ScrollView } from "react-native"
-import { useState } from "react"
+import React, { useState } from "react"
+import { View, Pressable, Text, Modal, TextInput } from "react-native"
+import Svg, { Path } from "react-native-svg"
 import { SafeAreaView } from "react-native-safe-area-context"
 import Overview from "@/components/overview"
 import Repositories from "@/components/repositories"
 import Lists from "@/components/lists"
+import { HeartIcon, FollowerUserIcon, BookmarkIcon, GroupFollowersIcon, PencilIcon, LocationPinIcon, ProfileAvatarIcon } from '@/components/icons'
 
 export default function Profile() {
   const [modal, setModal] = useState(false)
@@ -15,62 +17,83 @@ export default function Profile() {
   const [activetab, setActivetab] = useState("Lists")
 
   const stats = [
-    { id: "likes", icon: "❤️", value: "1.2K", label: "Likes given" },
-    { id: "followers", icon: "👥", value: "300", label: "Followers" },
-    { id: "saved", icon: "🔖", value: "156", label: "Saved" },
-    { id: "following", icon: "➕", value: "289", label: "Following" }
+    { id: "likes", value: "1.2K", label: "Likes given" },
+    { id: "followers", value: "300", label: "Followers" },
+    { id: "saved", value: "156", label: "Saved" },
+    { id: "following", value: "289", label: "Following" }
   ]
+
+  const getStatIcon = (id: string) => {
+    switch (id) {
+      case 'likes':
+        return <HeartIcon width={23} height={20} fill="#6DA963" />;
+      case 'followers':
+        return <GroupFollowersIcon width={22} height={19} fill="#6DA963" />;
+      case 'saved':
+        return <BookmarkIcon width={15} height={19} fill="#6DA963" />;
+      case 'following':
+        return <FollowerUserIcon width={24} height={24} fill="#6DA963" />;
+      default:
+        return null;
+    }
+  };
 
   return (
     // Restored the clean deep dark background
-    <View style={{ flex: 1, backgroundColor: '#090D0A', alignItems: 'center', justifyContent: 'flex-start', minHeight: '100vh' }}>
-      <SafeAreaView style={{ width: 375, flex: 1, backgroundColor: '#090D0A' }}>
-        <ScrollView contentContainerStyle={{ paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
+    <View className="flex-1 bg-[#090D0A] items-center justify-start min-h-screen">
+      <SafeAreaView className="w-full flex-1 bg-[#090D0A]">
+        <View className="flex-1 pb-[120px]">
           
           {/* Header Section */}
-          <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 32, paddingHorizontal: 20 }}>
-            <View style={{ width: 80, height: 80, borderRadius: 40, overflow: 'hidden', backgroundColor: 'rgba(123, 201, 111, 0.1)', borderWidth: 1, borderColor: '#6DA963', justifyContent: 'center', alignItems: 'center' }}>
-              <Image style={{ width: '100%', height: '100%' }} source={image} resizeMode="cover" />
+          <View className="flex-row items-center mt-[72px] px-5">
+            <View className="w-[92px] h-[92px] justify-center items-center">
+              <ProfileAvatarIcon width={92} height={92} />
             </View>
 
-            <View style={{ marginLeft: 16, flex: 1 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <Text style={{ color: '#FFFFFF', fontSize: 18, fontWeight: 'bold', letterSpacing: 0.5, fontFamily: 'Noto Sans' }}>{name}</Text>
-                <Pressable style={{ marginLeft: 8, padding: 4 }} onPress={() => setModal(true)}>
-                  <Text style={{ color: '#6DA963', fontSize: 14, fontFamily: 'Noto Sans' }}>✏️</Text>
+            <View className="ml-4 flex-1">
+              <View className="flex-row items-center">
+                <Text className="text-white text-[18px] font-bold tracking-[0.5px] font-noto">{name}</Text>
+                <Pressable className="ml-2 p-1" onPress={() => setModal(true)}>
+                  <PencilIcon size={11} fill="#6DA963" />
                 </Pressable>
               </View>
-              <Text style={{ color: '#6DA963', fontSize: 12, fontWeight: '600', marginTop: 2, fontFamily: 'Noto Sans' }}>{job}</Text>
-              <Text style={{ color: '#FFFFFF', fontSize: 12, marginTop: 2, fontFamily: 'Noto Sans' }}>Username: {username}</Text>
-              <Text style={{ color: '#FFFFFF', fontSize: 12, marginTop: 2, fontFamily: 'Noto Sans' }}>📍 {location}</Text>
+              <Text className="text-[#6DA963] text-[12px] font-semibold mt-[2px] font-noto">{job}</Text>
+              <Text className="text-white text-[12px] mt-[2px] font-noto">Username: {username}</Text>
+              <View className="flex-row items-center mt-[2px]">
+                <LocationPinIcon width={8} height={10} fill="#6DA963" className="mr-1" />
+                <Text className="text-white text-[12px] font-noto">{location}</Text>
+              </View>
             </View>
           </View>
 
           {/* Stats Section */}
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 24, paddingHorizontal: 16 }}>
+          <View className="flex-row justify-between mt-6 px-4 items-center">
             {stats.map((stat, index) => (
-              <View key={stat.id} style={{ alignItems: 'center', flex: 1, borderLeftWidth: index !== 0 ? 1 : 0, borderLeftColor: '#1E2E20' }}>
-                <Text style={{ fontSize: 14, fontFamily: 'Noto Sans' }}>{stat.icon}</Text>
-                <Text style={{ color: '#FFFFFF', fontSize: 14, fontWeight: 'bold', marginTop: 4, fontFamily: 'Noto Sans' }}>{stat.value}</Text>
-                <Text style={{ color: '#FFFFFF', fontSize: 10, marginTop: 2, textAlign: 'center', fontWeight: '500', opacity: 0.8, fontFamily: 'Noto Sans' }}>{stat.label}</Text>
-              </View>
+              <React.Fragment key={stat.id}>
+                {index !== 0 && (
+                  <Svg width={1} height={62} viewBox="0 0 1 62" fill="none">
+                    <Path opacity={0.4} d="M0.5 0C0.466667 1.03333 0.435 2.06667 0.405 3.1C0.135 12.4 0 21.7 0 31C0 40.3 0.135 49.6 0.405 58.9C0.435 59.9333 0.466667 60.9667 0.5 62C0.533333 60.9667 0.565 59.9333 0.595 58.9C0.865 49.6 1 40.3 1 31C1 21.7 0.865 12.4 0.595 3.1C0.565 2.06667 0.533333 1.03333 0.5 0Z" fill="white" />
+                  </Svg>
+                )}
+                <View className="items-center flex-1">
+                  <View className="h-7 justify-center items-center">
+                    {getStatIcon(stat.id)}
+                  </View>
+                  <Text className="text-white text-[14px] font-bold mt-1 font-noto">{stat.value}</Text>
+                  <Text className="text-white text-[10px] mt-[2px] text-center font-medium opacity-80 font-noto">{stat.label}</Text>
+                </View>
+              </React.Fragment>
             ))}
           </View>
 
           {/* Navigation Tabs */}
-          <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 48, marginTop: 32, marginBottom: 24, borderBottomWidth: 1, borderBottomColor: '#141F16', paddingBottom: 8 }}>
+          <View className="flex-row justify-center gap-24 mt-[96px] mb-6 pb-2">
             <Pressable onPress={() => setActivetab(activetab === "Overview" ? "Lists" : "Overview")}>
               <Text 
-                style={{ 
-                  fontSize: 14,
-                  fontWeight: '600',
-                  letterSpacing: 0.5,
-                  paddingBottom: 4,
-                  fontFamily: 'Noto Sans',
-                  color: activetab === "Overview" ? "#6DA963" : "#FFFFFF",
-                  borderBottomWidth: activetab === "Overview" ? 2 : 0,
-                  borderBottomColor: "#6DA963"
-                }}
+                style={{ top: -2 }}
+                className={`text-[14px] font-semibold tracking-[0.5px] pb-1 font-noto border-[#6DA963] ${
+                  activetab === "Overview" ? "text-[#6DA963] border-b-2" : "text-white border-b-0"
+                }`}
               >
                 Overview
               </Text>
@@ -78,16 +101,10 @@ export default function Profile() {
 
             <Pressable onPress={() => setActivetab(activetab === "Repositories" ? "Lists" : "Repositories")}>
               <Text 
-                style={{ 
-                  fontSize: 14,
-                  fontWeight: '600',
-                  letterSpacing: 0.5,
-                  paddingBottom: 4,
-                  fontFamily: 'Noto Sans',
-                  color: activetab === "Repositories" ? "#6DA963" : "#FFFFFF",
-                  borderBottomWidth: activetab === "Repositories" ? 2 : 0,
-                  borderBottomColor: "#6DA963"
-                }}
+                style={{ top: -2 }}
+                className={`text-[14px] font-semibold tracking-[0.5px] pb-1 font-noto border-[#6DA963] ${
+                  activetab === "Repositories" ? "text-[#6DA963] border-b-2" : "text-white border-b-0"
+                }`}
               >
                 Repositories
               </Text>
@@ -95,35 +112,35 @@ export default function Profile() {
           </View>
 
           {/* Render Window Context wrapper container */}
-          <View style={{ width: '100%', paddingHorizontal: 20 }}>
+          <View className="w-full flex-1 px-5 items-center">
             {activetab === "Overview" && <Overview />}
             {activetab === "Repositories" && <Repositories />}
             {activetab === "Lists" && <Lists />}
           </View>
 
-        </ScrollView>
+        </View>
       </SafeAreaView>
 
       {/* Edit Profile Opaque Screen Form Overlay */}
       <Modal visible={modal} animationType="fade" transparent={false}>
-        <View style={{ flex: 1, backgroundColor: '#090D0A', justifyContent: 'center', alignItems: 'center', padding: 24 }}>
-          <View style={{ width: '100%', maxWidth: 320 }}>
-            <Text style={{ color: '#FFFFFF', fontSize: 20, fontWeight: 'bold', marginBottom: 24, borderBottomWidth: 1, borderBottomColor: '#232D25', paddingBottom: 8, textAlign: 'center', fontFamily: 'Noto Sans' }}>Edit Profile</Text>
+        <View className="flex-1 bg-[#090D0A] justify-center items-center p-6">
+          <View className="w-full max-w-[320px]">
+            <Text className="text-white text-[20px] font-bold mb-6 border-b border-[#232D25] pb-2 text-center font-noto">Edit Profile</Text>
             
-            <Text style={{ color: '#6DA963', fontSize: 12, fontWeight: 'bold', marginBottom: 6, textTransform: 'uppercase', fontFamily: 'Noto Sans' }}>Full Name</Text>
-            <TextInput style={{ backgroundColor: '#141915', color: '#FFFFFF', borderRadius: 12, padding: 14, borderWidth: 1, borderColor: '#232D25', marginBottom: 16, fontFamily: 'Noto Sans' }} value={name} onChangeText={setName} />
+            <Text className="text-[#6DA963] text-[12px] font-bold mb-[6px] uppercase font-noto">Full Name</Text>
+            <TextInput className="bg-[#141915] text-white rounded-xl p-[14px] border border-[#232D25] mb-4 font-noto" value={name} onChangeText={setName} />
             
-            <Text style={{ color: '#6DA963', fontSize: 12, fontWeight: 'bold', marginBottom: 6, textTransform: 'uppercase', fontFamily: 'Noto Sans' }}>Job Role</Text>
-            <TextInput style={{ backgroundColor: '#141915', color: '#FFFFFF', borderRadius: 12, padding: 14, borderWidth: 1, borderColor: '#232D25', marginBottom: 16, fontFamily: 'Noto Sans' }} value={job} onChangeText={setJob} />
+            <Text className="text-[#6DA963] text-[12px] font-bold mb-[6px] uppercase font-noto">Job Role</Text>
+            <TextInput className="bg-[#141915] text-white rounded-xl p-[14px] border border-[#232D25] mb-4 font-noto" value={job} onChangeText={setJob} />
             
-            <Text style={{ color: '#6DA963', fontSize: 12, fontWeight: 'bold', marginBottom: 6, textTransform: 'uppercase', fontFamily: 'Noto Sans' }}>Username</Text>
-            <TextInput style={{ backgroundColor: '#141915', color: '#FFFFFF', borderRadius: 12, padding: 14, borderWidth: 1, borderColor: '#232D25', marginBottom: 16, fontFamily: 'Noto Sans' }} value={username} onChangeText={setUsername} />
+            <Text className="text-[#6DA963] text-[12px] font-bold mb-[6px] uppercase font-noto">Username</Text>
+            <TextInput className="bg-[#141915] text-white rounded-xl p-[14px] border border-[#232D25] mb-4 font-noto" value={username} onChangeText={setUsername} />
             
-            <Text style={{ color: '#6DA963', fontSize: 12, fontWeight: 'bold', marginBottom: 6, textTransform: 'uppercase', fontFamily: 'Noto Sans' }}>Location</Text>
-            <TextInput style={{ backgroundColor: '#141915', color: '#FFFFFF', borderRadius: 12, padding: 14, borderWidth: 1, borderColor: '#232D25', marginBottom: 32, fontFamily: 'Noto Sans' }} value={location} onChangeText={setLocation} />
+            <Text className="text-[#6DA963] text-[12px] font-bold mb-[6px] uppercase font-noto">Location</Text>
+            <TextInput className="bg-[#141915] text-white rounded-xl p-[14px] border border-[#232D25] mb-8 font-noto" value={location} onChangeText={setLocation} />
             
-            <Pressable style={{ backgroundColor: '#6DA963', paddingVertical: 16, borderRadius: 12, alignItems: 'center' }} onPress={() => setModal(false)}>
-              <Text style={{ fontWeight: 'bold', color: '#090D0A', textTransform: 'uppercase', letterSpacing: 1, fontSize: 12, fontFamily: 'Noto Sans' }}>Save Details</Text>
+            <Pressable className="bg-[#6DA963] py-4 rounded-xl items-center" onPress={() => setModal(false)}>
+              <Text className="font-bold text-[#090D0A] uppercase tracking-[1px] text-[12px] font-noto">Save Details</Text>
             </Pressable>
           </View>
         </View>

@@ -1,180 +1,129 @@
-import { Image } from 'expo-image';
-import { SymbolView } from 'expo-symbols';
-import { Platform, Pressable, ScrollView, StyleSheet } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
+import { useState } from 'react';
+import { ScrollView, StatusBar, Text, TouchableOpacity, View } from 'react-native';
+import Header from '../components/Header';
+import SearchBar from '../components/SearchBar';
+import TabBar from '../components/TabBar';
+import TrendingRepoCard from '../components/TrendingRepoCard';
+import { TRENDING_REPOS } from '../data/repos';
+import { FilterLanguage, FilterPeriod, TabName } from '../types';
 
-import { ExternalLink } from '@/components/external-link';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Collapsible } from '@/components/ui/collapsible';
-import { WebBadge } from '@/components/web-badge';
-import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
-import { useTheme } from '@/hooks/use-theme';
+const PERIODS: FilterPeriod[] = ['Today', 'This week', 'This month'];
+const LANGUAGES: FilterLanguage[] = ['All', 'Python', 'TypeScript', 'JavaScript', 'Rust', 'Go'];
 
-export default function TabTwoScreen() {
-  const safeAreaInsets = useSafeAreaInsets();
-  const insets = {
-    ...safeAreaInsets,
-    bottom: safeAreaInsets.bottom + BottomTabInset + Spacing.three,
+const regular = { fontFamily: 'NotoSans_400Regular' };
+const medium = { fontFamily: 'NotoSans_700Bold' };
+
+export default function TrendingScreen() {
+  const router = useRouter();
+  const [searchQuery, setSearchQuery] = useState('');
+  const [activePeriod, setActivePeriod] = useState<FilterPeriod>('This week');
+  const [activeLanguage, setActiveLanguage] = useState<FilterLanguage>('All');
+
+  const handleTabChange = (tab: TabName) => {
+    if (tab === 'For you') router.push('/');
   };
-  const theme = useTheme();
 
-  const contentPlatformStyle = Platform.select({
-    android: {
-      paddingTop: insets.top,
-      paddingLeft: insets.left,
-      paddingRight: insets.right,
-      paddingBottom: insets.bottom,
-    },
-    web: {
-      paddingTop: Spacing.six,
-      paddingBottom: Spacing.four,
-    },
+  const filtered = TRENDING_REPOS.filter((r) => {
+    const matchesSearch = r.name.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesLanguage = activeLanguage === 'All' || r.language === activeLanguage;
+    return matchesSearch && matchesLanguage;
   });
 
   return (
-    <ScrollView
-      style={[styles.scrollView, { backgroundColor: theme.background }]}
-      contentInset={insets}
-      contentContainerStyle={[styles.contentContainer, contentPlatformStyle]}>
-      <ThemedView style={styles.container}>
-        <ThemedView style={styles.titleContainer}>
-          <ThemedText type="subtitle">Explore</ThemedText>
-          <ThemedText style={styles.centerText} themeColor="textSecondary">
-            This starter app includes example{'\n'}code to help you get started.
-          </ThemedText>
+    <View className="flex-1 bg-[#111111]">
+      <StatusBar barStyle="light-content" backgroundColor="#111111" />
+      <Header />
 
-          <ExternalLink href="https://docs.expo.dev" asChild>
-            <Pressable style={({ pressed }) => pressed && styles.pressed}>
-              <ThemedView type="backgroundElement" style={styles.linkButton}>
-                <ThemedText type="link">Expo documentation</ThemedText>
-                <SymbolView
-                  tintColor={theme.text}
-                  name={{ ios: 'arrow.up.right.square', android: 'link', web: 'link' }}
-                  size={12}
-                />
-              </ThemedView>
-            </Pressable>
-          </ExternalLink>
-        </ThemedView>
+      <View className="pt-3">
+        <SearchBar value={searchQuery} onChangeText={setSearchQuery} />
+      </View>
 
-        <ThemedView style={styles.sectionsWrapper}>
-          <Collapsible title="File-based routing">
-            <ThemedText type="small">
-              This app has two screens: <ThemedText type="code">src/app/index.tsx</ThemedText> and{' '}
-              <ThemedText type="code">src/app/explore.tsx</ThemedText>
-            </ThemedText>
-            <ThemedText type="small">
-              The layout file in <ThemedText type="code">src/app/_layout.tsx</ThemedText> sets up
-              the tab navigator.
-            </ThemedText>
-            <ExternalLink href="https://docs.expo.dev/router/introduction">
-              <ThemedText type="linkPrimary">Learn more</ThemedText>
-            </ExternalLink>
-          </Collapsible>
+      <TabBar activeTab="Trending" onTabChange={handleTabChange} />
 
-          <Collapsible title="Android, iOS, and web support">
-            <ThemedView type="backgroundElement" style={styles.collapsibleContent}>
-              <ThemedText type="small">
-                You can open this project on Android, iOS, and the web. To open the web version,
-                press <ThemedText type="smallBold">w</ThemedText> in the terminal running this
-                project.
-              </ThemedText>
-              <Image
-                source={require('@/assets/images/tutorial-web.png')}
-                style={styles.imageTutorial}
-              />
-            </ThemedView>
-          </Collapsible>
+      <ScrollView
+        className="flex-1"
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 24 }}
+      >
+        {/* Period filter */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          className="px-4 mb-3"
+          contentContainerStyle={{ gap: 8 }}
+        >
+          {PERIODS.map((period) => {
+            const isActive = activePeriod === period;
+            return (
+              <TouchableOpacity
+                key={period}
+                onPress={() => setActivePeriod(period)}
+                className={`px-4 py-1.5 rounded-full border ${
+                  isActive ? 'bg-[#22C55E] border-[#22C55E]' : 'bg-transparent border-[#2C2C2E]'
+                }`}
+              >
+                <Text
+                  className={`text-xs ${isActive ? 'text-black' : 'text-[#9CA3AF]'}`}
+                  style={isActive ? medium : regular}
+                >
+                  {period}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
 
-          <Collapsible title="Images">
-            <ThemedText type="small">
-              For static images, you can use the <ThemedText type="code">@2x</ThemedText> and{' '}
-              <ThemedText type="code">@3x</ThemedText> suffixes to provide files for different
-              screen densities.
-            </ThemedText>
-            <Image source={require('@/assets/images/react-logo.png')} style={styles.imageReact} />
-            <ExternalLink href="https://reactnative.dev/docs/images">
-              <ThemedText type="linkPrimary">Learn more</ThemedText>
-            </ExternalLink>
-          </Collapsible>
+        {/* Language filter */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          className="px-4 mb-4"
+          contentContainerStyle={{ gap: 8 }}
+        >
+          {LANGUAGES.map((lang) => {
+            const isActive = activeLanguage === lang;
+            return (
+              <TouchableOpacity
+                key={lang}
+                onPress={() => setActiveLanguage(lang)}
+                className={`px-4 py-1.5 rounded-full border ${
+                  isActive ? 'bg-[#1D4ED8] border-[#1D4ED8]' : 'bg-transparent border-[#2C2C2E]'
+                }`}
+              >
+                <Text
+                  className={`text-xs ${isActive ? 'text-white' : 'text-[#9CA3AF]'}`}
+                  style={isActive ? medium : regular}
+                >
+                  {lang}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
 
-          <Collapsible title="Light and dark mode components">
-            <ThemedText type="small">
-              This template has light and dark mode support. The{' '}
-              <ThemedText type="code">useColorScheme()</ThemedText> hook lets you inspect what the
-              user&apos;s current color scheme is, and so you can adjust UI colors accordingly.
-            </ThemedText>
-            <ExternalLink href="https://docs.expo.dev/develop/user-interface/color-themes/">
-              <ThemedText type="linkPrimary">Learn more</ThemedText>
-            </ExternalLink>
-          </Collapsible>
+        {/* Results count */}
+        <View className="px-4 mb-3">
+          <Text className="text-[#6B7280] text-xs" style={regular}>
+            {filtered.length} repositories trending {activePeriod.toLowerCase()}
+          </Text>
+        </View>
 
-          <Collapsible title="Animations">
-            <ThemedText type="small">
-              This template includes an example of an animated component. The{' '}
-              <ThemedText type="code">src/components/ui/collapsible.tsx</ThemedText> component uses
-              the powerful <ThemedText type="code">react-native-reanimated</ThemedText> library to
-              animate opening this hint.
-            </ThemedText>
-          </Collapsible>
-        </ThemedView>
-        {Platform.OS === 'web' && <WebBadge />}
-      </ThemedView>
-    </ScrollView>
+        {/* Repo cards */}
+        <View className="px-4">
+          {filtered.length === 0 ? (
+            <View className="items-center justify-center py-16">
+              <Text className="text-[#6B7280] text-sm" style={regular}>
+                No repositories found
+              </Text>
+            </View>
+          ) : (
+            filtered.map((repo, index) => (
+              <TrendingRepoCard key={repo.id} repo={repo} rank={index + 1} />
+            ))
+          )}
+        </View>
+      </ScrollView>
+    </View>
   );
 }
-
-const styles = StyleSheet.create({
-  scrollView: {
-    flex: 1,
-  },
-  contentContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-  },
-  container: {
-    maxWidth: MaxContentWidth,
-    flexGrow: 1,
-  },
-  titleContainer: {
-    gap: Spacing.three,
-    alignItems: 'center',
-    paddingHorizontal: Spacing.four,
-    paddingVertical: Spacing.six,
-  },
-  centerText: {
-    textAlign: 'center',
-  },
-  pressed: {
-    opacity: 0.7,
-  },
-  linkButton: {
-    flexDirection: 'row',
-    paddingHorizontal: Spacing.four,
-    paddingVertical: Spacing.two,
-    borderRadius: Spacing.five,
-    justifyContent: 'center',
-    gap: Spacing.one,
-    alignItems: 'center',
-  },
-  sectionsWrapper: {
-    gap: Spacing.five,
-    paddingHorizontal: Spacing.four,
-    paddingTop: Spacing.three,
-  },
-  collapsibleContent: {
-    alignItems: 'center',
-  },
-  imageTutorial: {
-    width: '100%',
-    aspectRatio: 296 / 171,
-    borderRadius: Spacing.three,
-    marginTop: Spacing.two,
-  },
-  imageReact: {
-    width: 100,
-    height: 100,
-    alignSelf: 'center',
-  },
-});

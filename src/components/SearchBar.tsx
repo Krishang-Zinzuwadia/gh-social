@@ -1,0 +1,29 @@
+import React from 'react';
+import { TextInput, View } from 'react-native';
+import { SearchIcon } from '../assets/icons/SearchIcon';
+
+interface SearchBarProps {
+  value: string;
+  onChangeText: (text: string) => void;
+  placeholder?: string;
+}
+
+export default function SearchBar({
+  value,
+  onChangeText,
+  placeholder = 'Explore',
+}: SearchBarProps): React.JSX.Element {
+  return (
+    <View className="flex-row items-center bg-[#1C1C1E] border border-[#2C2C2E] rounded-full px-4 py-2.5 mx-4 mb-4">
+      <SearchIcon color="#6B7280" size={16} />
+      <TextInput
+        className="flex-1 text-white text-sm ml-2"
+        placeholder={placeholder}
+        placeholderTextColor="#6B7280"
+        value={value}
+        onChangeText={onChangeText}
+        style={{ fontFamily: 'NotoSans_400Regular' }}
+      />
+    </View>
+  );
+}

@@ -9,6 +9,7 @@ export interface Repo {
   hasIcon?: boolean;
   language?: string;
   description?: string;
+  trendingPeriod?: FilterPeriod;
 }
 
 export type TabName = 'For you' | 'Trending';

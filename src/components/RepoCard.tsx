@@ -1,7 +1,7 @@
 import React from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
-import { GitBranchIcon } from '../assets/icons/GitBranchIcon';
-import { StarIcon } from '../assets/icons/StarIcon';
+import GitBranchIcon from '../assets/icons/git-branch.svg';
+import StarIcon from '../assets/icons/star.svg';
 import { Repo } from '../types';
 import Avatar from './Avatar';
 
@@ -25,11 +25,11 @@ export default function RepoCard({ repo, onPress }: RepoCardProps): React.JSX.El
       </Text>
       <View className="flex-row items-center" style={{ gap: 10 }}>
         <View className="flex-row items-center" style={{ gap: 3 }}>
-          <StarIcon color="#FBBF24" size={11} />
+          <StarIcon stroke="#FBBF24" width={11} height={11} />
           <Text className="text-[#9CA3AF] text-xs" style={regular}>{repo.stars}</Text>
         </View>
         <View className="flex-row items-center" style={{ gap: 3 }}>
-          <GitBranchIcon color="#9CA3AF" size={11} />
+          <GitBranchIcon stroke="#9CA3AF" width={11} height={11} />
           <Text className="text-[#9CA3AF] text-xs" style={regular}>{repo.forks}</Text>
         </View>
       </View>

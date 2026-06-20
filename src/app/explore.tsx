@@ -1,11 +1,13 @@
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ScrollView, StatusBar, Text, TouchableOpacity, View } from 'react-native';
 import Header from '../components/Header';
 import SearchBar from '../components/SearchBar';
 import TabBar from '../components/TabBar';
 import TrendingRepoCard from '../components/TrendingRepoCard';
-import { TRENDING_REPOS } from '../data/repos';
+import FeaturedRepoCard from '../components/FeaturedRepoCard';
+import SkeletonCard from '../components/SkeletonCard';
+import { TRENDING_REPOS, TRENDING_FEATURED } from '../data/repos';
 import { FilterLanguage, FilterPeriod, TabName } from '../types';
 
 const PERIODS: FilterPeriod[] = ['Today', 'This week', 'This month'];
@@ -19,6 +21,14 @@ export default function TrendingScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [activePeriod, setActivePeriod] = useState<FilterPeriod>('This week');
   const [activeLanguage, setActiveLanguage] = useState<FilterLanguage>('All');
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, []);
 
   const handleTabChange = (tab: TabName) => {
     if (tab === 'For you') router.push('/');
@@ -27,7 +37,11 @@ export default function TrendingScreen() {
   const filtered = TRENDING_REPOS.filter((r) => {
     const matchesSearch = r.name.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesLanguage = activeLanguage === 'All' || r.language === activeLanguage;
-    return matchesSearch && matchesLanguage;
+    const matchesPeriod =
+      activePeriod === 'This month' ||
+      (activePeriod === 'This week' && (r.trendingPeriod === 'Today' || r.trendingPeriod === 'This week')) ||
+      r.trendingPeriod === activePeriod;
+    return matchesSearch && matchesLanguage && matchesPeriod;
   });
 
   return (
@@ -102,16 +116,36 @@ export default function TrendingScreen() {
           })}
         </ScrollView>
 
+        {/* Featured Section */}
+        {!searchQuery && activeLanguage === 'All' && (
+          <View className="px-4 mb-4">
+            <Text className="text-white text-sm mb-2" style={medium}>
+              Featured Repository
+            </Text>
+            {isLoading ? (
+              <SkeletonCard height={100} />
+            ) : (
+              <FeaturedRepoCard repo={TRENDING_FEATURED} />
+            )}
+          </View>
+        )}
+
         {/* Results count */}
         <View className="px-4 mb-3">
           <Text className="text-[#6B7280] text-xs" style={regular}>
-            {filtered.length} repositories trending {activePeriod.toLowerCase()}
+            {isLoading
+              ? 'Loading repositories...'
+              : `${filtered.length} repositories trending ${activePeriod.toLowerCase()}`}
           </Text>
         </View>
 
         {/* Repo cards */}
         <View className="px-4">
-          {filtered.length === 0 ? (
+          {isLoading ? (
+            Array.from({ length: 4 }).map((_, index) => (
+              <SkeletonCard key={index} height={110} />
+            ))
+          ) : filtered.length === 0 ? (
             <View className="items-center justify-center py-16">
               <Text className="text-[#6B7280] text-sm" style={regular}>
                 No repositories found

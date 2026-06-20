@@ -1,7 +1,6 @@
 import React from 'react';
 import { View, Text } from 'react-native';
 
-const regular = { fontFamily: 'NotoSans_400Regular' };
 const bold = { fontFamily: 'NotoSans_700Bold' };
 
 export default function ProfileScreen() {

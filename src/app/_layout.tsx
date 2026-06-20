@@ -1,12 +1,11 @@
 import '@/global.css';
 // app/_layout.tsx
-import '../global.css';
 import { NotoSans_400Regular, NotoSans_700Bold, useFonts } from '@expo-google-fonts/noto-sans';
 import { Tabs } from 'expo-router';
 import { ActivityIndicator, View } from 'react-native';
-import { HomeIcon } from '../assets/icons/HomeIcon';
-import { CompassIcon } from '../assets/icons/CompassIcon';
-import { UserIcon } from '../assets/icons/UserIcon';
+import HomeIcon from '../assets/icons/Vector (1).svg';
+import CompassIcon from '../assets/icons/material-symbols_explore-outline.svg';
+import UserIcon from '../assets/icons/Vector (2).svg';
 
 export default function Layout() {
   const [fontsLoaded] = useFonts({
@@ -38,21 +37,21 @@ export default function Layout() {
         name="index"
         options={{
           title: 'For You',
-          tabBarIcon: ({ color }) => <HomeIcon color={color} size={22} />,
+          tabBarIcon: ({ color }) => <HomeIcon fill={color} width={22} height={22} />,
         }}
       />
       <Tabs.Screen
         name="explore"
         options={{
           title: 'Trending',
-          tabBarIcon: ({ color }) => <CompassIcon color={color} size={22} />,
+          tabBarIcon: ({ color }) => <CompassIcon fill={color} width={22} height={22} />,
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
           title: 'Profile',
-          tabBarIcon: ({ color }) => <UserIcon color={color} size={22} />,
+          tabBarIcon: ({ color }) => <UserIcon fill={color} width={22} height={22} />,
         }}
       />
     </Tabs>

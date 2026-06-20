@@ -4,7 +4,7 @@ export const FOR_YOU_REPOS: Repo[] = [
   {
     id: '1',
     name: 'interview-prep-bot',
-    stars: '5k',
+    stars: '5.2k',
     forks: '1.2k',
     author: 'codebyalex',
     avatarColor: '#7C3AED',
@@ -13,8 +13,8 @@ export const FOR_YOU_REPOS: Repo[] = [
   {
     id: '2',
     name: 'open-source-file-finder',
-    stars: '5k',
-    forks: '1.2k',
+    stars: '3.1k',
+    forks: '620',
     author: 'appstudio',
     avatarColor: '#F59E0B',
     avatarInitial: 'A',
@@ -22,8 +22,8 @@ export const FOR_YOU_REPOS: Repo[] = [
   {
     id: '3',
     name: 'awesome-open-source-projects-curated-list',
-    stars: '5k',
-    forks: '1.2k',
+    stars: '8.4k',
+    forks: '2.1k',
     author: 'techcollective',
     avatarColor: '#10B981',
     avatarInitial: 'T',
@@ -31,8 +31,8 @@ export const FOR_YOU_REPOS: Repo[] = [
   {
     id: '4',
     name: 'crypto-price-tracker',
-    stars: '5k',
-    forks: '1.2k',
+    stars: '1.5k',
+    forks: '320',
     author: 'backendninja',
     avatarColor: '#3B82F6',
     avatarInitial: 'B',
@@ -40,8 +40,8 @@ export const FOR_YOU_REPOS: Repo[] = [
   {
     id: '5',
     name: 'interview-prep-bot',
-    stars: '5k',
-    forks: '1.2k',
+    stars: '12.8k',
+    forks: '3.4k',
     author: 'codebyalex',
     avatarColor: '#7C3AED',
     avatarInitial: 'C',
@@ -49,8 +49,8 @@ export const FOR_YOU_REPOS: Repo[] = [
   {
     id: '6',
     name: 'awesome-open-source-projects-curated-list',
-    stars: '5k',
-    forks: '1.2k',
+    stars: '6.7k',
+    forks: '1.8k',
     author: 'techcollective',
     avatarColor: '#10B981',
     avatarInitial: 'T',
@@ -69,6 +69,7 @@ export const TRENDING_REPOS: Repo[] = [
     hasIcon: true,
     language: 'Python',
     description: 'Auto generate short videos with AI voiceover and subtitles.',
+    trendingPeriod: 'Today',
   },
   {
     id: '2',
@@ -80,6 +81,7 @@ export const TRENDING_REPOS: Repo[] = [
     avatarInitial: 'A',
     language: 'TypeScript',
     description: 'Instantly find any file across your entire codebase.',
+    trendingPeriod: 'Today',
   },
   {
     id: '3',
@@ -91,6 +93,7 @@ export const TRENDING_REPOS: Repo[] = [
     avatarInitial: 'C',
     language: 'JavaScript',
     description: 'AI-powered bot to help you crack coding interviews.',
+    trendingPeriod: 'This week',
   },
   {
     id: '4',
@@ -102,6 +105,7 @@ export const TRENDING_REPOS: Repo[] = [
     avatarInitial: 'B',
     language: 'Rust',
     description: 'Real-time cryptocurrency price tracking with alerts.',
+    trendingPeriod: 'This week',
   },
   {
     id: '5',
@@ -113,6 +117,7 @@ export const TRENDING_REPOS: Repo[] = [
     avatarInitial: 'T',
     language: 'Go',
     description: 'A curated list of the best open source projects.',
+    trendingPeriod: 'This week',
   },
   {
     id: '6',
@@ -124,6 +129,7 @@ export const TRENDING_REPOS: Repo[] = [
     avatarInitial: 'U',
     language: 'TypeScript',
     description: 'Beautiful, accessible React Native components.',
+    trendingPeriod: 'This month',
   },
   {
     id: '7',
@@ -135,6 +141,7 @@ export const TRENDING_REPOS: Repo[] = [
     avatarInitial: 'D',
     language: 'Python',
     description: 'Automatically review PRs using GPT-4.',
+    trendingPeriod: 'This month',
   },
   {
     id: '8',
@@ -146,6 +153,7 @@ export const TRENDING_REPOS: Repo[] = [
     avatarInitial: 'H',
     language: 'Go',
     description: 'A clean dashboard for all your self-hosted services.',
+    trendingPeriod: 'This month',
   },
 ];
 
@@ -160,4 +168,5 @@ export const TRENDING_FEATURED: Repo = {
   hasIcon: true,
   language: 'Python',
   description: 'Auto generate short videos with AI voiceover and subtitles.',
+  trendingPeriod: 'Today',
 };

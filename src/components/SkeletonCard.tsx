@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Animated } from 'react-native';
 
 interface SkeletonCardProps {
@@ -6,7 +6,7 @@ interface SkeletonCardProps {
 }
 
 export default function SkeletonCard({ height = 80 }: SkeletonCardProps): React.JSX.Element {
-  const opacity = useRef(new Animated.Value(0.4)).current;
+  const [opacity] = useState(() => new Animated.Value(0.4));
 
   useEffect(() => {
     const pulse = Animated.loop(

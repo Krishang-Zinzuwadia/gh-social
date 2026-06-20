@@ -1,7 +1,7 @@
 import React from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
-import { GitBranchIcon } from '../assets/icons/GitBranchIcon';
-import { StarIcon } from '../assets/icons/StarIcon';
+import GitBranchIcon from '../assets/icons/git-branch.svg';
+import StarIcon from '../assets/icons/star.svg';
 import { Repo } from '../types';
 import Avatar from './Avatar';
 
@@ -50,11 +50,11 @@ export default function TrendingRepoCard({ repo, rank, onPress }: TrendingRepoCa
           </View>
         )}
         <View className="flex-row items-center" style={{ gap: 4 }}>
-          <StarIcon color="#FBBF24" size={12} />
+          <StarIcon stroke="#FBBF24" width={12} height={12} />
           <Text className="text-[#9CA3AF] text-xs" style={regular}>{repo.stars}</Text>
         </View>
         <View className="flex-row items-center" style={{ gap: 4 }}>
-          <GitBranchIcon color="#9CA3AF" size={12} />
+          <GitBranchIcon stroke="#9CA3AF" width={12} height={12} />
           <Text className="text-[#9CA3AF] text-xs" style={regular}>{repo.forks}</Text>
         </View>
         <View className="flex-row items-center ml-auto" style={{ gap: 5 }}>

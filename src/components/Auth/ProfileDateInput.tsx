@@ -6,20 +6,17 @@ import { CalendarIcon } from "./icons";
 export default function ProfileDateInput() {
   const [date, setDate] = useState(new Date());
   const [show, setShow] = useState(false);
-  const [hasSelected, setHasSelected] = useState(false);
+  const [textValue, setTextValue] = useState("");
 
   const onChange = (event: any, selectedDate?: Date) => {
     const currentDate = selectedDate || date;
     setShow(Platform.OS === 'ios');
     if (selectedDate) {
         setDate(currentDate);
-        setHasSelected(true);
+        const formatted = `${currentDate.getDate().toString().padStart(2, '0')}/${(currentDate.getMonth() + 1).toString().padStart(2, '0')}/${currentDate.getFullYear().toString().slice(-2)}`;
+        setTextValue(formatted);
     }
   };
-
-  const formattedDate = hasSelected 
-    ? `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear().toString().slice(-2)}`
-    : "";
 
   return (
     <View>
@@ -29,8 +26,7 @@ export default function ProfileDateInput() {
         Date of Birth
       </Text>
 
-      <TouchableOpacity
-        onPress={() => setShow(true)}
+      <View
         className="
           w-full
           h-[56px]
@@ -47,12 +43,14 @@ export default function ProfileDateInput() {
           placeholder="DD/MM/YY"
           placeholderTextColor="#666"
           className="text-white text-[15px] font-nata flex-1 outline-none"
-          editable={false}
-          value={formattedDate}
-          pointerEvents="none"
+          value={textValue}
+          onChangeText={setTextValue}
+          keyboardType="numeric"
         />
-        <CalendarIcon size={20} color="#727272" />
-      </TouchableOpacity>
+        <TouchableOpacity onPress={() => setShow(true)} className="p-2 -mr-2">
+          <CalendarIcon size={20} color="#727272" />
+        </TouchableOpacity>
+      </View>
 
       {show && (
         <DateTimePicker

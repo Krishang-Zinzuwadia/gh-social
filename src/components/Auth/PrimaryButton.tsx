@@ -15,7 +15,7 @@ export default function PrimaryButton({
       {...props}
     >
       <Text
-        className="font-nataSemiBold text-[#0A0C09] text-[16px] tracking-wide"
+        className="font-nataSemiBold text-white text-[16px] tracking-wide"
       >
         {label}
       </Text>

@@ -39,21 +39,7 @@ export default function Avatar({ color, initial, size = 18, author }: AvatarProp
         <Text style={{ fontSize: size * 0.95, lineHeight: size * 1.15 }}>🌍</Text>
       </View>
     );
-  } else if (author === 'techcollective') {
-    return (
-      <View
-        style={{
-          width: size,
-          height: size,
-          borderRadius: size / 2,
-          overflow: 'hidden',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
-        <Text style={{ fontSize: size * 0.95, lineHeight: size * 1.15 }}>👺</Text>
-      </View>
-    );
+
   } else if (author === 'backendninja') {
     return (
       <View

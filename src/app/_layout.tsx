@@ -14,8 +14,8 @@ export default function Layout() {
 
   if (!fontsLoaded) {
     return (
-      <View style={{ flex: 1, backgroundColor: '#0D0E0D', alignItems: 'center', justifyContent: 'center' }}>
-        <ActivityIndicator color="#22C55E" />
+      <View style={{ flex: 1, backgroundColor: '#0A0C09', alignItems: 'center', justifyContent: 'center' }}>
+        <ActivityIndicator color="#6DA963" />
       </View>
     );
   }
@@ -25,7 +25,7 @@ export default function Layout() {
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: '#0D0E0D',
+          backgroundColor: '#0A0C09',
           borderTopColor: '#242524',
           height: 60,
           paddingBottom: 5,
@@ -39,12 +39,18 @@ export default function Layout() {
           title: 'For You',
           tabBarIcon: () => <HomeIcon fill="#FFFFFF" width={22} height={22} />,
         }}
+        listeners={{
+          tabPress: (e) => {
+            // Prevent default action (navigation)
+            e.preventDefault();
+          },
+        }}
       />
       <Tabs.Screen
         name="explore"
         options={{
           title: 'Trending',
-          tabBarIcon: () => <CompassIcon fill="#22C55E" width={22} height={22} />,
+          tabBarIcon: () => <CompassIcon fill="#6DA963" width={28} height={28} />,
         }}
       />
       <Tabs.Screen

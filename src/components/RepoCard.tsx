@@ -26,7 +26,7 @@ export default function RepoCard({ repo, onPress }: RepoCardProps): React.JSX.El
   return (
     <TouchableOpacity
       onPress={onPress}
-      className="rounded-xl p-3"
+      className="rounded-xl p-4"
       style={{
         backgroundColor: '#191F18',
         borderColor: '#2E3D2E',

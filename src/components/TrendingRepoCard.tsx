@@ -21,11 +21,12 @@ export default function TrendingRepoCard({ repo, onPress }: TrendingRepoCardProp
   return (
     <TouchableOpacity
       onPress={onPress}
-      className="rounded-xl p-4"
+      className="rounded-xl"
       style={{
         backgroundColor: '#191F18',
         borderColor: '#2E3D2E',
         borderWidth: 1,
+        padding: 18,
       }}
       activeOpacity={0.7}
     >
@@ -33,7 +34,7 @@ export default function TrendingRepoCard({ repo, onPress }: TrendingRepoCardProp
       <View className="flex-row items-center mb-2.5" style={{ gap: 8 }}>
         {repo.hasIcon && (
           <View className="w-7 h-7 bg-[#142918] rounded-md items-center justify-center border border-[#1B4322]">
-            <MonitorIcon stroke="#22C55E" width={14} height={14} />
+            <MonitorIcon stroke="#6DA963" width={14} height={14} />
           </View>
         )}
         <Text

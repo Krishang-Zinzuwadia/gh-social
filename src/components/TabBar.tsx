@@ -14,24 +14,24 @@ const bold = { fontFamily: 'NotoSans_700Bold' };
 
 export default function TabBar({ activeTab, onTabChange }: TabBarProps): React.JSX.Element {
   return (
-    <View className="flex-row justify-center mx-4 mb-3 border-b border-[#2C2C2E]" style={{ gap: 80 }}>
+    <View className="flex-row justify-center mx-4 mt-4 mb-6" style={{ gap: 60 }}>
       {TABS.map((tab) => {
         const isActive = activeTab === tab;
         return (
           <TouchableOpacity
             key={tab}
             onPress={() => onTabChange(tab)}
-            className="pb-2"
+            className="pb-3"
             style={{
               borderBottomWidth: isActive ? 2 : 0,
-              borderBottomColor: isActive ? '#22C55E' : 'transparent',
+              borderBottomColor: isActive ? '#6DA963' : 'transparent',
             }}
           >
             <Text
               className="text-xs"
               style={[
                 isActive ? bold : regular,
-                { color: isActive ? '#22C55E' : '#8E8E93' }
+                { color: isActive ? '#6DA963' : '#8E8E93' }
               ]}
             >
               {tab}

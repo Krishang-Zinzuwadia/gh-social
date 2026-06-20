@@ -49,7 +49,7 @@ export default function ExploreScreen() {
     : searchQuery
     ? filteredTrending
     : [
-        TRENDING_REPOS[0],
+        ...(TRENDING_REPOS.length > 0 ? [TRENDING_REPOS[0]] : []),
         { id: 'skeleton-1', isSkeleton: true },
         { id: 'skeleton-2', isSkeleton: true },
         { id: 'skeleton-3', isSkeleton: true },

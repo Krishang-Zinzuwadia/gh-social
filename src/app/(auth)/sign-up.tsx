@@ -13,11 +13,11 @@ export default function SignUpScreen() {
   return (
     <View className="flex-1 bg-[#0A0C09]">
       <ScrollView
-        contentContainerStyle={{ paddingBottom: 48, paddingHorizontal: 30 }}
+        contentContainerStyle={{ paddingBottom: 48, paddingHorizontal: 30, flexGrow: 1, justifyContent: "center" }}
         showsVerticalScrollIndicator={false}
       >
         {/* Logo */}
-        <View className="items-center mt-14 mb-10">
+        <View className="items-center mb-10">
           <LogoCircle size={190} />
         </View>
 
@@ -28,7 +28,7 @@ export default function SignUpScreen() {
             className="text-white text-3xl leading-tight text-center font-nataBold"
           >
             Join the{" "}
-            <Text className="text-[#6DA963] font-nata">dev community</Text>
+            <Text className="text-[#6DA963] font-nataBold">dev community</Text>
           </Text>
           <Text
             
@@ -75,7 +75,7 @@ export default function SignUpScreen() {
         {/* Terms */}
         <Text
           
-          className="text-white/30 text-xs text-center mt-6 leading-5 font-nata"
+          className="text-white/30 text-[16px] text-center mt-6 leading-6 font-nata"
         >
           By signing up, you agree to our{"\n"}
           <Text className="text-[#6DA963] font-nata">Terms of Service</Text>

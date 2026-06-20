@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { ScrollView, Text, View } from "react-native";
 
 import PrimaryButton from "@/components/Auth/PrimaryButton";
@@ -9,6 +10,8 @@ import TermsFooter from "@/components/Auth/TermsFooter";
 import UsernameStatus from "@/components/Auth/UsernameStatus";
 
 export default function CreateProfile() {
+  const [username, setUsername] = useState("");
+
   return (
     <ScrollView
       className="flex-1 bg-[#0A0C09]"
@@ -21,13 +24,13 @@ export default function CreateProfile() {
         <ProfileAvatar />
 
         {/* Heading */}
-        <View className="items-center mt-8">
+        <View className="items-center mt-4">
           <Text
             
             className="text-white text-[32px] text-center font-nataBold"
           >
             Create{" "}
-            <Text className="text-[#6DA963] font-nata">
+            <Text className="text-[#6DA963] font-nataBold">
               your account
             </Text>
           </Text>
@@ -41,35 +44,29 @@ export default function CreateProfile() {
         </View>
 
         {/* Username */}
-        <View className="mt-12">
+        <View className="mt-8">
           <ProfileInput
             title="Username"
             placeholder="Choose a username"
+            value={username}
+            onChangeText={setUsername}
           />
 
-          <UsernameStatus />
+          {username.trim().length > 0 && <UsernameStatus />}
         </View>
 
         {/* Date of birth */}
-        <View className="mt-8">
+        <View className="mt-4">
           <ProfileDateInput />
         </View>
 
-        {/* GitHub URL */}
-        <View className="mt-8">
-          <ProfileInput
-            title="GitHub URL (Optional)"
-            placeholder="https://github.com/username"
-          />
-        </View>
-
         {/* Bio */}
-        <View className="mt-8">
+        <View className="mt-4">
             <ProfileTextArea />
         </View>
 
         {/* Create Account */}
-        <View className="mt-12">
+        <View className="mt-8">
           <PrimaryButton label="Create Account" />
         </View>
 

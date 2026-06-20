@@ -6,7 +6,6 @@ export default function ForgotPassword(
   return (
     <TouchableOpacity activeOpacity={0.7} {...props}>
       <Text
-        style={{ fontFamily: "NataSans-Regular" }}
         className="text-[#6DA963] text-[13px] font-nata"
       >
         Forgot password?

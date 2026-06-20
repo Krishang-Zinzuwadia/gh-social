@@ -6,7 +6,6 @@ export default function OrDivider() {
       <View className="flex-1 h-px bg-white opacity-20" />
 
       <Text
-        style={{ fontFamily: "NataSans-Regular" }}
         className="text-white opacity-40 text-xs tracking-widest uppercase font-nata"
       >
         or

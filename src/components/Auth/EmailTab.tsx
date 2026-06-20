@@ -7,7 +7,6 @@ export default function EmailTab() {
       <MailIcon size={18} />
 
       <Text
-        style={{ fontFamily: "NataSans-Regular" }}
         className="text-[#6DA963] ml-2 text-[13px] font-nata"
       >
         Email

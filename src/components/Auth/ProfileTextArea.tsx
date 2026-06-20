@@ -2,9 +2,8 @@ import { View, Text, TextInput } from "react-native";
 
 export default function ProfileTextArea() {
   return (
-    <View className="mt-8">
+    <View>
       <Text
-        style={{ fontFamily: "NataSans-Regular" }}
         className="text-white text-[15px] mb-3 font-nata"
       >
         Bio (optional)
@@ -17,7 +16,6 @@ export default function ProfileTextArea() {
         textAlignVertical="top"
         placeholder="Tell us about yourself!"
         placeholderTextColor="#666"
-        style={{ fontFamily: "NataSans-Regular" }}
         className="bg-[#191F18]
  border border-[#6DA963]
  rounded-xl
@@ -26,7 +24,7 @@ export default function ProfileTextArea() {
  pt-4
  text-white
  text-[15px]
- font-nata"
+ font-nata outline-none"
       />
     </View>
   );

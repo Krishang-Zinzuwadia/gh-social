@@ -6,7 +6,6 @@ export default function UsernameStatus() {
       <View className="w-4 h-4 rounded-full border border-[#6DA963]" />
 
       <Text
-        style={{ fontFamily: "NataSans-Regular" }}
         className="text-[#6DA963] ml-3 text-sm font-nata"
       >
         This username looks good!

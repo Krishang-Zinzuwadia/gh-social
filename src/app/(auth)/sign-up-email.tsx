@@ -1,4 +1,5 @@
 import { useRouter } from "expo-router";
+import { useEffect, useRef, useState } from "react";
 import {
     ScrollView,
     Text,
@@ -18,8 +19,28 @@ import SocialButton from "@/components/Auth/SocialButton";
 
 export default function SignUpEmail() {
   const router = useRouter();  
+  const scrollViewRef = useRef<ScrollView>(null);
+
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
+  const hasMinLength = password.length >= 8;
+  const hasNumber = /\d/.test(password);
+  const hasUppercase = /[A-Z]/.test(password);
+  const isPasswordValid = hasMinLength && hasNumber && hasUppercase;
+  const isFormValid = fullName.trim().length > 0 && email.trim().length > 0 && isPasswordValid;
+
+  useEffect(() => {
+    // Auto-scroll to bottom slowly on mount
+    setTimeout(() => {
+      scrollViewRef.current?.scrollToEnd({ animated: true });
+    }, 500);
+  }, []);
+
   return (
     <ScrollView
+      ref={scrollViewRef}
       className="flex-1 bg-[#0A0C09]"
       showsVerticalScrollIndicator={false}
       contentContainerStyle={{ paddingBottom: 40 }}
@@ -67,18 +88,24 @@ export default function SignUpEmail() {
           <EmailTab />
         </View>
 
-        <View className="mt-8">
+        <View className="mt-2">
 
           <SectionLabel title="Full name" />
           <AuthInput
             placeholder="Enter your full name"
             icon="user"
+            value={fullName}
+            onChangeText={setFullName}
           />
 
           <SectionLabel title="Email Address" />
           <AuthInput
             placeholder="Enter your email"
             icon="mail"
+            value={email}
+            onChangeText={setEmail}
+            autoCapitalize="none"
+            keyboardType="email-address"
           />
 
           <SectionLabel title="Password" />
@@ -86,14 +113,18 @@ export default function SignUpEmail() {
             placeholder="Create a password"
             icon="eye"
             secureTextEntry
+            value={password}
+            onChangeText={setPassword}
           />
 
-          <PasswordRules />
+          <PasswordRules password={password} />
 
           <View className="mt-10">
             <PrimaryButton
                 label="Create Account"
-                onPress={() => router.push("/create-profile")}
+                onPress={() => isFormValid && router.push("/create-profile")}
+                style={{ opacity: isFormValid ? 1 : 0.5 }}
+                disabled={!isFormValid}
             />
           </View>
 
@@ -103,7 +134,7 @@ export default function SignUpEmail() {
             prompt="Already have an account?"
             linkLabel="Log In"
             onPress={() => router.push("/login")}
-/>
+        />
 
       </View>
     </ScrollView>

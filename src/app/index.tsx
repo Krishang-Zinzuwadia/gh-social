@@ -1,6 +1,12 @@
 import { Redirect } from "expo-router";
 
 export default function Index() {
-  // Change to "/" or a tabs screen once you have auth state logic
+  // TODO: Replace with real auth state logic
+  const isAuthenticated = false;
+
+  if (isAuthenticated) {
+    return <Redirect href="/" />;
+  }
+
   return <Redirect href="/(auth)/sign-up" />;
 }

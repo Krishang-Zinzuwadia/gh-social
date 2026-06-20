@@ -1,4 +1,5 @@
 import { useRouter } from "expo-router";
+import { useEffect, useRef } from "react";
 import { ScrollView, Text, View } from "react-native";
 
 import AuthFooter from "@/components/Auth/AuthFooter";
@@ -17,9 +18,17 @@ import {
 
 export default function LoginScreen() {
   const router = useRouter();
+  const scrollViewRef = useRef<ScrollView>(null);
+
+  useEffect(() => {
+    setTimeout(() => {
+      scrollViewRef.current?.scrollToEnd({ animated: true });
+    }, 500);
+  }, []);
 
   return (
     <ScrollView
+      ref={scrollViewRef}
       className="flex-1 bg-[#0A0C09]"
       showsVerticalScrollIndicator={false}
       contentContainerStyle={{ paddingBottom: 40 }}

@@ -15,8 +15,7 @@ export default function LoginInput({
         placeholder={placeholder}
         placeholderTextColor="#5F5F5F"
         secureTextEntry={secureTextEntry}
-        style={{ fontFamily: "NataSans-Regular" }}
-        className="text-white text-[14px] font-nata"
+        className="text-white text-[14px] font-nata outline-none w-full h-full"
       />
     </View>
   );

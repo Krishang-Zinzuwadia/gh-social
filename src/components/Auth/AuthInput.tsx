@@ -1,6 +1,6 @@
-import { TextInput, View } from "react-native";
+import { TextInput, View, TextInputProps } from "react-native";
 
-interface Props {
+interface Props extends TextInputProps {
   placeholder: string;
   secureTextEntry?: boolean;
   icon?: string;
@@ -9,6 +9,7 @@ interface Props {
 export default function AuthInput({
   placeholder,
   secureTextEntry,
+  ...rest
 }: Props) {
   return (
     <View className="h-[46px] border border-[#6DA963] rounded-xl bg-[#191F18] px-4 justify-center">
@@ -16,7 +17,8 @@ export default function AuthInput({
         placeholder={placeholder}
         placeholderTextColor="#727272"
         secureTextEntry={secureTextEntry}
-        className="font-nata text-white text-[13px]"
+        className="font-nata text-white text-[13px] outline-none w-full h-full"
+        {...rest}
       />
     </View>
   );

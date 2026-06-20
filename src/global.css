@@ -6,6 +6,9 @@
   * {
     font-family: theme('fontFamily.sans');
   }
+  input, textarea {
+    outline: none !important;
+  }
 }
 
 :root {

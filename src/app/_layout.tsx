@@ -5,6 +5,7 @@ import { ActivityIndicator, View } from 'react-native';
 import HomeIcon from '../assets/icons/Vector (1).svg';
 import CompassIcon from '../assets/icons/material-symbols_explore-outline.svg';
 import UserIcon from '../assets/icons/Vector (2).svg';
+import { APP_THEME } from '../constants/theme';
 
 export default function Layout() {
   const [fontsLoaded] = useFonts({
@@ -14,8 +15,8 @@ export default function Layout() {
 
   if (!fontsLoaded) {
     return (
-      <View style={{ flex: 1, backgroundColor: '#0A0C09', alignItems: 'center', justifyContent: 'center' }}>
-        <ActivityIndicator color="#6DA963" />
+      <View style={{ flex: 1, backgroundColor: APP_THEME.background, alignItems: 'center', justifyContent: 'center' }}>
+        <ActivityIndicator color={APP_THEME.activeAccent} />
       </View>
     );
   }
@@ -25,8 +26,8 @@ export default function Layout() {
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: '#0A0C09',
-          borderTopColor: '#242524',
+          backgroundColor: APP_THEME.background,
+          borderTopColor: APP_THEME.borderDark,
           height: 60,
         },
         tabBarItemStyle: {
@@ -50,21 +51,27 @@ export default function Layout() {
         name="index"
         options={{
           title: 'For You',
-          tabBarIcon: () => <HomeIcon fill="#FFFFFF" width={22} height={22} />,
+          tabBarIcon: ({ focused }) => (
+            <HomeIcon fill={focused ? APP_THEME.activeAccent : APP_THEME.inactiveAccent} width={22} height={22} />
+          ),
         }}
       />
       <Tabs.Screen
         name="explore"
         options={{
           title: 'Trending',
-          tabBarIcon: () => <CompassIcon fill="#6DA963" width={30} height={31} />,
+          tabBarIcon: ({ focused }) => (
+            <CompassIcon fill={focused ? APP_THEME.activeAccent : APP_THEME.inactiveAccent} width={30} height={31} />
+          ),
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
           title: 'Profile',
-          tabBarIcon: () => <UserIcon fill="#FFFFFF" width={22} height={22} />,
+          tabBarIcon: ({ focused }) => (
+            <UserIcon fill={focused ? APP_THEME.activeAccent : APP_THEME.inactiveAccent} width={22} height={22} />
+          ),
         }}
       />
     </Tabs>

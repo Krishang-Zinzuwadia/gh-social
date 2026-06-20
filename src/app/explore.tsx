@@ -8,6 +8,7 @@ import TrendingRepoCard from '../components/TrendingRepoCard';
 import SkeletonCard from '../components/SkeletonCard';
 import { FOR_YOU_REPOS, TRENDING_REPOS } from '../data/repos';
 import { Repo, TabName } from '../types';
+import { APP_THEME } from '../constants/theme';
 
 const regular = { fontFamily: 'NotoSans_400Regular' };
 
@@ -77,8 +78,8 @@ export default function ExploreScreen() {
   };
 
   return (
-    <View className="flex-1 bg-[#0A0C09]">
-      <StatusBar barStyle="light-content" backgroundColor="#0A0C09" />
+    <View className="flex-1" style={{ backgroundColor: APP_THEME.background }}>
+      <StatusBar barStyle="light-content" backgroundColor={APP_THEME.background} />
       <Header />
 
       <View className="pt-3">

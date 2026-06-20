@@ -1,66 +1,55 @@
 import React from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
 import GitBranchIcon from '../assets/icons/git-branch.svg';
+import MonitorIcon from '../assets/icons/monitor.svg';
 import StarIcon from '../assets/icons/star.svg';
 import { Repo } from '../types';
 import Avatar from './Avatar';
 
-const LANGUAGE_COLORS: Record<string, string> = {
-  Python: '#3B82F6',
-  TypeScript: '#2563EB',
-  JavaScript: '#F59E0B',
-  Rust: '#F97316',
-  Go: '#14B8A6',
-};
-
 interface TrendingRepoCardProps {
   repo: Repo;
-  rank: number;
+  rank?: number;
   onPress?: () => void;
 }
 
 const regular = { fontFamily: 'NotoSans_400Regular' };
 const bold = { fontFamily: 'NotoSans_700Bold' };
 
-export default function TrendingRepoCard({ repo, rank, onPress }: TrendingRepoCardProps): React.JSX.Element {
-  const langColor = repo.language ? LANGUAGE_COLORS[repo.language] ?? '#6B7280' : '#6B7280';
-
+export default function TrendingRepoCard({ repo, onPress }: TrendingRepoCardProps): React.JSX.Element {
   return (
     <TouchableOpacity
       onPress={onPress}
-      className="bg-[#1C1C1E] rounded-xl p-4 mb-3 border border-[#2C2C2E]"
+      className="bg-[#161716] rounded-xl p-4 mb-3 border border-[#242524]"
       activeOpacity={0.7}
     >
-      <View className="flex-row items-center mb-2" style={{ gap: 10 }}>
-        <Text className="text-[#6B7280] text-xs w-5" style={bold}>#{rank}</Text>
+      {/* Row 1: Icon and Name */}
+      <View className="flex-row items-center mb-2.5" style={{ gap: 8 }}>
+        {repo.hasIcon && (
+          <View className="w-7 h-7 bg-[#142918] rounded-md items-center justify-center border border-[#1B4322]">
+            <MonitorIcon stroke="#22C55E" width={14} height={14} />
+          </View>
+        )}
         <Text className="text-white text-sm flex-1" numberOfLines={1} style={bold}>
           {repo.name}
         </Text>
       </View>
-      {repo.description && (
-        <Text className="text-[#9CA3AF] text-xs mb-3 leading-5" numberOfLines={2} style={regular}>
-          {repo.description}
-        </Text>
-      )}
-      <View className="flex-row items-center" style={{ gap: 14 }}>
-        {repo.language && (
-          <View className="flex-row items-center" style={{ gap: 5 }}>
-            <View style={{ width: 9, height: 9, borderRadius: 5, backgroundColor: langColor }} />
-            <Text className="text-[#9CA3AF] text-xs" style={regular}>{repo.language}</Text>
-          </View>
-        )}
+
+      {/* Row 2: Stars and Forks */}
+      <View className="flex-row items-center mb-2.5" style={{ gap: 12 }}>
         <View className="flex-row items-center" style={{ gap: 4 }}>
-          <StarIcon stroke="#FBBF24" width={12} height={12} />
-          <Text className="text-[#9CA3AF] text-xs" style={regular}>{repo.stars}</Text>
+          <StarIcon stroke="#FBBF24" fill="#FBBF24" width={12} height={12} />
+          <Text className="text-[#A3A3A3] text-xs" style={regular}>{repo.stars}</Text>
         </View>
         <View className="flex-row items-center" style={{ gap: 4 }}>
-          <GitBranchIcon stroke="#9CA3AF" width={12} height={12} />
-          <Text className="text-[#9CA3AF] text-xs" style={regular}>{repo.forks}</Text>
+          <GitBranchIcon stroke="#A3A3A3" width={12} height={12} />
+          <Text className="text-[#A3A3A3] text-xs" style={regular}>{repo.forks}</Text>
         </View>
-        <View className="flex-row items-center ml-auto" style={{ gap: 5 }}>
-          <Avatar color={repo.avatarColor} initial={repo.avatarInitial} size={18} />
-          <Text className="text-[#6B7280] text-xs" style={regular}>{repo.author}</Text>
-        </View>
+      </View>
+
+      {/* Row 3: Author */}
+      <View className="flex-row items-center" style={{ gap: 6 }}>
+        <Avatar color={repo.avatarColor} initial={repo.avatarInitial} size={16} author={repo.author} />
+        <Text className="text-[#A3A3A3] text-xs" style={regular}>{repo.author}</Text>
       </View>
     </TouchableOpacity>
   );

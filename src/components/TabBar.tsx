@@ -28,7 +28,7 @@ export default function TabBar({ activeTab, onTabChange }: TabBarProps): React.J
             }}
           >
             <Text
-              className={`text-sm ${isActive ? 'text-white' : 'text-[#6B7280]'}`}
+              className={`text-sm ${isActive ? 'text-[#22C55E]' : 'text-[#6B7280]'}`}
               style={isActive ? bold : regular}
             >
               {tab}

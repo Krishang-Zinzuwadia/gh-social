@@ -18,12 +18,12 @@ export default function FeaturedRepoCard({ repo, onPress }: FeaturedRepoCardProp
   return (
     <TouchableOpacity
       onPress={onPress}
-      className="bg-[#1C1C1E] rounded-xl p-4 mb-3 border border-[#2C2C2E]"
+      className="bg-[#161716] rounded-xl p-4 mb-3 border border-[#242524]"
       activeOpacity={0.7}
     >
       <View className="flex-row items-center mb-3" style={{ gap: 10 }}>
-        <View className="w-9 h-9 bg-[#111827] rounded-lg items-center justify-center border border-[#374151]">
-          <MonitorIcon stroke="#6B7280" width={18} height={18} />
+        <View className="w-9 h-9 bg-[#142918] rounded-lg items-center justify-center border border-[#1B4322]">
+          <MonitorIcon stroke="#22C55E" width={18} height={18} />
         </View>
         <Text className="text-white text-sm flex-1" numberOfLines={1} style={bold}>
           {repo.name}
@@ -31,7 +31,7 @@ export default function FeaturedRepoCard({ repo, onPress }: FeaturedRepoCardProp
       </View>
       <View className="flex-row items-center" style={{ gap: 16 }}>
         <View className="flex-row items-center" style={{ gap: 4 }}>
-          <StarIcon stroke="#FBBF24" width={13} height={13} />
+          <StarIcon stroke="#FBBF24" fill="#FBBF24" width={13} height={13} />
           <Text className="text-[#9CA3AF] text-xs" style={regular}>{repo.stars}</Text>
         </View>
         <View className="flex-row items-center" style={{ gap: 4 }}>
@@ -39,7 +39,7 @@ export default function FeaturedRepoCard({ repo, onPress }: FeaturedRepoCardProp
           <Text className="text-[#9CA3AF] text-xs" style={regular}>{repo.forks}</Text>
         </View>
         <View className="flex-row items-center ml-auto" style={{ gap: 5 }}>
-          <Avatar color={repo.avatarColor} initial={repo.avatarInitial} size={18} />
+          <Avatar color={repo.avatarColor} initial={repo.avatarInitial} size={18} author={repo.author} />
           <Text className="text-[#6B7280] text-xs" style={regular}>{repo.author}</Text>
         </View>
       </View>

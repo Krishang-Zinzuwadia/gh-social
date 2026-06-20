@@ -1,5 +1,4 @@
 import '@/global.css';
-// app/_layout.tsx
 import { NotoSans_400Regular, NotoSans_700Bold, useFonts } from '@expo-google-fonts/noto-sans';
 import { Tabs } from 'expo-router';
 import { ActivityIndicator, View } from 'react-native';
@@ -15,7 +14,7 @@ export default function Layout() {
 
   if (!fontsLoaded) {
     return (
-      <View style={{ flex: 1, backgroundColor: '#111111', alignItems: 'center', justifyContent: 'center' }}>
+      <View style={{ flex: 1, backgroundColor: '#0D0E0D', alignItems: 'center', justifyContent: 'center' }}>
         <ActivityIndicator color="#22C55E" />
       </View>
     );
@@ -26,32 +25,39 @@ export default function Layout() {
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: '#111111',
-          borderTopColor: '#2C2C2E',
+          backgroundColor: '#0D0E0D',
+          borderTopColor: '#242524',
+          height: 60,
+          paddingBottom: 5,
         },
-        tabBarActiveTintColor: '#22C55E',
-        tabBarInactiveTintColor: '#6B7280',
+        tabBarShowLabel: false,
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
           title: 'For You',
-          tabBarIcon: ({ color }) => <HomeIcon fill={color} width={22} height={22} />,
+          tabBarIcon: () => <HomeIcon fill="#FFFFFF" width={22} height={22} />,
         }}
       />
       <Tabs.Screen
         name="explore"
         options={{
           title: 'Trending',
-          tabBarIcon: ({ color }) => <CompassIcon fill={color} width={22} height={22} />,
+          tabBarIcon: () => <CompassIcon fill="#22C55E" width={22} height={22} />,
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
           title: 'Profile',
-          tabBarIcon: ({ color }) => <UserIcon fill={color} width={22} height={22} />,
+          tabBarIcon: () => <UserIcon fill="#FFFFFF" width={22} height={22} />,
+        }}
+        listeners={{
+          tabPress: (e) => {
+            // Prevent default action (navigation)
+            e.preventDefault();
+          },
         }}
       />
     </Tabs>

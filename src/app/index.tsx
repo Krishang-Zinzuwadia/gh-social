@@ -56,8 +56,8 @@ export default function ForYouScreen() {
   };
 
   return (
-    <View className="flex-1 bg-[#111111]">
-      <StatusBar barStyle="light-content" backgroundColor="#111111" />
+    <View className="flex-1 bg-[#0D0E0D]">
+      <StatusBar barStyle="light-content" backgroundColor="#0D0E0D" />
       <Header />
       <View className="pt-3">
         <SearchBar value={searchQuery} onChangeText={setSearchQuery} />

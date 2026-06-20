@@ -17,7 +17,7 @@ export default function RepoCard({ repo, onPress }: RepoCardProps): React.JSX.El
   return (
     <TouchableOpacity
       onPress={onPress}
-      className="bg-[#1C1C1E] rounded-xl p-3 mb-2 border border-[#2C2C2E]"
+      className="bg-[#161716] rounded-xl p-3 mb-2 border border-[#242524]"
       activeOpacity={0.7}
     >
       <Text className="text-white text-xs leading-tight mb-2" numberOfLines={2} style={bold}>
@@ -25,16 +25,16 @@ export default function RepoCard({ repo, onPress }: RepoCardProps): React.JSX.El
       </Text>
       <View className="flex-row items-center" style={{ gap: 10 }}>
         <View className="flex-row items-center" style={{ gap: 3 }}>
-          <StarIcon stroke="#FBBF24" width={11} height={11} />
-          <Text className="text-[#9CA3AF] text-xs" style={regular}>{repo.stars}</Text>
+          <StarIcon stroke="#FBBF24" fill="#FBBF24" width={11} height={11} />
+          <Text className="text-[#A3A3A3] text-xs" style={regular}>{repo.stars}</Text>
         </View>
         <View className="flex-row items-center" style={{ gap: 3 }}>
-          <GitBranchIcon stroke="#9CA3AF" width={11} height={11} />
-          <Text className="text-[#9CA3AF] text-xs" style={regular}>{repo.forks}</Text>
+          <GitBranchIcon stroke="#A3A3A3" width={11} height={11} />
+          <Text className="text-[#A3A3A3] text-xs" style={regular}>{repo.forks}</Text>
         </View>
       </View>
       <View className="flex-row items-center mt-2" style={{ gap: 5 }}>
-        <Avatar color={repo.avatarColor} initial={repo.avatarInitial} size={16} />
+        <Avatar color={repo.avatarColor} initial={repo.avatarInitial} size={16} author={repo.author} />
         <Text className="text-[#6B7280] text-xs" style={regular}>{repo.author}</Text>
       </View>
     </TouchableOpacity>

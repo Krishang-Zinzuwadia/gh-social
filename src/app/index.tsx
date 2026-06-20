@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import { useState, useEffect } from 'react';
-import { FlatList, ListRenderItemInfo, StatusBar, View } from 'react-native';
+import { FlatList, ListRenderItemInfo, StatusBar, View, Text } from 'react-native';
 import Header from '../components/Header';
 import RepoCard from '../components/RepoCard';
 import SearchBar from '../components/SearchBar';
@@ -8,6 +8,8 @@ import TabBar from '../components/TabBar';
 import SkeletonCard from '../components/SkeletonCard';
 import { FOR_YOU_REPOS } from '../data/repos';
 import { Repo, TabName } from '../types';
+
+const regular = { fontFamily: 'NotoSans_400Regular' };
 
 export default function ForYouScreen() {
   const router = useRouter();
@@ -42,6 +44,17 @@ export default function ForYouScreen() {
     </View>
   );
 
+  const renderEmpty = () => {
+    if (isLoading) return null;
+    return (
+      <View className="items-center justify-center py-16">
+        <Text className="text-[#6B7280] text-sm" style={regular}>
+          No repositories found
+        </Text>
+      </View>
+    );
+  };
+
   return (
     <View className="flex-1 bg-[#111111]">
       <StatusBar barStyle="light-content" backgroundColor="#111111" />
@@ -58,6 +71,7 @@ export default function ForYouScreen() {
         columnWrapperStyle={{ gap: 10, paddingHorizontal: 16 }}
         contentContainerStyle={{ paddingBottom: 16 }}
         showsVerticalScrollIndicator={false}
+        ListEmptyComponent={renderEmpty}
       />
     </View>
   );

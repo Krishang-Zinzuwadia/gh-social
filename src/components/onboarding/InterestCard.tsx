@@ -1,4 +1,4 @@
-import { TouchableOpacity, View, Text } from "react-native";
+import { Text, TouchableOpacity, View } from "react-native";
 
 type Props = {
   title: string;
@@ -17,9 +17,9 @@ export default function InterestCard({
     <TouchableOpacity
       onPress={onPress}
       style={{
-        width: "48%",
-        minHeight: 72,
-        backgroundColor: "#151A15",
+        width: "48.5%",
+        minHeight: 78,
+        backgroundColor: "#181E18",
         borderRadius: 14,
         borderWidth: 1,
         borderColor: selected ? "#6DA963" : "#303030",
@@ -27,14 +27,14 @@ export default function InterestCard({
         alignItems: "center",
         paddingHorizontal: 12,
         paddingVertical: 14,
-        marginBottom: 12,
+        marginBottom: 14,
       }}
     >
       <View
         style={{
-          width: 34,
-          height: 34,
-          borderRadius: 10,
+          width: 38,
+          height: 38,
+          borderRadius: 12,
           backgroundColor: "#2A332B",
           justifyContent: "center",
           alignItems: "center",
@@ -43,7 +43,7 @@ export default function InterestCard({
       >
         <Text
           style={{
-            fontSize: 16,
+            fontSize: 18,
           }}
         >
           {icon}

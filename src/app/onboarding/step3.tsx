@@ -16,7 +16,7 @@ export default function Step3() {
       }}
       contentContainerStyle={{
         paddingHorizontal: 20,
-        paddingTop: 50,
+        paddingTop: 20,
         paddingBottom: 40,
       }}
       showsVerticalScrollIndicator={false}
@@ -37,7 +37,7 @@ export default function Step3() {
       <View
         style={{
           alignItems: "center",
-          marginTop: 32,
+          marginTop: 24,
         }}
       >
         <LogoPlaceholder />
@@ -53,8 +53,8 @@ export default function Step3() {
         style={{
           color: "#8A8A8A",
           fontSize: 15,
-          marginTop: 36,
-          marginBottom: 20,
+          marginTop: 24,
+          marginBottom: 14,
         }}
       >
         CHOOSE YOUR INTERESTS
@@ -82,7 +82,7 @@ export default function Step3() {
         <InterestCard icon="🎮" title="Gaming" />
       </View>
 
-      <View style={{ marginTop: 28 }}>
+      <View style={{ marginTop: 20 }}>
         <PrimaryButton
   title="Finish"
    onPress={() => alert("Onboarding Complete")}
@@ -93,7 +93,7 @@ export default function Step3() {
         style={{
           color: "#8A8A8A",
           textAlign: "center",
-          marginTop: 20,
+          marginTop: 12,
           fontSize: 15,
         }}
       >

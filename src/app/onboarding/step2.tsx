@@ -43,15 +43,15 @@ export default function Step2() {
         <View
           style={{
             alignItems: "center",
-            marginTop: 32,
-            marginBottom: 32,
+            marginTop: 24,
+            marginBottom: 24,
           }}
         >
           <View
             style={{
-              width: 140,
-              height: 140,
-              borderRadius: 70,
+              width: 120,
+              height: 120,
+              borderRadius: 60,
               backgroundColor: "#10391D",
             }}
           />
@@ -62,7 +62,7 @@ export default function Step2() {
           <Text
             style={{
               color: "#F0F6EB",
-              fontSize: 42,
+              fontSize: 40,
               fontWeight: "700",
               textAlign: "center",
             }}
@@ -73,7 +73,7 @@ export default function Step2() {
           <Text
             style={{
               color: "#6DA963",
-              fontSize: 42,
+              fontSize: 40,
               fontWeight: "700",
               textAlign: "center",
             }}
@@ -85,8 +85,8 @@ export default function Step2() {
             style={{
               color: "#8A8A8A",
               textAlign: "center",
-              fontSize: 18,
-              marginTop: 12,
+              fontSize: 15,
+              marginTop: 8,
             }}
           >
             Add the technologies you work with
@@ -96,7 +96,7 @@ export default function Step2() {
             style={{
               color: "#8A8A8A",
               textAlign: "center",
-              fontSize: 18,
+              fontSize: 15,
             }}
           >
             or want to explore.
@@ -104,7 +104,7 @@ export default function Step2() {
         </View>
 
         {/* Search */}
-        <View style={{ marginTop: 28 }}>
+        <View style={{ marginTop: 16 }}>
           <TextInput
             placeholder="Search technologies"
             placeholderTextColor="#777"
@@ -113,7 +113,7 @@ export default function Step2() {
               borderWidth: 1,
               borderColor: "#6DA963",
               borderRadius: 12,
-              padding: 16,
+              padding: 14,
               color: "white",
             }}
           />
@@ -123,9 +123,9 @@ export default function Step2() {
         <Text
           style={{
             color: "#AAAAAA",
-            fontSize: 18,
-            marginTop: 28,
-            marginBottom: 16,
+            fontSize: 16,
+            marginTop: 16,
+            marginBottom: 10,
           }}
         >
           Your Selection
@@ -143,9 +143,9 @@ export default function Step2() {
         <Text
           style={{
             color: "#AAAAAA",
-            fontSize: 18,
+            fontSize: 16,
             marginTop: 10,
-            marginBottom: 16,
+            marginBottom: 10,
           }}
         >
           Suggested for you
@@ -160,7 +160,7 @@ export default function Step2() {
           <TechChip title="AWS" />
         </View>
 
-        <View style={{ marginTop: 32 }}>
+        <View style={{ marginTop: 16 }}>
           <PrimaryButton
   title="Continue"
   onPress={() => router.push("/onboarding/step3")}
@@ -170,7 +170,7 @@ export default function Step2() {
         <TouchableOpacity
           style={{
             alignItems: "center",
-            marginTop: 20,
+            marginTop: 12,
           }}
         >
           <Text

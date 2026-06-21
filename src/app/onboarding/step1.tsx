@@ -18,7 +18,7 @@ export default function Step1() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
           paddingHorizontal: 20,
-          paddingTop: 10,
+          paddingTop: 20,
           paddingBottom: 40,
         }}
       >
@@ -42,15 +42,15 @@ export default function Step1() {
         <View
           style={{
             alignItems: "center",
-            marginTop: 32,
-            marginBottom: 32,
+            marginTop: 24,
+            marginBottom: 24,
           }}
         >
           <View
             style={{
-              width: 140,
-              height: 140,
-              borderRadius: 70,
+              width: 120,
+              height: 120,
+              borderRadius: 60,
               backgroundColor: "#10391D",
             }}
           />
@@ -61,7 +61,7 @@ export default function Step1() {
           <Text
             style={{
               color: "#F0F6EB",
-              fontSize: 48,
+              fontSize: 40,
               fontWeight: "700",
               textAlign: "center",
             }}
@@ -72,10 +72,10 @@ export default function Step1() {
           <Text
             style={{
               color: "#6DA963",
-              fontSize: 48,
+              fontSize: 38,
               fontWeight: "700",
               textAlign: "center",
-              marginBottom: 16,
+              marginBottom: 10,
             }}
           >
             skills?
@@ -85,8 +85,8 @@ export default function Step1() {
             style={{
               color: "#8A8A8A",
               textAlign: "center",
-              fontSize: 18,
-              lineHeight: 28,
+              fontSize: 15,
+              lineHeight: 22,
             }}
           >
             Select the skills you have so we can
@@ -96,8 +96,8 @@ export default function Step1() {
             style={{
               color: "#8A8A8A",
               textAlign: "center",
-              fontSize: 18,
-              lineHeight: 28,
+              fontSize: 15,
+              lineHeight: 22,
             }}
           >
             personalize your experience.
@@ -110,8 +110,8 @@ export default function Step1() {
             color: "#8A8A8A",
             fontSize: 13,
             letterSpacing: 1,
-            marginTop: 48,
-            marginBottom: 20,
+            marginTop: 28,
+            marginBottom: 14,
           }}
         >
           POPULAR SKILLS
@@ -131,7 +131,7 @@ export default function Step1() {
         <TouchableOpacity
           style={{
             alignItems: "center",
-            marginTop: 24,
+            marginTop: 12,
           }}
         >
           <Text
@@ -146,7 +146,7 @@ export default function Step1() {
         </TouchableOpacity>
 
         {/* Continue */}
-        <View style={{ marginTop: 32 }}>
+        <View style={{ marginTop: 16 }}>
           <PrimaryButton
   title="Continue"
   onPress={() => router.push("/onboarding/step2")}
@@ -157,7 +157,7 @@ export default function Step1() {
         <TouchableOpacity
           style={{
             alignItems: "center",
-            marginTop: 20,
+            marginTop: 12,
           }}
         >
           <Text

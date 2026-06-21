@@ -21,9 +21,9 @@ export default function SkillCard({
         backgroundColor: "#191F18",
         borderColor: selected ? "#6DA963" : "#555252",
         borderWidth: 1,
-        borderRadius: 14,
+        borderRadius: 12,
         paddingHorizontal: 12,
-        paddingVertical: 12,
+        paddingVertical: 8,
         flexDirection: "row",
         alignItems: "center",
         marginBottom: 12,
@@ -31,13 +31,13 @@ export default function SkillCard({
     >
       <View
         style={{
-          width: 28,
-          height: 28,
-          borderRadius: 8,
+          width: 24,
+          height: 24,
+          borderRadius: 6,
           backgroundColor: "#2A332B",
           justifyContent: "center",
           alignItems: "center",
-          marginRight: 8,
+          marginRight: 6,
         }}
       >
         <Text
@@ -56,7 +56,8 @@ export default function SkillCard({
         style={{
           flex: 1,
           color: "#F0F6EB",
-          fontSize: 13,
+          fontSize: 12,
+          lineHeight: 18,
         }}
       >
         {title}
@@ -66,7 +67,7 @@ export default function SkillCard({
         <Text
           style={{
             color: "#6DA963",
-            fontSize: 18,
+            fontSize: 16,
             fontWeight: "700",
           }}
         >

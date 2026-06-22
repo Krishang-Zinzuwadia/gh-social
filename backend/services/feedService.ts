@@ -7,7 +7,7 @@ export class FeedService {
   private SESSION_TTL = 300; // 5 minutes cache lifetime
 
   
-  //Core Task: Stitches raw ML scoring IDs with relational metadata from PostgreSQL and caches it
+  //Core Task: Stitches scoring IDs with relational metadata from PostgreSQL and caches it
   
   async processAndCacheBatch(userId: string, mlRepoIds: string[]): Promise<void> {
     const fallbackIds = mlRepoIds.slice(0, 15); // Safeguard to guarantee exactly 15 elements

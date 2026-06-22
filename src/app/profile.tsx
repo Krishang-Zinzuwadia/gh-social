@@ -1,5 +1,5 @@
 import { Redirect } from 'expo-router';
 
-export default function IndexScreen() {
+export default function ProfileScreen() {
   return <Redirect href="/explore" />;
 }

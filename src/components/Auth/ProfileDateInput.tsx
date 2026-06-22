@@ -1,7 +1,11 @@
 import { useState } from "react";
 import { View, Text, TextInput, TouchableOpacity, Platform } from "react-native";
-import DateTimePicker from '@react-native-community/datetimepicker';
 import { CalendarIcon } from "./icons";
+
+let DateTimePicker: any = null;
+if (Platform.OS !== 'web') {
+  DateTimePicker = require('@react-native-community/datetimepicker').default;
+}
 
 export default function ProfileDateInput() {
   const [date, setDate] = useState(new Date());
@@ -52,7 +56,7 @@ export default function ProfileDateInput() {
         </TouchableOpacity>
       </View>
 
-      {show && (
+      {show && Platform.OS !== 'web' && DateTimePicker && (
         <DateTimePicker
           testID="dateTimePicker"
           value={date}

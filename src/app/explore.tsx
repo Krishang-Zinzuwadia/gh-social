@@ -1,180 +1,140 @@
-import { Image } from 'expo-image';
-import { SymbolView } from 'expo-symbols';
-import { Platform, Pressable, ScrollView, StyleSheet } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useState, useEffect } from 'react';
+import { ScrollView, FlatList, StatusBar, View, Text, ListRenderItemInfo } from 'react-native';
+import Header from '../components/explore/Header';
+import RepoCard from '../components/explore/RepoCard';
+import SearchBar from '../components/explore/SearchBar';
+import TabBar from '../components/explore/TabBar';
+import TrendingRepoCard from '../components/explore/TrendingRepoCard';
+import SkeletonCard from '../components/explore/SkeletonCard';
+import { FOR_YOU_REPOS, TRENDING_REPOS } from '../data/repos';
+import { Repo, TabName } from '../types';
+import { APP_THEME } from '../constants/theme';
 
-import { ExternalLink } from '@/components/external-link';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Collapsible } from '@/components/ui/collapsible';
-import { WebBadge } from '@/components/web-badge';
-import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
-import { useTheme } from '@/hooks/use-theme';
+const regular = { fontFamily: 'NotoSans_400Regular' };
 
-export default function TabTwoScreen() {
-  const safeAreaInsets = useSafeAreaInsets();
-  const insets = {
-    ...safeAreaInsets,
-    bottom: safeAreaInsets.bottom + BottomTabInset + Spacing.three,
+export default function ExploreScreen() {
+  const [activeTab, setActiveTab] = useState<TabName>('For you');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [activeTab]);
+
+  const handleTabChange = (tab: TabName) => {
+    setActiveTab(tab);
+    setSearchQuery('');
+    setIsLoading(true);
   };
-  const theme = useTheme();
 
-  const contentPlatformStyle = Platform.select({
-    android: {
-      paddingTop: insets.top,
-      paddingLeft: insets.left,
-      paddingRight: insets.right,
-      paddingBottom: insets.bottom,
-    },
-    web: {
-      paddingTop: Spacing.six,
-      paddingBottom: Spacing.four,
-    },
-  });
+  // --- For You Tab Data Logic ---
+  const filteredForYou: Repo[] = FOR_YOU_REPOS.filter((r) =>
+    r.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+  const skeletonDataForYou = Array.from({ length: 6 }, (_, i) => ({ id: `skeleton-${i}` }));
+  const dataForYou = isLoading ? skeletonDataForYou : filteredForYou;
+  const leftColData = dataForYou.filter((_, idx) => idx % 2 === 0);
+  const rightColData = dataForYou.filter((_, idx) => idx % 2 !== 0);
+
+  // --- Trending Tab Data Logic ---
+  const filteredTrending = TRENDING_REPOS.filter((r) =>
+    r.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+  const skeletonDataTrending = Array.from({ length: 5 }, (_, i) => ({ id: `skeleton-${i}`, isSkeleton: true }));
+  const dataTrending = isLoading
+    ? skeletonDataTrending
+    : searchQuery
+    ? filteredTrending
+    : [
+        ...(TRENDING_REPOS.length > 0 ? [TRENDING_REPOS[0]] : []),
+        { id: 'skeleton-1', isSkeleton: true },
+        { id: 'skeleton-2', isSkeleton: true },
+        { id: 'skeleton-3', isSkeleton: true },
+        { id: 'skeleton-4', isSkeleton: true },
+      ];
+
+  const renderTrendingCard = ({ item }: ListRenderItemInfo<any>) => (
+    <View className="px-4">
+      {item.isSkeleton ? (
+        <SkeletonCard height={120} />
+      ) : (
+        <TrendingRepoCard repo={item} />
+      )}
+    </View>
+  );
+
+  const renderEmptyState = (hasData: boolean) => {
+    if (isLoading || hasData) return null;
+    return (
+      <View className="items-center justify-center py-16">
+        <Text className="text-[#6B7280] text-sm" style={regular}>
+          No repositories found
+        </Text>
+      </View>
+    );
+  };
 
   return (
-    <ScrollView
-      style={[styles.scrollView, { backgroundColor: theme.background }]}
-      contentInset={insets}
-      contentContainerStyle={[styles.contentContainer, contentPlatformStyle]}>
-      <ThemedView style={styles.container}>
-        <ThemedView style={styles.titleContainer}>
-          <ThemedText type="subtitle">Explore</ThemedText>
-          <ThemedText style={styles.centerText} themeColor="textSecondary">
-            This starter app includes example{'\n'}code to help you get started.
-          </ThemedText>
+    <View className="flex-1" style={{ backgroundColor: APP_THEME.background }}>
+      <StatusBar barStyle="light-content" backgroundColor={APP_THEME.background} />
+      <Header />
 
-          <ExternalLink href="https://docs.expo.dev" asChild>
-            <Pressable style={({ pressed }) => pressed && styles.pressed}>
-              <ThemedView type="backgroundElement" style={styles.linkButton}>
-                <ThemedText type="link">Expo documentation</ThemedText>
-                <SymbolView
-                  tintColor={theme.text}
-                  name={{ ios: 'arrow.up.right.square', android: 'link', web: 'link' }}
-                  size={12}
-                />
-              </ThemedView>
-            </Pressable>
-          </ExternalLink>
-        </ThemedView>
+      <View className="pt-3">
+        <SearchBar value={searchQuery} onChangeText={setSearchQuery} />
+      </View>
 
-        <ThemedView style={styles.sectionsWrapper}>
-          <Collapsible title="File-based routing">
-            <ThemedText type="small">
-              This app has two screens: <ThemedText type="code">src/app/index.tsx</ThemedText> and{' '}
-              <ThemedText type="code">src/app/explore.tsx</ThemedText>
-            </ThemedText>
-            <ThemedText type="small">
-              The layout file in <ThemedText type="code">src/app/_layout.tsx</ThemedText> sets up
-              the tab navigator.
-            </ThemedText>
-            <ExternalLink href="https://docs.expo.dev/router/introduction">
-              <ThemedText type="linkPrimary">Learn more</ThemedText>
-            </ExternalLink>
-          </Collapsible>
+      <TabBar activeTab={activeTab} onTabChange={handleTabChange} />
 
-          <Collapsible title="Android, iOS, and web support">
-            <ThemedView type="backgroundElement" style={styles.collapsibleContent}>
-              <ThemedText type="small">
-                You can open this project on Android, iOS, and the web. To open the web version,
-                press <ThemedText type="smallBold">w</ThemedText> in the terminal running this
-                project.
-              </ThemedText>
-              <Image
-                source={require('@/assets/images/tutorial-web.png')}
-                style={styles.imageTutorial}
-              />
-            </ThemedView>
-          </Collapsible>
+      {activeTab === 'For you' ? (
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: 24, paddingTop: 12 }}
+        >
+          {renderEmptyState(dataForYou.length > 0)}
+          
+          {dataForYou.length > 0 && (
+            <View className="flex-row px-4" style={{ gap: 16 }}>
+              {/* Left Column */}
+              <View className="flex-1" style={{ gap: 16 }}>
+                {leftColData.map((item) => (
+                  <View key={item.id}>
+                    {isLoading ? (
+                      <SkeletonCard height={95} />
+                    ) : (
+                      <RepoCard repo={item as Repo} />
+                    )}
+                  </View>
+                ))}
+              </View>
 
-          <Collapsible title="Images">
-            <ThemedText type="small">
-              For static images, you can use the <ThemedText type="code">@2x</ThemedText> and{' '}
-              <ThemedText type="code">@3x</ThemedText> suffixes to provide files for different
-              screen densities.
-            </ThemedText>
-            <Image source={require('@/assets/images/react-logo.png')} style={styles.imageReact} />
-            <ExternalLink href="https://reactnative.dev/docs/images">
-              <ThemedText type="linkPrimary">Learn more</ThemedText>
-            </ExternalLink>
-          </Collapsible>
-
-          <Collapsible title="Light and dark mode components">
-            <ThemedText type="small">
-              This template has light and dark mode support. The{' '}
-              <ThemedText type="code">useColorScheme()</ThemedText> hook lets you inspect what the
-              user&apos;s current color scheme is, and so you can adjust UI colors accordingly.
-            </ThemedText>
-            <ExternalLink href="https://docs.expo.dev/develop/user-interface/color-themes/">
-              <ThemedText type="linkPrimary">Learn more</ThemedText>
-            </ExternalLink>
-          </Collapsible>
-
-          <Collapsible title="Animations">
-            <ThemedText type="small">
-              This template includes an example of an animated component. The{' '}
-              <ThemedText type="code">src/components/ui/collapsible.tsx</ThemedText> component uses
-              the powerful <ThemedText type="code">react-native-reanimated</ThemedText> library to
-              animate opening this hint.
-            </ThemedText>
-          </Collapsible>
-        </ThemedView>
-        {Platform.OS === 'web' && <WebBadge />}
-      </ThemedView>
-    </ScrollView>
+              {/* Right Column */}
+              <View className="flex-1" style={{ gap: 16 }}>
+                {rightColData.map((item) => (
+                  <View key={item.id}>
+                    {isLoading ? (
+                      <SkeletonCard height={95} />
+                    ) : (
+                      <RepoCard repo={item as Repo} />
+                    )}
+                  </View>
+                ))}
+              </View>
+            </View>
+          )}
+        </ScrollView>
+      ) : (
+        <FlatList<any>
+          data={dataTrending}
+          keyExtractor={(item) => item.id}
+          renderItem={renderTrendingCard}
+          contentContainerStyle={{ paddingBottom: 24, paddingTop: 12, gap: 16 }}
+          showsVerticalScrollIndicator={false}
+          ListEmptyComponent={renderEmptyState(dataTrending.length > 0)}
+        />
+      )}
+    </View>
   );
 }
-
-const styles = StyleSheet.create({
-  scrollView: {
-    flex: 1,
-  },
-  contentContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-  },
-  container: {
-    maxWidth: MaxContentWidth,
-    flexGrow: 1,
-  },
-  titleContainer: {
-    gap: Spacing.three,
-    alignItems: 'center',
-    paddingHorizontal: Spacing.four,
-    paddingVertical: Spacing.six,
-  },
-  centerText: {
-    textAlign: 'center',
-  },
-  pressed: {
-    opacity: 0.7,
-  },
-  linkButton: {
-    flexDirection: 'row',
-    paddingHorizontal: Spacing.four,
-    paddingVertical: Spacing.two,
-    borderRadius: Spacing.five,
-    justifyContent: 'center',
-    gap: Spacing.one,
-    alignItems: 'center',
-  },
-  sectionsWrapper: {
-    gap: Spacing.five,
-    paddingHorizontal: Spacing.four,
-    paddingTop: Spacing.three,
-  },
-  collapsibleContent: {
-    alignItems: 'center',
-  },
-  imageTutorial: {
-    width: '100%',
-    aspectRatio: 296 / 171,
-    borderRadius: Spacing.three,
-    marginTop: Spacing.two,
-  },
-  imageReact: {
-    width: 100,
-    height: 100,
-    alignSelf: 'center',
-  },
-});

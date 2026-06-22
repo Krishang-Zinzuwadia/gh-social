@@ -1,10 +1,10 @@
 import React from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
-import GitBranchIcon from '../assets/icons/git-branch.svg';
-import MonitorIcon from '../assets/icons/monitor.svg';
-import StarIcon from '../assets/icons/star.svg';
-import { Repo } from '../types';
-import Avatar from './Avatar';
+import GitBranchIcon from '../../assets/icons/git-branch.svg';
+import MonitorIcon from '../../assets/icons/monitor.svg';
+import StarIcon from '../../assets/icons/star.svg';
+import { Repo } from '../../types';
+import Avatar from '../Avatar';
 
 interface TrendingRepoCardProps {
   repo: Repo;

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
-import { TabName } from '../types';
+import { TabName } from '../../types';
 
 const TABS: TabName[] = ['For you', 'Trending'];
 

@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import { ScrollView, FlatList, StatusBar, View, Text, ListRenderItemInfo } from 'react-native';
-import Header from '../components/Header';
-import RepoCard from '../components/RepoCard';
-import SearchBar from '../components/SearchBar';
-import TabBar from '../components/TabBar';
-import TrendingRepoCard from '../components/TrendingRepoCard';
-import SkeletonCard from '../components/SkeletonCard';
+import Header from '../components/explore/Header';
+import RepoCard from '../components/explore/RepoCard';
+import SearchBar from '../components/explore/SearchBar';
+import TabBar from '../components/explore/TabBar';
+import TrendingRepoCard from '../components/explore/TrendingRepoCard';
+import SkeletonCard from '../components/explore/SkeletonCard';
 import { FOR_YOU_REPOS, TRENDING_REPOS } from '../data/repos';
 import { Repo, TabName } from '../types';
 import { APP_THEME } from '../constants/theme';

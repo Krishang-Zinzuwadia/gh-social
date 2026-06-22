@@ -1,6 +1,6 @@
 import React from 'react';
 import { TextInput, View } from 'react-native';
-import SearchIcon from '../assets/icons/search.svg';
+import SearchIcon from '../../assets/icons/search.svg';
 
 interface SearchBarProps {
   value: string;

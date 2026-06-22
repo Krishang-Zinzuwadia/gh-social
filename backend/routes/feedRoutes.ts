@@ -1,12 +1,14 @@
 import { Router } from 'express'; 
-import { receiveMlRecommendations } from '../controllers/feedController.js';
+import { receiveMlRecommendations, getFeedForMobile } from '../controllers/feedController.js';
 
 const router = Router();
 
-/**
- * Expose the POST endpoint for Subhro's ML model 
- * Full URL when running locally will be: http://localhost:5000/api/internal/recommendations
- */
+//Endpoint 1: Expose the POST endpoint for Subhro's ML model
+//URL : POST http://localhost:5000/api/internal/recommendations
 router.post('/internal/recommendations', receiveMlRecommendations);
+
+//Endpoint 2: The Mobile App PULLS the fast cached feed from here
+//URL : GET http://localhost:5000/api/feed?userId=your_user_id
+router.get('/feed', getFeedForMobile);
 
 export default router;

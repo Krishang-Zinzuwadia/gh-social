@@ -32,3 +32,25 @@ export const receiveMlRecommendations = async (req: Request, res: Response): Pro
     });
   }
 };
+
+export const getFeedForMobile = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = req.query.userId as string; // Just for local-dev
+
+    if (!userId) {
+       res.status(400).json({ success: false, message: 'Missing userId parameter.' });
+       return;
+    }
+
+    const feed = await feedService.getCachedFeed(userId);
+
+    res.status(200).json({
+      success: true,
+      count: feed.length,
+      data: feed
+    });
+  } catch (error) {
+    console.error('[FeedController] Failed to serve mobile feed:', error);
+     res.status(500).json({ success: false, message: 'Internal server error.' });
+  }
+};

@@ -6,8 +6,7 @@ import { inArray } from 'drizzle-orm';
 export class FeedService {
   private SESSION_TTL = 300; // 5 minutes cache lifetime
 
-  
-  //Core Task: Stitches scoring IDs with relational metadata from PostgreSQL and caches it
+  //Task --> Stitches scoring IDs with relational metadata from PostgreSQL and caches it
   
   async processAndCacheBatch(userId: string, mlRepoIds: string[]): Promise<void> {
     const fallbackIds = mlRepoIds.slice(0, 15); // Safeguard to guarantee exactly 15 elements
@@ -55,6 +54,27 @@ export class FeedService {
       console.log(`[FeedService] Successfully stitched and cached ${formattedPosts.length} posts for User: ${userId}`);
     } catch (error) {
       console.error('[FeedService] Error processing data batch:', error);
+      throw error;
+    }
+  }
+
+  // Task --> Pulls the pre-stitched feed from the Redis queue for the mobile client
+  
+  async getCachedFeed(userId: string): Promise<any[]> {
+    const queueKey = `user:${userId}:delivery_queue`;
+
+    try {
+      // Pull all stringified objects currently stored in the Redis List
+      const rawFeedItems = await redisClient.lrange(queueKey, 0, -1);
+
+      if (!rawFeedItems || rawFeedItems.length === 0) {
+        return []; // Return empty array if nothing is pushed yet or cache expired
+      }
+
+      // Parse the JSON strings back into readable JavaScript objects for the mobile app
+      return rawFeedItems.map(item => JSON.parse(item));
+    } catch (error) {
+      console.error('[FeedService] Failed to retrieve cached feed:', error);
       throw error;
     }
   }

@@ -122,7 +122,7 @@ export default function SignUpEmail() {
           <View className="mt-10">
             <PrimaryButton
                 label="Create Account"
-                onPress={() => isFormValid && router.push("/create-profile")}
+                onPress={() => isFormValid && router.push("/(auth)/create-profile")}
                 style={{ opacity: isFormValid ? 1 : 0.5 }}
                 disabled={!isFormValid}
             />
@@ -133,7 +133,7 @@ export default function SignUpEmail() {
         <AuthFooter
             prompt="Already have an account?"
             linkLabel="Log In"
-            onPress={() => router.push("/login")}
+            onPress={() => router.push("/(auth)/login")}
         />
 
       </View>

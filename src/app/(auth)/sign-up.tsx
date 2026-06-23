@@ -69,7 +69,7 @@ export default function SignUpScreen() {
         <AuthFooter
           prompt="Already have an account?"
           linkLabel="Log in"
-          onPress={() => router.push("/login")}
+          onPress={() => router.push("/(auth)/login")}
         />
 
         {/* Terms */}

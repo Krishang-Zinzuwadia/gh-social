@@ -114,7 +114,7 @@ export default function LoginScreen() {
         <AuthFooter
           prompt="Don't have an account?"
           linkLabel="Sign up"
-          onPress={() => router.push("/sign-up")}
+          onPress={() => router.push("/(auth)/sign-up")}
         />
 
       </View>

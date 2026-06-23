@@ -85,7 +85,7 @@ export default function Step3() {
       <View style={{ marginTop: 20 }}>
         <PrimaryButton
   title="Finish"
-   onPress={() => alert("Onboarding Complete")}
+   onPress={() => router.push("/(auth)/sign-up")}
 />
       </View>
 

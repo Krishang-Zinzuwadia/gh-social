@@ -1,4 +1,4 @@
-import { View, Text } from "react-native"
+import { View, Text, ScrollView } from "react-native"
 import Svg, { Path, Circle } from "react-native-svg"
 import RecentSaves from "./recentsaves"
 import RecentPins from "./recentpins"
@@ -18,7 +18,7 @@ export default function Overview() {
   ]
 
   return (
-    <View className="w-full gap-5 relative flex-col justify-start">
+    <View style={{ flexShrink: 1 }} className="w-full relative overflow-visible flex-col justify-start">
       {/* Green timeline connector SVG */}
       <Svg
         className="absolute left-[-14px] top-[-35px] w-[26px] h-[409px]"
@@ -34,26 +34,28 @@ export default function Overview() {
         <Path d="M4 171V388.127C4.52937 401.76 6.57275 406.671 15 408H26" stroke="#6DA963" />
       </Svg>
 
-      {/* Recent Saves Box */}
-      <View className="border border-[#6DA963] rounded-[10px] bg-[#191F18] px-4 pt-[24px] pb-[5px] w-full h-[210px] justify-start">
-        <View className="w-full px-1 flex-row justify-between items-center mb-[13px]">
-          <Text className="text-[#6DA963] text-[12px] font-bold font-noto relative top-[-2px]">Recent Saves</Text>
-          <Text className="text-[#6DA963] text-[10px] font-bold font-noto relative top-[-2px]">View All</Text>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: 20 }} style={{ flexShrink: 1 }}>
+        {/* Recent Saves Box */}
+        <View className="border border-[#6DA963] rounded-[10px] bg-[#191F18] px-4 pt-[24px] pb-[24px] w-full justify-start mt-0">
+          <View className="w-full px-1 flex-row justify-between items-center mb-[13px]">
+            <Text className="text-[#6DA963] text-[12px] font-bold font-noto relative top-[-2px]">Recent Saves</Text>
+            <Text className="text-[#6DA963] text-[10px] font-bold font-noto relative top-[-2px]">View All</Text>
+          </View>
+          {recentsaves.map((item) => (
+            <RecentSaves key={item.id} title={item.name} />
+          ))}
         </View>
-        {recentsaves.map((item) => (
-          <RecentSaves key={item.id} title={item.name} />
-        ))}
-      </View>
 
-      {/* Recent Pins Box */}
-      <View className="border border-[#6DA963] rounded-[10px] bg-[#191F18] px-4 pt-[24px] pb-[5px] w-full h-[195px] justify-start">
-        <View className="w-full px-1 mb-[13px]">
-          <Text className="text-[#6DA963] text-[12px] font-bold font-noto relative top-[-2px]">Recent Pins</Text>
+        {/* Recent Pins Box */}
+        <View className="border border-[#6DA963] rounded-[10px] bg-[#191F18] px-4 pt-[24px] pb-[24px] w-full justify-start">
+          <View className="w-full px-1 mb-[13px]">
+            <Text className="text-[#6DA963] text-[12px] font-bold font-noto relative top-[-2px]">Recent Pins</Text>
+          </View>
+          {recentpins.map((item) => (
+            <RecentPins key={item.id} title={item.pin} isPinned={false} />
+          ))}
         </View>
-        {recentpins.map((item) => (
-          <RecentPins key={item.id} title={item.pin} isPinned={false} />
-        ))}
-      </View>
+      </ScrollView>
     </View>
   )
 }

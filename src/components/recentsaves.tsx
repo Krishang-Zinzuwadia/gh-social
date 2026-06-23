@@ -4,7 +4,7 @@ export default function RecentSaves({ title }: { title: string }) {
   return (
     // Row Dimensions: 307 x 39
     <View 
-      className="w-full h-[39px] flex-row items-center rounded-[10px] overflow-hidden bg-row-bg mb-[13px]"
+      className="w-full h-[39px] flex-row items-center rounded-[10px] overflow-hidden bg-[#3E433C] mb-[13px]"
     >
       <Image 
         source={require('../../assets/images/nebula.png')} 

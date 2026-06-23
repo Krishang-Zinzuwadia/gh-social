@@ -4,14 +4,13 @@ export default function RecentSaves({ title }: { title: string }) {
   return (
     // Row Dimensions: 307 x 39
     <View 
-      className="w-full h-[39px] flex-row items-center rounded-[10px] overflow-hidden"
-      style={{ backgroundColor: '#3E433C', marginBottom: 13 }}
+      className="w-full h-[39px] flex-row items-center rounded-[10px] overflow-hidden bg-row-bg mb-[13px]"
     >
       <Image 
         source={require('../../assets/images/nebula.png')} 
         className="w-[39px] h-[39px] rounded-[10px]"
       />
-      <Text style={{ top: -2 }} className="text-white text-[16px] font-normal flex-1 font-noto ml-3">{title}</Text>
+      <Text className="text-white text-[16px] font-normal flex-1 font-noto ml-3 relative top-[-2px]">{title}</Text>
     </View>
   )
 }

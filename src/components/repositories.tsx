@@ -26,13 +26,7 @@ export default function Repositories() {
         {/* Left segment (card anchor) */}
         <Svg
           pointerEvents="none"
-          style={{
-            position: "absolute",
-            left: 22,
-            top: -56,
-            width: 15,
-            height: 57,
-          }}
+          className="absolute left-[22px] top-[-56px] w-[15px] h-[57px]"
           viewBox="0 0 15 57"
           fill="none"
         >
@@ -44,28 +38,13 @@ export default function Repositories() {
         {/* Stretching middle line */}
         <View
           pointerEvents="none"
-          style={{
-            position: "absolute",
-            left: 37,
-            right: "50%",
-            marginRight: 2,
-            top: -11.5,
-            height: 1,
-            backgroundColor: "#359030",
-          }}
+          className="absolute left-[37px] right-[50%] mr-[2px] top-[-11.5px] h-[1px] bg-[#359030]"
         />
 
         {/* Right segment (tab anchor) */}
         <Svg
           pointerEvents="none"
-          style={{
-            position: "absolute",
-            left: "50%",
-            marginLeft: -4,
-            top: -56,
-            width: 18,
-            height: 45,
-          }}
+          className="absolute left-[50%] ml-[-4px] top-[-56px] w-[18px] h-[45px]"
           viewBox="0 0 18 45"
           fill="none"
         >
@@ -79,7 +58,7 @@ export default function Repositories() {
         ))}
 
         <View className="w-full px-1 mb-3.5 mt-4">
-          <Text style={{ top: -2 }} className="text-[#6DA963] text-[12px] font-bold font-noto">All Repositories</Text>
+          <Text className="text-[#6DA963] text-[12px] font-bold font-noto relative top-[-2px]">All Repositories</Text>
         </View>
 
         {allRepos.map((item) => (
@@ -96,13 +75,7 @@ export default function Repositories() {
       {/* Left segment (card anchor) */}
       <Svg
         pointerEvents="none"
-        style={{
-          position: "absolute",
-          left: 22,
-          top: -56,
-          width: 15,
-          height: 57,
-        }}
+        className="absolute left-[22px] top-[-56px] w-[15px] h-[57px]"
         viewBox="0 0 15 57"
         fill="none"
       >
@@ -114,28 +87,13 @@ export default function Repositories() {
       {/* Stretching middle line */}
       <View
         pointerEvents="none"
-        style={{
-          position: "absolute",
-          left: 37,
-          right: "50%",
-          marginRight: 2,
-          top: -11.5,
-          height: 1,
-          backgroundColor: "#359030",
-        }}
+        className="absolute left-[37px] right-[50%] mr-[2px] top-[-11.5px] h-[1px] bg-[#359030]"
       />
 
       {/* Right segment (tab anchor) */}
       <Svg
         pointerEvents="none"
-        style={{
-          position: "absolute",
-          left: "50%",
-          marginLeft: -4,
-          top: -56,
-          width: 18,
-          height: 45,
-        }}
+        className="absolute left-[50%] ml-[-4px] top-[-56px] w-[18px] h-[45px]"
         viewBox="0 0 18 45"
         fill="none"
       >
@@ -148,7 +106,7 @@ export default function Repositories() {
       ))}
 
       <View className="w-full px-1 mb-[13px]">
-        <Text style={{ top: -2 }} className="text-[#6DA963] text-[12px] font-bold font-noto">All Repositories</Text>
+        <Text className="text-[#6DA963] text-[12px] font-bold font-noto relative top-[-2px]">All Repositories</Text>
       </View>
 
       {allRepos.map((item) => (

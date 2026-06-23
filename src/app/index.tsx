@@ -5,15 +5,13 @@ import { SafeAreaView } from "react-native-safe-area-context"
 import Overview from "@/components/overview"
 import Repositories from "@/components/repositories"
 import Lists from "@/components/lists"
-import { HeartIcon, FollowerUserIcon, BookmarkIcon, GroupFollowersIcon, PencilIcon, LocationPinIcon, ProfileAvatarIcon } from '@/components/icons'
+import { HeartIcon, FollowerUserIcon, BookmarkIcon, GroupFollowersIcon, PencilIcon, ProfileAvatarIcon } from '@/components/icons'
 
 export default function Profile() {
   const [modal, setModal] = useState(false)
   const [name, setName] = useState("Navyaa Batra")
   const [job, setJob] = useState("Full Stack Developer")
   const [username, setUsername] = useState("navyaabatra")
-  const [location, setLocation] = useState("India")
-  const [image, setImage] = useState(require("../../assets/images/pfp.jpeg"))
   const [activetab, setActivetab] = useState("Lists")
 
   const stats = [
@@ -59,10 +57,6 @@ export default function Profile() {
               </View>
               <Text className="text-[#6DA963] text-[12px] font-semibold mt-[2px] font-noto">{job}</Text>
               <Text className="text-white text-[12px] mt-[2px] font-noto">Username: {username}</Text>
-              <View className="flex-row items-center mt-[2px]">
-                <LocationPinIcon width={8} height={10} fill="#6DA963" className="mr-1" />
-                <Text className="text-white text-[12px] font-noto">{location}</Text>
-              </View>
             </View>
           </View>
 
@@ -90,8 +84,7 @@ export default function Profile() {
           <View className="flex-row justify-center gap-24 mt-[96px] mb-6 pb-2">
             <Pressable onPress={() => setActivetab(activetab === "Overview" ? "Lists" : "Overview")}>
               <Text 
-                style={{ top: -2 }}
-                className={`text-[14px] font-semibold tracking-[0.5px] pb-1 font-noto border-[#6DA963] ${
+                className={`text-[14px] font-semibold tracking-[0.5px] pb-1 font-noto border-[#6DA963] relative top-[-2px] ${
                   activetab === "Overview" ? "text-[#6DA963] border-b-2" : "text-white border-b-0"
                 }`}
               >
@@ -101,8 +94,7 @@ export default function Profile() {
 
             <Pressable onPress={() => setActivetab(activetab === "Repositories" ? "Lists" : "Repositories")}>
               <Text 
-                style={{ top: -2 }}
-                className={`text-[14px] font-semibold tracking-[0.5px] pb-1 font-noto border-[#6DA963] ${
+                className={`text-[14px] font-semibold tracking-[0.5px] pb-1 font-noto border-[#6DA963] relative top-[-2px] ${
                   activetab === "Repositories" ? "text-[#6DA963] border-b-2" : "text-white border-b-0"
                 }`}
               >
@@ -134,10 +126,7 @@ export default function Profile() {
             <TextInput className="bg-[#141915] text-white rounded-xl p-[14px] border border-[#232D25] mb-4 font-noto" value={job} onChangeText={setJob} />
             
             <Text className="text-[#6DA963] text-[12px] font-bold mb-[6px] uppercase font-noto">Username</Text>
-            <TextInput className="bg-[#141915] text-white rounded-xl p-[14px] border border-[#232D25] mb-4 font-noto" value={username} onChangeText={setUsername} />
-            
-            <Text className="text-[#6DA963] text-[12px] font-bold mb-[6px] uppercase font-noto">Location</Text>
-            <TextInput className="bg-[#141915] text-white rounded-xl p-[14px] border border-[#232D25] mb-8 font-noto" value={location} onChangeText={setLocation} />
+            <TextInput className="bg-[#141915] text-white rounded-xl p-[14px] border border-[#232D25] mb-8 font-noto" value={username} onChangeText={setUsername} />
             
             <Pressable className="bg-[#6DA963] py-4 rounded-xl items-center" onPress={() => setModal(false)}>
               <Text className="font-bold text-[#090D0A] uppercase tracking-[1px] text-[12px] font-noto">Save Details</Text>

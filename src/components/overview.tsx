@@ -21,13 +21,7 @@ export default function Overview() {
     <View className="w-full gap-5 relative flex-col justify-start">
       {/* Green timeline connector SVG */}
       <Svg
-        style={{
-          position: "absolute",
-          left: -14,
-          top: -35,
-          width: 26,
-          height: 409,
-        }}
+        className="absolute left-[-14px] top-[-35px] w-[26px] h-[409px]"
         viewBox="0 0 26 409"
         fill="none"
       >
@@ -43,8 +37,8 @@ export default function Overview() {
       {/* Recent Saves Box */}
       <View className="border border-[#6DA963] rounded-[10px] bg-[#191F18] px-4 pt-[24px] pb-[5px] w-full h-[210px] justify-start">
         <View className="w-full px-1 flex-row justify-between items-center mb-[13px]">
-          <Text style={{ top: -2 }} className="text-[#6DA963] text-[12px] font-bold font-noto">Recent Saves</Text>
-          <Text style={{ top: -2 }} className="text-[#6DA963] text-[10px] font-bold font-noto">View All</Text>
+          <Text className="text-[#6DA963] text-[12px] font-bold font-noto relative top-[-2px]">Recent Saves</Text>
+          <Text className="text-[#6DA963] text-[10px] font-bold font-noto relative top-[-2px]">View All</Text>
         </View>
         {recentsaves.map((item) => (
           <RecentSaves key={item.id} title={item.name} />
@@ -54,7 +48,7 @@ export default function Overview() {
       {/* Recent Pins Box */}
       <View className="border border-[#6DA963] rounded-[10px] bg-[#191F18] px-4 pt-[24px] pb-[5px] w-full h-[195px] justify-start">
         <View className="w-full px-1 mb-[13px]">
-          <Text style={{ top: -2 }} className="text-[#6DA963] text-[12px] font-bold font-noto">Recent Pins</Text>
+          <Text className="text-[#6DA963] text-[12px] font-bold font-noto relative top-[-2px]">Recent Pins</Text>
         </View>
         {recentpins.map((item) => (
           <RecentPins key={item.id} title={item.pin} isPinned={false} />

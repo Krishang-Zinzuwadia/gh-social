@@ -23,14 +23,14 @@ export default function Lists() {
     return (
       <View className="w-full h-[467px] border border-[#6DA963] rounded-[10px] bg-[#191F18] px-4 pt-[24px] pb-[16px] justify-start">
         <View className="w-full px-1 mb-3.5 items-center">
-          <Text style={{ top: -2 }} className="text-white text-[15px] font-bold font-nata sans">Lists</Text>
+          <Text className="text-white text-[15px] font-bold font-nata sans relative top-[-2px]">Lists</Text>
         </View>
         {pinnedLists.map((item) => (
           <RecentPins key={item.id} title={item.pin} isPinned={true} />
         ))}
 
         <View className="w-full px-1 mb-3.5 mt-4">
-          <Text style={{ top: -2 }} className="text-[#6DA963] text-[12px] font-bold font-noto sans">Saved Collections</Text>
+          <Text className="text-[#6DA963] text-[12px] font-bold font-noto sans relative top-[-2px]">Saved Collections</Text>
         </View>
         {savedCollections.map((item) => (
           <RecentSaves key={item.id} title={item.name} />
@@ -43,7 +43,7 @@ export default function Lists() {
     // Lists Box: 336 x 467 (mobile default)
     <View className="w-full h-[467px] border border-[#6DA963] rounded-[10px] bg-[#191F18] px-4 pt-[24px] pb-[16px]">
       <View className="w-full px-1 mb-3.5 items-center">
-        <Text style={{ top: -2 }} className="text-white text-[15px] font-bold font-nata sans">Lists</Text>
+        <Text className="text-white text-[15px] font-bold font-nata sans relative top-[-2px]">Lists</Text>
       </View>
       
       {pinnedLists.map((item) => (
@@ -51,7 +51,7 @@ export default function Lists() {
       ))}
 
       <View className="w-full px-1 mb-3.5">
-        <Text style={{ top: -2 }} className="text-[#6DA963] text-[12px] font-bold font-noto sans">Saved Collections</Text>
+        <Text className="text-[#6DA963] text-[12px] font-bold font-noto sans relative top-[-2px]">Saved Collections</Text>
       </View>
 
       {savedCollections.map((item) => (

@@ -4,7 +4,7 @@ import { repos } from '../db/schema.js';
 import { inArray } from 'drizzle-orm';
 
 export class FeedService {
-  private SESSION_TTL = 300; // 5 minutes cache lifetime
+  private SESSION_TTL = 600; // 10 minutes cache lifetime
 
   //Task --> Stitches scoring IDs with relational metadata from PostgreSQL and caches it
   

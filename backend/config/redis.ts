@@ -1,14 +1,23 @@
 import { Redis } from 'ioredis';
 
-// Connects to your local Docker Redis container on port 6379
-const redisClient = new Redis(process.env.REDIS_URL || 'redis://127.0.0.1:6379');
+// Ensure the application doesn't crash on boot if environment keys are missing
+const REDIS_URL = process.env.REDIS_URL || 'redis://127.0.0.1:6379';
 
-redisClient.on('connect', () => {
-  console.log('Redis engine connected smoothly!');
+const redisClient = new Redis(REDIS_URL, {
+  maxRetriesPerRequest: 3,
+  connectTimeout: 5000,
+  retryStrategy() {
+    return 500; // Simpler retry loop for local Docker instances
+  }
 });
 
-redisClient.on('error', (err: any) => {
-  console.error('Redis connection error:', err);
+// Operational Event Listeners for telemetry monitoring
+redisClient.on('connect', () => {
+  console.log('🚀 [Redis] System connected successfully to cache cluster instance.');
+});
+
+redisClient.on('error', (err) => {
+  console.error('❌ [Redis] Critical Telemetry Error Detected:', err);
 });
 
 export default redisClient;

@@ -1,37 +1,28 @@
 import '@/global.css';
-import { NotoSans_400Regular, NotoSans_700Bold, useFonts } from '@expo-google-fonts/noto-sans';
+
+import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
-import { ActivityIndicator, View } from 'react-native';
-import { APP_THEME } from '../constants/theme';
 
-SplashScreen.preventAutoHideAsync();
+void SplashScreen.preventAutoHideAsync();
 
-export default function Layout() {
-  const [fontsLoaded] = useFonts({
-    NotoSans_400Regular,
-    NotoSans_700Bold,
+export default function RootLayout() {
+  const [fontsLoaded, fontError] = useFonts({
     'NataSans-Regular': require('../../assets/fonts/NataSans-Regular.ttf'),
     'NataSans-SemiBold': require('../../assets/fonts/NataSans-SemiBold.ttf'),
     'NataSans-Bold': require('../../assets/fonts/NataSans-Bold.ttf'),
   });
 
   useEffect(() => {
-    if (fontsLoaded) {
-      SplashScreen.hideAsync();
+    if (fontsLoaded || fontError) {
+      void SplashScreen.hideAsync();
     }
-  }, [fontsLoaded]);
+  }, [fontError, fontsLoaded]);
 
-  if (!fontsLoaded) {
-    return (
-      <View style={{ flex: 1, backgroundColor: APP_THEME.background, alignItems: 'center', justifyContent: 'center' }}>
-        <ActivityIndicator color={APP_THEME.activeAccent} />
-      </View>
-    );
+  if (!fontsLoaded && !fontError) {
+    return null;
   }
 
-  return (
-    <Stack screenOptions={{ headerShown: false }} />
-  );
+  return <Stack screenOptions={{ headerShown: false }} />;
 }

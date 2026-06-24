@@ -10,7 +10,7 @@ import { FOR_YOU_REPOS, TRENDING_REPOS } from '../../data/repos';
 import { Repo, TabName } from '../../types';
 import { APP_THEME } from '../../constants/theme';
 
-const regular = { fontFamily: 'NotoSans_400Regular' };
+const regular = { fontFamily: 'NataSans-Regular' };
 
 export default function ExploreScreen() {
   const [activeTab, setActiveTab] = useState<TabName>('For you');

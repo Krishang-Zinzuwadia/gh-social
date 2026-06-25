@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Animated, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Animated, Pressable, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import { Check, Plus, X } from 'lucide-react-native';
+import { getResponsiveContainerStyle } from '@/components/responsive-layout';
 
 interface SavePopupProps {
   isVisible: boolean;
@@ -10,6 +11,8 @@ interface SavePopupProps {
 const INITIAL_COLLECTIONS = ['AI Projects', 'Web Development', 'Open Source', 'Inspiration'];
 
 export function SavePopup({ isVisible, onClose }: SavePopupProps) {
+  const { width } = useWindowDimensions();
+  const responsiveSheetStyle = getResponsiveContainerStyle(width);
   const [selected, setSelected] = useState('AI Projects');
   const [collections, setCollections] = useState(INITIAL_COLLECTIONS);
   const [isCreating, setIsCreating] = useState(false);
@@ -93,7 +96,7 @@ export function SavePopup({ isVisible, onClose }: SavePopupProps) {
         <Animated.View style={[styles.overlay, { opacity }]} />
       </Pressable>
       <Animated.View
-        style={[styles.sheet, { transform: [{ translateY }] }]}
+        style={[styles.sheet, responsiveSheetStyle, { transform: [{ translateY }] }]}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
@@ -176,6 +179,7 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFill,
     zIndex: 50,
     justifyContent: 'flex-end',
+    alignItems: 'center',
   },
   overlay: {
     ...StyleSheet.absoluteFill,
@@ -192,6 +196,7 @@ const styles = StyleSheet.create({
     paddingTop: 18,
     paddingBottom: 27,
     minHeight: 462,
+    width: '100%',
   },
   header: {
     flexDirection: 'row',

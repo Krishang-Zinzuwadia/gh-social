@@ -1,5 +1,5 @@
 import { Redirect } from 'expo-router';
 
-export default function IndexScreen() {
-  return <Redirect href="/onboarding/step1" />;
+export default function RootIndex() {
+  return <Redirect href="/(tabs)/home" />;
 }

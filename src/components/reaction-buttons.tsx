@@ -1,121 +1,61 @@
 import React from 'react';
-import { View, Text, StyleSheet, Pressable } from 'react-native';
-import { ThumbsUp, ThumbsDown, GitFork, MessageSquare } from 'lucide-react-native';
-export function ReactionButtons() {
-  const reactions = [
-    { id: 'like', Icon: ThumbsUp, count: '1k', color: '#FFB23F' },
-    { id: 'dislike', Icon: ThumbsDown, count: '200', color: '#FFB23F' },
-    { id: 'fork', Icon: GitFork, count: '2k', color: '#8EFF7A' },
-    { id: 'comment', Icon: MessageSquare, count: '400', color: '#8EFF7A' },
-  ];
+import { Pressable, Text, View } from 'react-native';
+import { GitFork, MessageSquare, ThumbsDown, ThumbsUp } from 'lucide-react-native';
+
+// ─── Keep these exports so any other import sites still compile ───────────────
+export const BTN_SIZE = 40;
+export const COL_W   = 60;
+
+const TOP_REACTIONS = [
+  { id: 'like',    Icon: ThumbsUp,   count: '1k',  color: '#F5C54D' },
+  { id: 'dislike', Icon: ThumbsDown, count: '200', color: '#F5C54D' },
+];
+
+const BOTTOM_REACTIONS = [
+  { id: 'fork',    Icon: GitFork,        count: '2k',  color: '#6DA963' },
+  { id: 'comment', Icon: MessageSquare,  count: '400', color: '#6DA963' },
+];
+
+interface ReactionButtonsProps {
+  /** 'top' renders buttons 1+2 (like/dislike) beside Card 2.
+   *  'bottom' renders buttons 3+4 (fork/comment) beside Card 3. */
+  slot: 'top' | 'bottom';
+}
+
+export function ReactionButtons({ slot }: ReactionButtonsProps) {
+  const reactions = slot === 'top' ? TOP_REACTIONS : BOTTOM_REACTIONS;
+
   return (
-    <View style={styles.container}>
-      {/* Dashed connector line track on the left */}
-      <View style={styles.dashedTrack}>
-        {/* Horizontal branch lines for each button */}
-        {reactions.map((_, index) => (
-          <View 
-            key={index} 
-            style={[
-              styles.branchLine, 
-              { top: index * 68 + 24 } // Align with the center of each button
-            ]} 
-          />
-        ))}
-      </View>
-      {/* Vertical buttons list */}
-      <View style={styles.buttonsList}>
-        {reactions.map(({ id, Icon, count, color }) => (
-          <View key={id} style={styles.buttonWrapper}>
-            <Pressable 
-              style={({ pressed }) => [
-                styles.buttonOuter,
-                pressed && styles.buttonPressed,
-                { borderColor: color === '#8EFF7A' ? 'rgba(142, 255, 122, 0.35)' : 'rgba(255, 178, 63, 0.35)' }
-              ]}
-            >
-              <Icon 
-                size={16} 
-                strokeWidth={2} 
-                color={color} 
-                style={color === '#8EFF7A' ? styles.glowGreen : styles.glowOrange} 
-              />
-            </Pressable>
-            <Text style={styles.countText}>{count}</Text>
-          </View>
-        ))}
-      </View>
+    /**
+     * w-[52px] ml-2 — fixed-width column, flex sibling of card wrapper.
+     * pt-2 — a touch of top padding so first button aligns with card top area.
+     * The dotted line runs full height of this column, giving a continuous
+     * visual connector across the Card 2 and Card 3 rows (gap-4 handles spacing).
+     */
+    <View className="relative flex flex-col items-center w-[52px] ml-2 pt-2">
+
+      {/* Dotted vertical line — full height of this button group */}
+      <View className="absolute left-1/2 top-0 bottom-0 border-l-[1.5px] border-dashed border-[#6DA963] -translate-x-1/2 z-0" />
+
+      {reactions.map(({ id, Icon, count, color }, i) => (
+        <View
+          key={id}
+          className={`relative z-10 flex flex-col items-center${i < reactions.length - 1 ? ' mb-3' : ''}`}
+        >
+          {/* Small dot on the arm that connects dotted line → button */}
+          <View className="absolute left-[-10px] top-1/2 w-2 h-2 rounded-full bg-[#6DA963] -translate-y-1/2" />
+
+          <Pressable
+            className="w-11 h-11 rounded-full bg-[#273126] border border-[#6DA963] flex items-center justify-center active:opacity-75"
+          >
+            <Icon size={18} color={color} strokeWidth={2} />
+          </Pressable>
+
+          <Text className="text-[#D9D9D9] text-[10px] mt-1 text-center">
+            {count}
+          </Text>
+        </View>
+      ))}
     </View>
   );
 }
-const styles = StyleSheet.create({
-  container: {
-    flexDirection: 'row',
-    alignItems: 'stretch',
-    position: 'relative',
-    paddingLeft: 16,
-  },
-  dashedTrack: {
-    position: 'absolute',
-    left: 0,
-    top: 24,
-    bottom: 24 + 12,
-    width: 16,
-    borderLeftWidth: 1,
-    borderColor: 'rgba(142, 255, 122, 0.4)',
-    borderStyle: 'dashed',
-  },
-  branchLine: {
-    position: 'absolute',
-    left: 0,
-    width: 16,
-    height: 1,
-    borderTopWidth: 1,
-    borderColor: 'rgba(142, 255, 122, 0.4)',
-    borderStyle: 'dashed',
-  },
-  buttonsList: {
-    flexDirection: 'column',
-    gap: 20,
-  },
-  buttonWrapper: {
-    alignItems: 'center',
-    width: 48,
-  },
-  buttonOuter: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#0B0F0C',
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#8EFF7A',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-  },
-  buttonPressed: {
-    transform: [{ scale: 0.95 }],
-    opacity: 0.8,
-  },
-  countText: {
-    fontFamily: 'NataSans-Regular',
-    fontSize: 10,
-    color: '#808581',
-    marginTop: 4,
-    textAlign: 'center',
-  },
-  glowGreen: {
-    shadowColor: '#8EFF7A',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.5,
-    shadowRadius: 4,
-  },
-  glowOrange: {
-    shadowColor: '#FFB23F',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.5,
-    shadowRadius: 4,
-  },
-});

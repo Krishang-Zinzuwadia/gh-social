@@ -4,7 +4,6 @@ import { Plus, Sparkles, FolderGit2 } from 'lucide-react-native';
 import Animated, { 
   useAnimatedStyle, 
   withSpring, 
-  withTiming, 
   useSharedValue,
   interpolate
 } from 'react-native-reanimated';

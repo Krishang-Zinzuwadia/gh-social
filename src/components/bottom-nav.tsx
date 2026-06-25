@@ -1,6 +1,6 @@
 import React from 'react';
-import { View, StyleSheet, Pressable, Platform } from 'react-native';
-import { House, Compass, User } from 'lucide-react-native';
+import { Platform, Pressable, StyleSheet, View } from 'react-native';
+import { Compass, House, User } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface BottomNavProps {
@@ -10,41 +10,34 @@ interface BottomNavProps {
 
 export function BottomNav({ activeTab, onTabPress }: BottomNavProps) {
   const insets = useSafeAreaInsets();
-  
   const tabs = [
-    { id: 'home' as const, Icon: House, label: 'Home' },
-    { id: 'discover' as const, Icon: Compass, label: 'Discover' },
-    { id: 'profile' as const, Icon: User, label: 'Profile' },
+    { id: 'home' as const, Icon: House },
+    { id: 'discover' as const, Icon: Compass },
+    { id: 'profile' as const, Icon: User },
   ];
 
   return (
-    <View style={[
-      styles.navBarContainer, 
-      { paddingBottom: Platform.OS === 'web' ? 16 : Math.max(insets.bottom, 12) }
-    ]}>
-      {/* Outer border wrapper */}
-      <View style={styles.navBarBorder} />
-      
-      {/* Inner tabs wrapper */}
-      <View style={styles.tabsWrapper}>
+    <View
+      style={[
+        styles.root,
+        { paddingBottom: Platform.OS === 'web' ? 12 : Math.max(insets.bottom, 10) },
+      ]}
+    >
+      <View style={styles.tabs}>
         {tabs.map(({ id, Icon }) => {
-          const isActive = activeTab === id;
+          const selected = activeTab === id;
           return (
             <Pressable
               key={id}
-              onPress={() => onTabPress(id)}
-              style={({ pressed }) => [
-                styles.tabButton,
-                pressed && styles.tabPressed
-              ]}
               accessibilityRole="tab"
-              accessibilityState={{ selected: isActive }}
+              accessibilityState={{ selected }}
+              onPress={() => onTabPress(id)}
+              style={({ pressed }) => [styles.tab, pressed && styles.pressed]}
             >
-              <Icon 
-                size={24} 
-                strokeWidth={isActive ? 2 : 1.75} 
-                color={isActive ? '#8EFF7A' : '#808581'} 
-                style={isActive ? styles.glowActive : null}
+              <Icon
+                color={selected ? '#6DA963' : '#FFFFFF'}
+                size={selected ? 31 : 28}
+                strokeWidth={selected ? 2.5 : 2.4}
               />
             </Pressable>
           );
@@ -55,39 +48,29 @@ export function BottomNav({ activeTab, onTabPress }: BottomNavProps) {
 }
 
 const styles = StyleSheet.create({
-  navBarContainer: {
+  root: {
     position: 'absolute',
-    bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: '#030504', // Very dark/near-black footer background
-    zIndex: 999,
+    bottom: 0,
+    zIndex: 30,
+    backgroundColor: '#090B08',
   },
-  navBarBorder: {
-    height: 1,
-    backgroundColor: 'rgba(142, 255, 122, 0.1)', // Very faint green separator line
-    width: '100%',
-  },
-  tabsWrapper: {
+  tabs: {
+    height: 45,
     flexDirection: 'row',
-    justifyContent: 'space-around',
     alignItems: 'center',
-    height: 64,
-    paddingHorizontal: 32,
+    justifyContent: 'space-around',
+    paddingHorizontal: 42,
   },
-  tabButton: {
-    flex: 1,
-    height: '100%',
+  tab: {
+    width: 54,
+    height: 45,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  tabPressed: {
+  pressed: {
     opacity: 0.7,
-  },
-  glowActive: {
-    shadowColor: '#8EFF7A',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.8,
-    shadowRadius: 10,
+    transform: [{ scale: 0.97 }],
   },
 });

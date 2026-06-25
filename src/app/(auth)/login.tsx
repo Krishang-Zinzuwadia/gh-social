@@ -109,7 +109,7 @@ export default function LoginScreen() {
         <View className="mt-8">
           <PrimaryButton
             label="Log In"
-            onPress={() => router.push("/onboarding/step1")}
+            onPress={() => router.replace("/(tabs)/home")}
           />
         </View>
 

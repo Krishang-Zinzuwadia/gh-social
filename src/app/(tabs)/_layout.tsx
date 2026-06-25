@@ -41,7 +41,10 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="home"
         options={{
-          href: null,
+          title: 'Home',
+          tabBarIcon: ({ focused }) => (
+            <HomeIcon fill={focused ? APP_THEME.activeAccent : APP_THEME.inactiveAccent} width={24} height={24} />
+          ),
         }}
       />
       <Tabs.Screen

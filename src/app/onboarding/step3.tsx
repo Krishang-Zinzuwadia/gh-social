@@ -9,8 +9,7 @@ import StepHeader from "@/components/onboarding/StepHeader";
 
 export default function Step3() {
   const completeOnboarding = () => {
-    router.dismissAll();
-    router.replace("/(tabs)/explore");
+    router.replace("/(tabs)/home");
   };
 
   return (

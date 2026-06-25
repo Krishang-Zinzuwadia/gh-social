@@ -51,5 +51,9 @@
     "web": "expo start --web",
     "lint": "expo lint"
   },
-  "private": true
+  "private": true,
+  "allowScripts": {
+    "msgpackr-extract@3.0.4": true,
+    "unrs-resolver@1.12.2": true
+  }
 }

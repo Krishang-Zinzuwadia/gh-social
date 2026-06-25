@@ -1,5 +1,5 @@
 import React, { useState } from "react"
-import { View, Pressable, Text, Modal, TextInput, ScrollView, useWindowDimensions } from "react-native"
+import { View, Pressable, Text, Modal, TextInput, useWindowDimensions } from "react-native"
 import Svg, { Path } from "react-native-svg"
 import { SafeAreaView } from "react-native-safe-area-context"
 import Overview from "@/components/overview"
@@ -13,9 +13,9 @@ import {
   PencilIcon,
   ProfileAvatarIcon,
 } from "@/components/icons"
+import { getResponsiveContentWidth } from "@/components/responsive-layout"
 
-const TABS = ["Overview", "Repositories"] as const
-type TabName = (typeof TABS)[number] | "Lists"
+type TabName = "Overview" | "Repositories" | "Lists"
 
 export default function ProfileScreen() {
   const { width } = useWindowDimensions()
@@ -24,7 +24,7 @@ export default function ProfileScreen() {
   const isTablet = width >= 768
   const isSmallPhone = width < 360
 
-  const contentMaxWidth = isTablet ? 680 : width
+  const contentMaxWidth = getResponsiveContentWidth(width) ?? width
 
   const [modal, setModal] = useState(false)
   const [name, setName] = useState("Navyaa Batra")

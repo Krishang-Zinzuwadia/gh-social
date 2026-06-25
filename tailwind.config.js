@@ -4,13 +4,17 @@ module.exports = {
   presets: [require("nativewind/preset")],
   theme: {
     extend: {
+      colors: {
+        darkBg: '#0B0F0C',
+        accentPrimary: '#8EFF7A',
+        accentSecondary: '#66D95B',
+        glowColor: 'rgba(142,255,122,0.35)',
+      },
       fontFamily: {
-        sans: ["NataSans-Regular", "sans-serif"],
-        nata: ["NataSans-Regular"],
-        nataSemiBold: ["NataSans-SemiBold"],
-        nataBold: ["NataSans-Bold"],
-        noto: ["NotoSans_400Regular", "sans-serif"],
-        "noto-bold": ["NotoSans_700Bold", "sans-serif"],
+        sans: ['NataSans-Regular', 'System'],
+        medium: ['NataSans-Medium', 'System'],
+        semibold: ['NataSans-SemiBold', 'System'],
+        bold: ['NataSans-Bold', 'System'],
       },
     },
   },

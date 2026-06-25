@@ -5,24 +5,23 @@ const feedService = new FeedService();
 
 export const receiveMlRecommendations = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { userId, repoIds } = req.body;
+    const { userId, recommendations, repoIds } = req.body;
 
-    // Validation check: Make sure Subhro's service sent the correct payload format
-    if (!userId || !Array.isArray(repoIds)) {
+    const payload = Array.isArray(recommendations) ? recommendations : repoIds;
+
+    if (!userId || !Array.isArray(payload)) {
        res.status(400).json({ 
         success: false, 
-        message: 'Invalid payload format. Expected "userId" (string) and "repoIds" (array of strings).' 
+        message: 'Invalid payload format. Expected "userId" and "recommendations" array.' 
       });
        return;
     }
 
-    // Trigger your background data stitching and caching pipeline
-    await feedService.processAndCacheBatch(userId, repoIds);
+    await feedService.processAndCacheBatch(userId, payload);
 
-    // Respond back to the ML service that the batch was successfully queued
      res.status(200).json({ 
       success: true, 
-      message: `Successfully received and cached ${repoIds.length} repositories for user.` 
+      message: `Successfully received and cached ${payload.length} recommendations for user.` 
     });
   } catch (error) {
     console.error('[FeedController] Internal pipeline failure:', error);
@@ -42,7 +41,7 @@ export const getFeedForMobile = async (req: Request, res: Response): Promise<voi
        return;
     }
 
-    const feed = await feedService.getCachedFeed(userId);
+    const feed = await feedService.getOrGenerateFeed(userId);
 
     res.status(200).json({
       success: true,

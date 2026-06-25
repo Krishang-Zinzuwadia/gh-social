@@ -16,7 +16,7 @@ redisClient.on('connect', () => {
   console.log('🚀 [Redis] System connected successfully to cache cluster instance.');
 });
 
-redisClient.on('error', (err) => {
+redisClient.on('error', (err: Error) => {
   console.error('❌ [Redis] Critical Telemetry Error Detected:', err);
 });
 

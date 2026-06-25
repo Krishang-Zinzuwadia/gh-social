@@ -1,6 +1,7 @@
 import type { Response } from 'express';
 import type { AuthRequest } from '../middlewares/authMiddleware.js';
 import * as onboardingService from '../services/onboardingService.js';
+import { buildMlOnboardPayload, mlService } from '../services/mlService.js';
 import {
   sendControllerError,
   sendError,
@@ -98,6 +99,8 @@ export async function setupOnboarding(req: AuthRequest, res: Response): Promise<
     });
   }
 
+  void mlService.onboardUserBestEffort(buildMlOnboardPayload(userId, data));
+
   return sendSuccess(res, 200, data);
 }
 
@@ -118,6 +121,10 @@ export async function syncGitHub(req: AuthRequest, res: Response): Promise<void>
         notFoundMessage: 'User profile not found',
         conflictMessage: 'This GitHub account is already linked to another user.',
       });
+    }
+
+    if (profile) {
+      void mlService.onboardUserBestEffort(buildMlOnboardPayload(userId, profile));
     }
 
     return sendSuccess(res, 200, { synced: data, profile });

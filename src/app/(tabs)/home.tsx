@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { FlatList, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View, type ViewStyle } from 'react-native';
+import { FlatList, Platform, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View, type ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Bug, Clock, Eye, GitFork, MessageSquare, Star, ThumbsDown, ThumbsUp } from 'lucide-react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
@@ -283,23 +283,32 @@ function RepositoryScreen({
   const cards     = isDetails ? DETAIL_CARDS : HOME_CARDS;
   const variant   = isDetails ? 'section' : 'center';
 
+  const isSmallPhone = pageWidth < 380;
+  // Multiplier for vertical dimensions so they fit on small screens
+  const baseHeight = 700;
+  const heightMultiplier = Math.max(0.65, Math.min(1, pageHeight / baseHeight));
+
+  const TIMELINE_COL_WIDTH = isSmallPhone ? 36 : 44;
+  const TIMELINE_MID = TIMELINE_COL_WIDTH / 2;
+  const ACTIONS_COL_WIDTH = isSmallPhone ? 60 : 72;
+
   // ── Fixed heights & gaps ──────────────────────────────────────────────────
-  const HEADER_H  = 56;
-  const H1        = cards[0].height;
-  const H2        = cards[1].height;
-  const H3        = cards[2].height;
-  const CARD_GAP  = 16;
+  const HEADER_H  = 56 * heightMultiplier;
+  const H1        = cards[0].height * heightMultiplier;
+  const H2        = cards[1].height * heightMultiplier;
+  const H3        = cards[2].height * heightMultiplier;
+  const CARD_GAP  = 16 * heightMultiplier;
 
   // ── Y positions (relative to the top of gridContainer) ───────────────────
-  const y0 = HEADER_H / 2;                              // header dot
-  const y1 = HEADER_H + H1 / 2;                         // card 1 midpoint
-  const y2 = HEADER_H + H1 + CARD_GAP + H2 / 2;        // card 2 midpoint
-  const y2_bottom = HEADER_H + H1 + CARD_GAP + H2;     // card 2 bottom
-  const y3_bottom = HEADER_H + H1 + CARD_GAP + H2 + CARD_GAP + H3; // card 3 bottom
+  const y0 = HEADER_H / 2;                              
+  const y1 = HEADER_H + H1 / 2;                         
+  const y2 = HEADER_H + H1 + CARD_GAP + H2 / 2;        
+  const y2_bottom = HEADER_H + H1 + CARD_GAP + H2;     
+  const y3_bottom = HEADER_H + H1 + CARD_GAP + H2 + CARD_GAP + H3; 
 
   // ── Dotted line spans card2-midpoint to card3-bottom ─────────────────────
-  const y_dotted_start = HEADER_H + H1 + CARD_GAP + H2 / 2 - 24; // top of first action btn
-  const y_dotted_end   = y3_bottom - 16;
+  const y_dotted_start = HEADER_H + H1 + CARD_GAP + H2 / 2 - (24 * heightMultiplier);
+  const y_dotted_end   = y3_bottom - (16 * heightMultiplier);
 
   // ── Evenly distribute 4 action buttons along the dotted line ─────────────
   const actionPositions = [
@@ -309,127 +318,140 @@ function RepositoryScreen({
     y_dotted_end,
   ];
 
+  const ACTION_LINE_X = 16;
+  const ACTION_BTN_SIZE = isSmallPhone ? 36 : 48;
+  const ACTION_BTN_LEFT = isSmallPhone ? 20 : 22;
+  const ACTION_BTN_RADIUS = ACTION_BTN_SIZE / 2;
+  const actionBtnArmWidth = ACTION_BTN_LEFT - ACTION_LINE_X;
+
   return (
     <View style={[styles.screen, { width: pageWidth, height: pageHeight }]}>
       <SafeAreaView edges={['top', 'left', 'right']} style={styles.screenInner}>
-        <View style={styles.gridContainer}>
-          {/* Column 1: Timeline */}
-          <View style={styles.timelineCol}>
-            {/* Vertical solid line from header dot to Node 2 */}
-            <View style={[styles.timelineSpine, { top: y0, height: y2 - y0 }]} />
+        <ScrollView 
+          contentContainerStyle={{ flexGrow: 1, paddingBottom: 24 }} 
+          showsVerticalScrollIndicator={false}
+          bounces={false}
+        >
+          <View style={styles.gridContainer}>
+            {/* Column 1: Timeline */}
+            <View style={[styles.timelineCol, { width: TIMELINE_COL_WIDTH }]}>
+              {/* Vertical solid line from header dot to Node 2 */}
+              <View style={[styles.timelineSpine, { top: y0, height: y2 - y0, left: TIMELINE_MID - 0.75 }]} />
 
-            {/* Header Node */}
-            <View style={[styles.timelineDot, { top: y0 - 6 }]} />
+              {/* Header Node */}
+              <View style={[styles.timelineDot, { top: y0 - 6, left: TIMELINE_MID - 6 }]} />
 
-            {/* Node 1 & Arm */}
-            <View style={[styles.timelineDot, { top: y1 - 6 }]} />
-            <View style={[styles.timelineArm, { top: y1 - 0.75 }]} />
+              {/* Node 1 & Arm */}
+              <View style={[styles.timelineDot, { top: y1 - 6, left: TIMELINE_MID - 6 }]} />
+              <View style={[styles.timelineArm, { top: y1 - 0.75, left: TIMELINE_MID }]} />
 
-            {/* Node 2 & Arm */}
-            <View style={[styles.timelineDot, { top: y2 - 6 }]} />
-            <View style={[styles.timelineArm, { top: y2 - 0.75 }]} />
+              {/* Node 2 & Arm */}
+              <View style={[styles.timelineDot, { top: y2 - 6, left: TIMELINE_MID - 6 }]} />
+              <View style={[styles.timelineArm, { top: y2 - 0.75, left: TIMELINE_MID }]} />
 
-            {/* Timeline Bottom Curve */}
-            <Svg
-              style={{ position: 'absolute', top: y2, left: 0 }}
-              width={44}
-              height={y3_bottom - y2}
-              viewBox={`0 0 44 ${y3_bottom - y2}`}
-              fill="none"
-            >
-              <Path
-                d={`M 22 0 L 22 ${y3_bottom - y2 - 22} Q 22 ${y3_bottom - y2} 44 ${y3_bottom - y2}`}
-                stroke="#6DA963"
-                strokeWidth={1.5}
-              />
-            </Svg>
-          </View>
-
-          {/* Column 2: Cards */}
-          <View style={styles.cardsCol}>
-            {/* Header */}
-            <View style={styles.header}>
-              <Text style={styles.title}>{repository.title}</Text>
+              {/* Timeline Bottom Curve */}
+              <Svg
+                style={{ position: 'absolute', top: y2, left: 0 }}
+                width={TIMELINE_COL_WIDTH}
+                height={y3_bottom - y2}
+                viewBox={`0 0 ${TIMELINE_COL_WIDTH} ${y3_bottom - y2}`}
+                fill="none"
+              >
+                <Path
+                  d={`M ${TIMELINE_MID} 0 L ${TIMELINE_MID} ${y3_bottom - y2 - TIMELINE_MID} Q ${TIMELINE_MID} ${y3_bottom - y2} ${TIMELINE_COL_WIDTH} ${y3_bottom - y2}`}
+                  stroke="#6DA963"
+                  strokeWidth={1.5}
+                />
+              </Svg>
             </View>
 
-            {/* Card 1 */}
-            <RepoCard label={cards[0].label} height={H1} variant={variant} />
+            {/* Column 2: Cards */}
+            <View style={styles.cardsCol}>
+              {/* Header */}
+              <View style={[styles.header, { height: HEADER_H }]}>
+                <Text style={[styles.title, isSmallPhone && { fontSize: 15, lineHeight: 20 }]}>{repository.title}</Text>
+              </View>
 
-            <View style={{ height: CARD_GAP }} />
+              {/* Card 1 */}
+              <RepoCard label={cards[0].label} height={H1} variant={variant} isSmallPhone={isSmallPhone} />
 
-            {/* Card 2 */}
-            <RepoCard label={cards[1].label} height={H2} variant={variant} />
+              <View style={{ height: CARD_GAP }} />
 
-            <View style={{ height: CARD_GAP }} />
+              {/* Card 2 */}
+              <RepoCard label={cards[1].label} height={H2} variant={variant} isSmallPhone={isSmallPhone} />
 
-            {/* Card 3 */}
-            <RepoCard label={cards[2].label} height={H3} variant={variant} />
+              <View style={{ height: CARD_GAP }} />
 
-            {/* Footer */}
-            <UserFooter repository={repository} />
+              {/* Card 3 */}
+              <RepoCard label={cards[2].label} height={H3} variant={variant} isSmallPhone={isSmallPhone} />
+
+              {/* Footer */}
+              <UserFooter repository={repository} isSmallPhone={isSmallPhone} />
+            </View>
+
+            {/* Column 3: Actions */}
+            <View style={[styles.actionsCol, { width: ACTIONS_COL_WIDTH }]}>
+              {/* Card 2 Bottom-Right Top Curve */}
+              <Svg
+                style={{ position: 'absolute', top: y2_bottom - 24, left: 0 }}
+                width={16}
+                height={16}
+                viewBox="0 0 16 16"
+                fill="none"
+              >
+                <Path
+                  d="M 0 0.75 Q 16 0.75 16 16"
+                  stroke="#6DA963"
+                  strokeWidth={1.5}
+                />
+              </Svg>
+
+              {/* Card 3 Bottom-Right Bottom Curve */}
+              <Svg
+                style={{ position: 'absolute', top: y3_bottom - 16, left: 0 }}
+                width={16}
+                height={16}
+                viewBox="0 0 16 16"
+                fill="none"
+              >
+                <Path
+                  d="M 16 0 Q 16 15.25 0 15.25"
+                  stroke="#6DA963"
+                  strokeWidth={1.5}
+                />
+              </Svg>
+
+              {/* Dotted vertical line in between curves */}
+              <View style={[styles.actionDottedLine, { top: y_dotted_start, height: y_dotted_end - y_dotted_start }]} />
+
+              {/* Action Buttons */}
+              {REACTIONS.map(({ id, Icon, count, color }, index) => {
+                const y_pos = actionPositions[index];
+                return (
+                  <View key={id} style={[styles.actionItemContainer, { top: y_pos - ACTION_BTN_RADIUS }]}>
+                    {/* Small intersection dot on the line */}
+                    <View style={[styles.actionArmDot, { top: ACTION_BTN_RADIUS - 4 }]} />
+
+                    {/* Arm connecting dot to button */}
+                    <View style={[styles.actionBtnArm, { width: actionBtnArmWidth, top: ACTION_BTN_RADIUS - 0.75 }]} />
+
+                    {/* Pressable button */}
+                    <Pressable
+                      style={({ pressed }) => [
+                        styles.reactionBtn,
+                        { width: ACTION_BTN_SIZE, height: ACTION_BTN_SIZE, borderRadius: ACTION_BTN_RADIUS, left: ACTION_BTN_LEFT },
+                        pressed && styles.reactionBtnPressed,
+                      ]}
+                    >
+                      <Icon size={isSmallPhone ? 14 : 16} color={color} strokeWidth={2} />
+                      <Text style={[styles.reactionCount, isSmallPhone && { fontSize: 8 }]}>{count}</Text>
+                    </Pressable>
+                  </View>
+                );
+              })}
+            </View>
           </View>
-
-          {/* Column 3: Actions */}
-          <View style={styles.actionsCol}>
-            {/* Card 2 Bottom-Right Top Curve */}
-            <Svg
-              style={{ position: 'absolute', top: y2_bottom - 24, left: 0 }}
-              width={16}
-              height={16}
-              viewBox="0 0 16 16"
-              fill="none"
-            >
-              <Path
-                d="M 0 0.75 Q 16 0.75 16 16"
-                stroke="#6DA963"
-                strokeWidth={1.5}
-              />
-            </Svg>
-
-            {/* Card 3 Bottom-Right Bottom Curve */}
-            <Svg
-              style={{ position: 'absolute', top: y3_bottom - 16, left: 0 }}
-              width={16}
-              height={16}
-              viewBox="0 0 16 16"
-              fill="none"
-            >
-              <Path
-                d="M 16 0 Q 16 15.25 0 15.25"
-                stroke="#6DA963"
-                strokeWidth={1.5}
-              />
-            </Svg>
-
-            {/* Dotted vertical line in between curves */}
-            <View style={[styles.actionDottedLine, { top: y_dotted_start, height: y_dotted_end - y_dotted_start }]} />
-
-            {/* Action Buttons */}
-            {REACTIONS.map(({ id, Icon, count, color }, index) => {
-              const y_pos = actionPositions[index];
-              return (
-                <View key={id} style={[styles.actionItemContainer, { top: y_pos - 24 }]}>
-                  {/* Small intersection dot on the line */}
-                  <View style={styles.actionArmDot} />
-
-                  {/* Arm connecting dot to button */}
-                  <View style={styles.actionBtnArm} />
-
-                  {/* Pressable button */}
-                  <Pressable
-                    style={({ pressed }) => [
-                      styles.reactionBtn,
-                      pressed && styles.reactionBtnPressed,
-                    ]}
-                  >
-                    <Icon size={16} color={color} strokeWidth={2} />
-                    <Text style={styles.reactionCount}>{count}</Text>
-                  </Pressable>
-                </View>
-              );
-            })}
-          </View>
-        </View>
+        </ScrollView>
       </SafeAreaView>
     </View>
   );
@@ -445,29 +467,29 @@ const _h = (cards: typeof HOME_CARDS, gap: number) => {
 // We reference y2_bottom inside RepositoryScreen via closure — kept local
 
 // ─── Footer ──────────────────────────────────────────────────────────────────
-function UserFooter({ repository }: { repository: RepositoryData }) {
+function UserFooter({ repository, isSmallPhone }: { repository: RepositoryData, isSmallPhone?: boolean }) {
   return (
-    <View style={styles.footer}>
-      <View style={styles.avatar} />
+    <View style={[styles.footer, isSmallPhone && { marginTop: 16 }]}>
+      <View style={[styles.avatar, isSmallPhone && { width: 32, height: 32, borderRadius: 16, marginRight: 10 }]} />
       <View style={styles.userMeta}>
-        <Text style={styles.username}>{repository.owner}</Text>
-        <View style={styles.stats}>
+        <Text style={[styles.username, isSmallPhone && { fontSize: 14, lineHeight: 18 }]}>{repository.owner}</Text>
+        <View style={[styles.stats, isSmallPhone && { gap: 10, marginTop: 4 }]}>
           <View style={styles.statItem}>
-            <Star size={15} color="#6DA963" strokeWidth={1.8} />
-            <Text style={styles.statText}>{repository.stats.stars}</Text>
+            <Star size={isSmallPhone ? 12 : 15} color="#6DA963" strokeWidth={1.8} />
+            <Text style={[styles.statText, isSmallPhone && { fontSize: 10 }]}>{repository.stats.stars}</Text>
           </View>
           <View style={styles.statItem}>
-            <Eye size={15} color="#6DA963" strokeWidth={1.8} />
-            <Text style={styles.statText}>{repository.stats.views}</Text>
+            <Eye size={isSmallPhone ? 12 : 15} color="#6DA963" strokeWidth={1.8} />
+            <Text style={[styles.statText, isSmallPhone && { fontSize: 10 }]}>{repository.stats.views}</Text>
           </View>
           <View style={styles.statItem}>
-            <Bug size={14} color="#6DA963" strokeWidth={2} />
-            <Text style={styles.statText}>{repository.stats.bugs}</Text>
+            <Bug size={isSmallPhone ? 11 : 14} color="#6DA963" strokeWidth={2} />
+            <Text style={[styles.statText, isSmallPhone && { fontSize: 10 }]}>{repository.stats.bugs}</Text>
           </View>
         </View>
-        <View style={styles.dateRow}>
-          <Clock size={14} color="#A49898" strokeWidth={1.6} />
-          <Text style={styles.dateText}>{repository.updatedText}</Text>
+        <View style={[styles.dateRow, isSmallPhone && { marginTop: 4 }]}>
+          <Clock size={isSmallPhone ? 10 : 14} color="#A49898" strokeWidth={1.6} />
+          <Text style={[styles.dateText, isSmallPhone && { fontSize: 9 }]}>{repository.updatedText}</Text>
         </View>
       </View>
     </View>

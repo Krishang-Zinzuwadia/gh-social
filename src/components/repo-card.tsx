@@ -6,6 +6,7 @@ interface RepoCardProps {
   label: string;
   height: number;
   variant?: 'center' | 'section';
+  isSmallPhone?: boolean;
 }
 
 // High-fidelity Inline SVGs for brand logos
@@ -99,7 +100,7 @@ const TECH_STACK_ITEMS = [
   { name: 'Git', SvgComponent: GitLogo },
 ];
 
-export function RepoCard({ label, height, variant = 'center' }: RepoCardProps) {
+export function RepoCard({ label, height, variant = 'center', isSmallPhone }: RepoCardProps) {
   const isTechStack = label.toLowerCase() === 'tech stack';
 
   return (
@@ -112,12 +113,12 @@ export function RepoCard({ label, height, variant = 'center' }: RepoCardProps) {
     >
       {isTechStack ? (
         <View style={styles.techStackContainer}>
-          <Text style={styles.techStackTitle}>TECH STACK</Text>
+          <Text style={[styles.techStackTitle, isSmallPhone && { fontSize: 10, paddingTop: 10 }]}>TECH STACK</Text>
           <View style={styles.techStackGrid}>
             {TECH_STACK_ITEMS.map((item) => (
-              <View key={item.name} style={styles.techStackTile}>
+              <View key={item.name} style={[styles.techStackTile, isSmallPhone && { height: 24 }]}>
                 <item.SvgComponent />
-                <Text style={styles.techStackText} numberOfLines={1}>
+                <Text style={[styles.techStackText, isSmallPhone && { fontSize: 6.5 }]} numberOfLines={1}>
                   {item.name}
                 </Text>
               </View>
@@ -125,10 +126,10 @@ export function RepoCard({ label, height, variant = 'center' }: RepoCardProps) {
           </View>
         </View>
       ) : variant === 'section' ? (
-        <Text style={styles.sectionLabel}>{label}</Text>
+        <Text style={[styles.sectionLabel, isSmallPhone && { fontSize: 9.5, paddingTop: 12 }]}>{label}</Text>
       ) : (
         <View style={styles.centerLabelWrap}>
-          <Text style={styles.centerLabel}>{label.toLowerCase()}</Text>
+          <Text style={[styles.centerLabel, isSmallPhone && { fontSize: 12 }]}>{label.toLowerCase()}</Text>
         </View>
       )}
     </Pressable>

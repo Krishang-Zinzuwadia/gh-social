@@ -1,6 +1,6 @@
 import { Bug, Clock, Eye, GitFork, MessageSquare, Star, ThumbsDown, ThumbsUp } from 'lucide-react-native';
 import { useCallback, useEffect, useState } from 'react';
-import { FlatList, Platform, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View, type ViewStyle } from 'react-native';
+import { FlatList, Platform, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View, type ViewStyle } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   runOnJS,
@@ -297,8 +297,8 @@ function RepositoryScreen({
 
   // Calculate available height for the cards to perfectly fill the screen
   const availableCardHeight = pageHeight - insets.top - HEADER_H - FOOTER_MIN_H - (CARD_GAP * 2) - VERTICAL_PADDING;
-  // Ensure a minimum height so cards don't squish into nothing on tiny screens
-  const totalCardHeight = Math.max(availableCardHeight, 350);
+  // Ensure a minimum height so cards don't squish into nothing, but keep it small enough to not overflow on tiny phones like iPhone SE
+  const totalCardHeight = Math.max(availableCardHeight, 200);
 
   const H1 = totalCardHeight * cards[0].weight;
   const H2 = totalCardHeight * cards[1].weight;
@@ -397,6 +397,9 @@ function RepositoryScreen({
 
             {/* Column 3: Actions */}
             <View style={[styles.actionsCol, { width: ACTIONS_COL_WIDTH }]}>
+              {/* Action card connecting arm (solid horizontal line) */}
+              <View style={[styles.actionCardArm, { top: y2 - 0.75, width: ACTION_LINE_X }]} />
+
               {/* Dotted vertical line in between curves */}
               <View style={[styles.actionDottedLine, { top: y_dotted_start, height: y_dotted_end - y_dotted_start }]} />
 
@@ -411,12 +414,10 @@ function RepositoryScreen({
                     {/* Arm connecting dot to button (dashed horizontal line) */}
                     <View style={[styles.actionBtnArm, { width: actionBtnArmWidth, top: ACTION_BTN_RADIUS }]} />
 
-                    {/* Pressable button */}
-                    <Pressable
-                      style={({ pressed }) => [
-                        { position: 'absolute', left: ACTION_BTN_LEFT, top: 0, zIndex: 20 },
-                        pressed && styles.reactionBtnPressed,
-                      ]}
+                    {/* Touchable button */}
+                    <TouchableOpacity
+                      activeOpacity={0.7}
+                      style={{ position: 'absolute', left: ACTION_BTN_LEFT, top: 0, zIndex: 20 }}
                     >
                       <View style={[
                         styles.reactionBtn,
@@ -425,7 +426,7 @@ function RepositoryScreen({
                         <Icon size={isSmallPhone ? 14 : 16} color={color} strokeWidth={2} />
                         <Text style={[styles.reactionCount, isSmallPhone && { fontSize: 8 }]}>{count}</Text>
                       </View>
-                    </Pressable>
+                    </TouchableOpacity>
                   </View>
                 );
               })}
@@ -602,7 +603,9 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#6DA963',
+    borderWidth: 1.5,
+    borderColor: '#6DA963',
+    backgroundColor: '#10150F',
   },
   actionBtnArm: {
     position: 'absolute',

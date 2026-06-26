@@ -3,16 +3,27 @@ import { mlService, type MlRecommendationBatches } from './mlService.js';
 
 export class FeedService {
   private SESSION_TTL = 600; // 10 minutes cache lifetime
+  /** How long the in-flight lock is held before auto-expiring (ms). */
+  private LOCK_TTL_MS = 30_000;
+  /** Max time a waiter will poll for the lock to be released (ms). */
+  private LOCK_WAIT_TIMEOUT_MS = 35_000;
 
   private getQueueKey(userId: string): string {
     return `user:${userId}:delivery_queue`;
   }
 
+  private getLockKey(userId: string): string {
+    return `user:${userId}:feed_generating`;
+  }
+
   private flattenRecommendationBatches(batches: MlRecommendationBatches): unknown[] {
-    return ['batch_1', 'batch_2', 'batch_3'].flatMap((key) => {
-      const batch = batches[key];
-      return Array.isArray(batch) ? batch : [];
-    });
+    return Object.keys(batches)
+      .filter((key) => key.startsWith('batch_'))
+      .sort()
+      .flatMap((key) => {
+        const batch = batches[key];
+        return Array.isArray(batch) ? batch : [];
+      });
   }
 
   /**
@@ -60,12 +71,59 @@ export class FeedService {
     }
   }
 
+  /**
+   * Returns the cached feed if available. On a cache miss, acquires a short-lived
+   * Redis lock (SET NX PX) so that only one concurrent request calls the ML service.
+   * Other simultaneous requests poll with exponential back-off until the feed is
+   * populated, then return the cached result — preventing duplicate ML calls.
+   */
   async getOrGenerateFeed(userId: string): Promise<any[]> {
     const cachedFeed = await this.getCachedFeed(userId);
     if (cachedFeed.length > 0) {
       return cachedFeed;
     }
 
+    const lockKey = this.getLockKey(userId);
+
+    // Try to acquire the in-flight lock atomically.
+    const acquired = await redisClient.set(lockKey, '1', 'NX', 'PX', this.LOCK_TTL_MS);
+
+    if (acquired === 'OK') {
+      // This request owns the lock — call ML and populate the cache.
+      try {
+        const batches = await mlService.generateRecommendations(userId);
+        const recommendations = this.flattenRecommendationBatches(batches);
+        await this.processAndCacheBatch(userId, recommendations);
+        return recommendations;
+      } finally {
+        // Always release the lock so waiters are unblocked immediately.
+        await redisClient.del(lockKey).catch(() => {/* best-effort */});
+      }
+    }
+
+    // Another request is generating the feed — poll until it is ready.
+    const deadline = Date.now() + this.LOCK_WAIT_TIMEOUT_MS;
+    let delay = 100; // start at 100 ms, doubles each iteration (cap 2 s)
+
+    while (Date.now() < deadline) {
+      await new Promise((resolve) => setTimeout(resolve, delay));
+      delay = Math.min(delay * 2, 2_000);
+
+      const feed = await this.getCachedFeed(userId);
+      if (feed.length > 0) {
+        return feed;
+      }
+
+      // If the lock expired without a feed being written, break and
+      // let this request attempt generation as a crash-recovery fallback.
+      const lockStillHeld = await redisClient.exists(lockKey);
+      if (!lockStillHeld) {
+        break;
+      }
+    }
+
+    // Fallback: re-attempt generation if the lock holder crashed before writing.
+    console.warn(`[FeedService] Lock for ${userId} released without a populated cache — re-generating as fallback.`);
     const batches = await mlService.generateRecommendations(userId);
     const recommendations = this.flattenRecommendationBatches(batches);
     await this.processAndCacheBatch(userId, recommendations);

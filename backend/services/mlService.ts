@@ -174,7 +174,9 @@ export function buildMlEmbedRepositoryPayload(repo: RepoRow): MlEmbedRepositoryP
     languages,
     topics: normalizeStringArray(repo.topics),
     readme_summary: repo.readme_summary,
+    star_count: repo.star_count ?? 0,
     fork_count: repo.forks_count ?? 0,
+    open_issues_count: repo.open_issues_count ?? 0,
     created_at: repo.created_at,
     updated_at: repo.updated_at,
   };

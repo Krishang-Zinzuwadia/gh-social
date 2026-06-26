@@ -1,7 +1,6 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import { FlatList, Platform, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View, type ViewStyle } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Bug, Clock, Eye, GitFork, MessageSquare, Star, ThumbsDown, ThumbsUp } from 'lucide-react-native';
+import { useCallback, useEffect, useState } from 'react';
+import { FlatList, Platform, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View, type ViewStyle } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   runOnJS,
@@ -9,12 +8,13 @@ import Animated, {
   useSharedValue,
   withTiming,
 } from 'react-native-reanimated';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import Svg, { Path } from 'react-native-svg';
 
 import { RepoCard } from '@/components/repo-card';
-import { SavePopup } from '@/components/save-popup';
 import { getResponsiveContentWidth } from '@/components/responsive-layout';
+import { SavePopup } from '@/components/save-popup';
 
 type ScreenMode = 'home' | 'details';
 
@@ -51,21 +51,21 @@ type ViewabilityItem = {
 
 // We no longer use hardcoded heights here. Heights are allocated dynamically based on screen real estate.
 const HOME_CARDS = [
-  { label: 'Description',    weight: 0.35 },
-  { label: 'Tech Stack',     weight: 0.35 },
+  { label: 'Description', weight: 0.35 },
+  { label: 'Tech Stack', weight: 0.35 },
   { label: 'README Summary', weight: 0.30 },
 ];
 
 const DETAIL_CARDS = [
   { label: 'ARCHITECTURE', weight: 0.35 },
-  { label: 'CODE SNIPPET',  weight: 0.30 },
-  { label: 'ISSUES',        weight: 0.35 },
+  { label: 'CODE SNIPPET', weight: 0.30 },
+  { label: 'ISSUES', weight: 0.35 },
 ];
 
 const REACTIONS = [
-  { id: 'like',    Icon: ThumbsUp,      count: '1k',  color: '#F5C54D' },
-  { id: 'dislike', Icon: ThumbsDown,    count: '200', color: '#F5C54D' },
-  { id: 'fork',    Icon: GitFork,       count: '2k',  color: '#6DA963' },
+  { id: 'like', Icon: ThumbsUp, count: '1k', color: '#F5C54D' },
+  { id: 'dislike', Icon: ThumbsDown, count: '200', color: '#F5C54D' },
+  { id: 'fork', Icon: GitFork, count: '2k', color: '#6DA963' },
   { id: 'comment', Icon: MessageSquare, count: '400', color: '#6DA963' },
 ];
 
@@ -280,23 +280,24 @@ function RepositoryScreen({
   repository: RepositoryData;
 }) {
   const isDetails = type === 'details';
-  const cards     = isDetails ? DETAIL_CARDS : HOME_CARDS;
-  const variant   = isDetails ? 'section' : 'center';
+  const cards = isDetails ? DETAIL_CARDS : HOME_CARDS;
+  const variant = isDetails ? 'section' : 'center';
 
+  const insets = useSafeAreaInsets();
   const isSmallPhone = pageWidth < 380;
-  
+
   const TIMELINE_COL_WIDTH = isSmallPhone ? 36 : 44;
   const TIMELINE_MID = TIMELINE_COL_WIDTH / 2;
   const ACTIONS_COL_WIDTH = isSmallPhone ? 68 : 80;
 
   // ── Dynamic Heights & Gaps ──────────────────────────────────────────────────
-  const HEADER_H  = 56;
-  const CARD_GAP  = 16;
-  const FOOTER_MIN_H = isSmallPhone ? 100 : 80;
+  const HEADER_H = 56;
+  const CARD_GAP = 16;
+  const FOOTER_MIN_H = isSmallPhone ? 110 : 100;
   const VERTICAL_PADDING = 24;
 
   // Calculate available height for the cards to perfectly fill the screen
-  const availableCardHeight = pageHeight - HEADER_H - FOOTER_MIN_H - (CARD_GAP * 2) - VERTICAL_PADDING;
+  const availableCardHeight = pageHeight - insets.top - HEADER_H - FOOTER_MIN_H - (CARD_GAP * 2) - VERTICAL_PADDING;
   // Ensure a minimum height so cards don't squish into nothing on tiny screens
   const totalCardHeight = Math.max(availableCardHeight, 350);
 
@@ -305,15 +306,15 @@ function RepositoryScreen({
   const H3 = totalCardHeight * cards[2].weight;
 
   // ── Y positions (relative to the top of gridContainer) ───────────────────
-  const y0 = HEADER_H / 2;                              
-  const y1 = HEADER_H + H1 / 2;                         
-  const y2 = HEADER_H + H1 + CARD_GAP + H2 / 2;        
-  const y2_bottom = HEADER_H + H1 + CARD_GAP + H2;     
-  const y3_bottom = HEADER_H + H1 + CARD_GAP + H2 + CARD_GAP + H3; 
+  const y0 = HEADER_H / 2;
+  const y1 = HEADER_H + H1 / 2;
+  const y2 = HEADER_H + H1 + CARD_GAP + H2 / 2;
+  const y2_bottom = HEADER_H + H1 + CARD_GAP + H2;
+  const y3_bottom = HEADER_H + H1 + CARD_GAP + H2 + CARD_GAP + H3;
 
   // ── Dotted line spanning from Card 2 middle to Card 3 bottom ─────────────────────
   const y_dotted_start = y2;
-  const y_dotted_end   = y3_bottom;
+  const y_dotted_end = y3_bottom;
 
   // ── Evenly distribute 4 action buttons along the dotted line ─────────────
   const actionPositions = [
@@ -332,8 +333,8 @@ function RepositoryScreen({
   return (
     <View style={[styles.screen, { width: pageWidth, height: pageHeight }]}>
       <SafeAreaView edges={['top', 'left', 'right']} style={styles.screenInner}>
-        <ScrollView 
-          contentContainerStyle={{ flexGrow: 1, paddingBottom: 24 }} 
+        <ScrollView
+          contentContainerStyle={{ flexGrow: 1, paddingBottom: 24 }}
           showsVerticalScrollIndicator={false}
           bounces={false}
         >
@@ -363,7 +364,7 @@ function RepositoryScreen({
                 fill="none"
               >
                 <Path
-                  d={`M ${TIMELINE_MID} 0 L ${TIMELINE_MID} ${y3_bottom - y2 - TIMELINE_MID} Q ${TIMELINE_MID} ${y3_bottom - y2} 0 ${y3_bottom - y2}`}
+                  d={`M ${TIMELINE_MID} 0 L ${TIMELINE_MID} ${y3_bottom - y2 - TIMELINE_MID} Q ${TIMELINE_MID} ${y3_bottom - y2} ${TIMELINE_COL_WIDTH} ${y3_bottom - y2}`}
                   stroke="#6DA963"
                   strokeWidth={1.5}
                 />
@@ -396,9 +397,6 @@ function RepositoryScreen({
 
             {/* Column 3: Actions */}
             <View style={[styles.actionsCol, { width: ACTIONS_COL_WIDTH }]}>
-              {/* Card 2 Middle-Right Solid Branch */}
-              <View style={[styles.actionCardArm, { top: y2 - 0.75, width: ACTION_LINE_X }]} />
-
               {/* Dotted vertical line in between curves */}
               <View style={[styles.actionDottedLine, { top: y_dotted_start, height: y_dotted_end - y_dotted_start }]} />
 

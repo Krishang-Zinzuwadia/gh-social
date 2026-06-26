@@ -20,13 +20,20 @@
       "idx": 2,
       "version": "7",
       "when": 1781647983015,
-      "tag": "0002_add_indexes",
+      "tag": "0002_add_indexes"
     },
     {
       "idx": 3,
       "version": "7",
       "when": 1781648000000,
       "tag": "0003_container_boards_rls",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1782479538237,
+      "tag": "0004_wonderful_bullseye",
       "breakpoints": true
     }
   ]

@@ -86,10 +86,15 @@ class MLService {
       });
 
       const responseText = await response.text();
-      const responseBody = responseText ? JSON.parse(responseText) : null;
+      let responseBody: unknown = null;
+      try {
+        responseBody = responseText ? JSON.parse(responseText) : null;
+      } catch {
+        // Not a JSON body - fall through; the ok-check below will surface the status.
+      }
 
       if (!response.ok) {
-        const detail = responseBody?.detail ?? response.statusText;
+        const detail = (responseBody as Record<string, unknown>)?.detail ?? response.statusText;
         throw new Error(`status=${response.status} message=${detail}`);
       }
 

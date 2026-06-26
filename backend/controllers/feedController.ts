@@ -1,5 +1,6 @@
 import { Request, Response } from 'express'; 
 import { FeedService } from '../services/feedService.js';
+import { type AuthRequest } from '../middlewares/authMiddleware.js';
 
 const feedService = new FeedService();
 
@@ -32,12 +33,12 @@ export const receiveMlRecommendations = async (req: Request, res: Response): Pro
   }
 };
 
-export const getFeedForMobile = async (req: Request, res: Response): Promise<void> => {
+export const getFeedForMobile = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const userId = req.query.userId as string; // Just for local-dev
+    const userId = req.user?.userId;
 
     if (!userId) {
-       res.status(400).json({ success: false, message: 'Missing userId parameter.' });
+       res.status(401).json({ success: false, message: 'Authentication required.' });
        return;
     }
 

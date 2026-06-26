@@ -1,5 +1,6 @@
 import { Router, type Request, type Response, type NextFunction } from 'express';
 import { receiveMlRecommendations, getFeedForMobile } from '../controllers/feedController.js';
+import { requireAuth } from '../middlewares/authMiddleware.js';
 
 const router = Router();
 
@@ -31,7 +32,7 @@ function requireInternalSecret(req: Request, res: Response, next: NextFunction):
 router.post('/internal/recommendations', requireInternalSecret, receiveMlRecommendations);
 
 // Endpoint 2: Mobile app pulls the cached feed
-// URL: GET http://localhost:5000/api/feed?userId=your_user_id
-router.get('/feed', getFeedForMobile);
+// URL: GET http://localhost:5000/api/feed
+router.get('/feed', requireAuth, getFeedForMobile);
 
 export default router;

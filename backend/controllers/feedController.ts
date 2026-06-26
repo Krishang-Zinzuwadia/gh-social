@@ -6,11 +6,9 @@ const feedService = new FeedService();
 
 export const receiveMlRecommendations = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { userId, recommendations, repoIds } = req.body;
+    const { userId, recommendations } = req.body;
 
-    const payload = Array.isArray(recommendations) ? recommendations : repoIds;
-
-    if (!userId || !Array.isArray(payload)) {
+    if (!userId || !Array.isArray(recommendations)) {
        res.status(400).json({ 
         success: false, 
         message: 'Invalid payload format. Expected "userId" and "recommendations" array.' 
@@ -18,11 +16,11 @@ export const receiveMlRecommendations = async (req: Request, res: Response): Pro
        return;
     }
 
-    await feedService.processAndCacheBatch(userId, payload);
+    await feedService.processAndCacheBatch(userId, recommendations);
 
      res.status(200).json({ 
       success: true, 
-      message: `Successfully received and cached ${payload.length} recommendations for user.` 
+      message: `Successfully received and cached ${recommendations.length} recommendations for user.` 
     });
   } catch (error) {
     console.error('[FeedController] Internal pipeline failure:', error);

@@ -161,7 +161,7 @@ export default function HomeScreen() {
     });
   };
 
-  const snapOffsets = feedItems.map((_, index) => pageHeight * index);
+
 
   return (
     <View style={styles.outer}>
@@ -181,7 +181,6 @@ export default function HomeScreen() {
           contentContainerStyle={styles.feedListContent}
           showsVerticalScrollIndicator={false}
           snapToInterval={pageHeight}
-          snapToOffsets={snapOffsets}
           snapToAlignment="start"
           decelerationRate="fast"
           pagingEnabled
@@ -313,8 +312,9 @@ function RepositoryScreen({
   const y3_bottom = HEADER_H + H1 + CARD_GAP + H2 + CARD_GAP + H3;
 
   // ── Dotted line spanning from Card 2 middle to Card 3 bottom ─────────────────────
+  const BOTTOM_CURVE_OFFSET = 24; // Lift above border radius
   const y_dotted_start = y2;
-  const y_dotted_end = y3_bottom;
+  const y_dotted_end = y3_bottom - BOTTOM_CURVE_OFFSET;
 
   // ── Evenly distribute 4 action buttons along the dotted line ─────────────
   const actionPositions = [
@@ -364,7 +364,7 @@ function RepositoryScreen({
                 fill="none"
               >
                 <Path
-                  d={`M ${TIMELINE_MID} 0 L ${TIMELINE_MID} ${y3_bottom - y2 - TIMELINE_MID} Q ${TIMELINE_MID} ${y3_bottom - y2} ${TIMELINE_COL_WIDTH} ${y3_bottom - y2}`}
+                  d={`M ${TIMELINE_MID} 0 L ${TIMELINE_MID} ${y3_bottom - y2 - BOTTOM_CURVE_OFFSET - TIMELINE_MID} Q ${TIMELINE_MID} ${y3_bottom - y2 - BOTTOM_CURVE_OFFSET} ${TIMELINE_COL_WIDTH} ${y3_bottom - y2 - BOTTOM_CURVE_OFFSET}`}
                   stroke="#6DA963"
                   strokeWidth={1.5}
                 />

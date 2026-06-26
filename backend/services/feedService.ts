@@ -33,6 +33,11 @@ export class FeedService {
     const queueKey = this.getQueueKey(userId);
 
     try {
+      if (recommendations.length === 0) {
+        await redisClient.set(queueKey, '__empty__', 'EX', this.SESSION_TTL);
+        return;
+      }
+
       const pipeline = redisClient.pipeline();
 
       pipeline.del(queueKey);
@@ -54,14 +59,20 @@ export class FeedService {
   /**
    * Task --> Pulls the pre-stitched feed from the Redis queue for the mobile client
    */
-  async getCachedFeed(userId: string): Promise<any[]> {
+  async getCachedFeed(userId: string): Promise<any[] | null> {
     const queueKey = this.getQueueKey(userId);
 
     try {
+      const type = await redisClient.type(queueKey);
+      if (type === 'string') {
+        const val = await redisClient.get(queueKey);
+        if (val === '__empty__') return [];
+      }
+
       const rawFeedItems = await redisClient.lrange(queueKey, 0, -1);
 
       if (!rawFeedItems || rawFeedItems.length === 0) {
-        return [];
+        return null;
       }
 
       return rawFeedItems.map((item: string) => JSON.parse(item));
@@ -79,7 +90,7 @@ export class FeedService {
    */
   async getOrGenerateFeed(userId: string): Promise<any[]> {
     const cachedFeed = await this.getCachedFeed(userId);
-    if (cachedFeed.length > 0) {
+    if (cachedFeed !== null) {
       return cachedFeed;
     }
 
@@ -110,7 +121,7 @@ export class FeedService {
       delay = Math.min(delay * 2, 2_000);
 
       const feed = await this.getCachedFeed(userId);
-      if (feed.length > 0) {
+      if (feed !== null) {
         return feed;
       }
 

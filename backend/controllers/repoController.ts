@@ -51,6 +51,7 @@ async function buildRepoPayload(body: RepoBodyInput): Promise<RepoInsert> {
     readme_summary: summaryService.summarizeReadme(githubRepo.readme),
     forks_count: githubRepo.forks_count || 0,
     pr_count: githubRepo.pr_count || 0,
+    star_count: githubRepo.stars_count || 0,
   };
 }
 

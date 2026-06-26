@@ -12,6 +12,7 @@ export default function TabsLayout() {
 
   return (
     <Tabs
+      initialRouteName="explore"
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
@@ -40,9 +41,9 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="home"
         options={{
-          title: 'For You',
+          title: 'Home',
           tabBarIcon: ({ focused }) => (
-            <HomeIcon fill={focused ? APP_THEME.activeAccent : APP_THEME.inactiveAccent} width={22} height={22} />
+            <HomeIcon fill={focused ? APP_THEME.activeAccent : APP_THEME.inactiveAccent} width={24} height={24} />
           ),
         }}
       />

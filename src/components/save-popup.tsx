@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Animated, Pressable, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
+import { Animated, Pressable, StyleSheet, Text, TextInput, TouchableOpacity, View, useWindowDimensions } from 'react-native';
 import { Check, Plus, X } from 'lucide-react-native';
 import { getResponsiveContainerStyle } from '@/components/responsive-layout';
 
@@ -8,13 +8,13 @@ interface SavePopupProps {
   onClose: () => void;
 }
 
-const INITIAL_COLLECTIONS = ['AI Projects', 'Web Development', 'Open Source', 'Inspiration'];
+const INITIAL_COLLECTIONS: string[] = [];
 
 export function SavePopup({ isVisible, onClose }: SavePopupProps) {
   const { width } = useWindowDimensions();
   const responsiveSheetStyle = getResponsiveContainerStyle(width);
-  const [selected, setSelected] = useState('AI Projects');
-  const [collections, setCollections] = useState(INITIAL_COLLECTIONS);
+  const [selected, setSelected] = useState<string | null>(null);
+  const [collections, setCollections] = useState<string[]>(INITIAL_COLLECTIONS);
   const [isCreating, setIsCreating] = useState(false);
   const [newCollection, setNewCollection] = useState('');
   const [status, setStatus] = useState<'idle' | 'saved'>('idle');
@@ -84,6 +84,7 @@ export function SavePopup({ isVisible, onClose }: SavePopupProps) {
   };
 
   const saveRepository = () => {
+    if (!selected) return;
     setStatus('saved');
     setTimeout(closeAnimated, 450);
   };
@@ -114,13 +115,13 @@ export function SavePopup({ isVisible, onClose }: SavePopupProps) {
           {collections.map((name) => {
             const active = selected === name;
             return (
-              <Pressable
+              <TouchableOpacity
                 key={name}
                 onPress={() => setSelected(name)}
-                style={({ pressed }) => [
+                activeOpacity={0.7}
+                style={[
                   styles.collectionRow,
                   active && styles.collectionRowActive,
-                  pressed && styles.rowPressed,
                 ]}
               >
                 <View style={styles.thumbnail}>
@@ -131,7 +132,7 @@ export function SavePopup({ isVisible, onClose }: SavePopupProps) {
                 <View style={[styles.radio, active && styles.radioActive]}>
                   {active ? <View style={styles.radioDot} /> : null}
                 </View>
-              </Pressable>
+              </TouchableOpacity>
             );
           })}
         </View>
@@ -152,23 +153,26 @@ export function SavePopup({ isVisible, onClose }: SavePopupProps) {
             </Pressable>
           </View>
         ) : (
-          <Pressable
+          <TouchableOpacity
             onPress={() => setIsCreating(true)}
-            style={({ pressed }) => [styles.createButton, pressed && styles.rowPressed]}
+            activeOpacity={0.7}
+            style={styles.createButton}
           >
             <Plus size={16} color="#D9D9D9" strokeWidth={2.5} />
             <Text style={styles.createText}>Create new collection</Text>
-          </Pressable>
+          </TouchableOpacity>
         )}
 
-        <Pressable
+        <TouchableOpacity
           onPress={saveRepository}
-          style={({ pressed }) => [styles.saveButton, pressed && styles.savePressed]}
+          activeOpacity={0.8}
+          style={[styles.saveButton, !selected && { backgroundColor: '#273126', opacity: 0.5 }]}
+          disabled={!selected}
         >
           <Text style={styles.saveText}>
-            {status === 'saved' ? 'Saved!' : `Save to ${selected}`}
+            {status === 'saved' ? 'Saved!' : selected ? `Save to ${selected}` : 'Create a collection'}
           </Text>
-        </Pressable>
+        </TouchableOpacity>
       </Animated.View>
     </View>
   );

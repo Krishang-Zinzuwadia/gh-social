@@ -1,7 +1,6 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import { FlatList, Platform, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View, type ViewStyle } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Bug, Clock, Eye, GitFork, MessageSquare, Star, ThumbsDown, ThumbsUp } from 'lucide-react-native';
+import { useCallback, useEffect, useState } from 'react';
+import { FlatList, Platform, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View, type ViewStyle } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   runOnJS,
@@ -9,12 +8,13 @@ import Animated, {
   useSharedValue,
   withTiming,
 } from 'react-native-reanimated';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import Svg, { Path } from 'react-native-svg';
 
 import { RepoCard } from '@/components/repo-card';
-import { SavePopup } from '@/components/save-popup';
 import { getResponsiveContentWidth } from '@/components/responsive-layout';
+import { SavePopup } from '@/components/save-popup';
 
 type ScreenMode = 'home' | 'details';
 
@@ -49,23 +49,23 @@ type ViewabilityItem = {
   index?: number | null;
 };
 
-// ─── Card definitions ────────────────────────────────────────────────────────
+// We no longer use hardcoded heights here. Heights are allocated dynamically based on screen real estate.
 const HOME_CARDS = [
-  { label: 'Description',    height: 175 },
-  { label: 'Tech Stack',     height: 160 },
-  { label: 'README Summary', height: 140 },
+  { label: 'Description', weight: 0.35 },
+  { label: 'Tech Stack', weight: 0.35 },
+  { label: 'README Summary', weight: 0.30 },
 ];
 
 const DETAIL_CARDS = [
-  { label: 'ARCHITECTURE', height: 190 },
-  { label: 'CODE SNIPPET',  height: 130 },
-  { label: 'ISSUES',        height: 160 },
+  { label: 'ARCHITECTURE', weight: 0.35 },
+  { label: 'CODE SNIPPET', weight: 0.30 },
+  { label: 'ISSUES', weight: 0.35 },
 ];
 
 const REACTIONS = [
-  { id: 'like',    Icon: ThumbsUp,      count: '1k',  color: '#F5C54D' },
-  { id: 'dislike', Icon: ThumbsDown,    count: '200', color: '#F5C54D' },
-  { id: 'fork',    Icon: GitFork,       count: '2k',  color: '#6DA963' },
+  { id: 'like', Icon: ThumbsUp, count: '1k', color: '#F5C54D' },
+  { id: 'dislike', Icon: ThumbsDown, count: '200', color: '#F5C54D' },
+  { id: 'fork', Icon: GitFork, count: '2k', color: '#6DA963' },
   { id: 'comment', Icon: MessageSquare, count: '400', color: '#6DA963' },
 ];
 
@@ -161,7 +161,7 @@ export default function HomeScreen() {
     });
   };
 
-  const snapOffsets = feedItems.map((_, index) => pageHeight * index);
+
 
   return (
     <View style={styles.outer}>
@@ -181,7 +181,6 @@ export default function HomeScreen() {
           contentContainerStyle={styles.feedListContent}
           showsVerticalScrollIndicator={false}
           snapToInterval={pageHeight}
-          snapToOffsets={snapOffsets}
           snapToAlignment="start"
           decelerationRate="fast"
           pagingEnabled
@@ -280,39 +279,46 @@ function RepositoryScreen({
   repository: RepositoryData;
 }) {
   const isDetails = type === 'details';
-  const cards     = isDetails ? DETAIL_CARDS : HOME_CARDS;
-  const variant   = isDetails ? 'section' : 'center';
+  const cards = isDetails ? DETAIL_CARDS : HOME_CARDS;
+  const variant = isDetails ? 'section' : 'center';
 
+  const insets = useSafeAreaInsets();
   const isSmallPhone = pageWidth < 380;
-  // Multiplier for vertical dimensions so they fit on small screens
-  const baseHeight = 700;
-  const heightMultiplier = Math.max(0.65, Math.min(1, pageHeight / baseHeight));
 
   const TIMELINE_COL_WIDTH = isSmallPhone ? 36 : 44;
   const TIMELINE_MID = TIMELINE_COL_WIDTH / 2;
-  const ACTIONS_COL_WIDTH = isSmallPhone ? 60 : 72;
+  const ACTIONS_COL_WIDTH = isSmallPhone ? 68 : 80;
 
-  // ── Fixed heights & gaps ──────────────────────────────────────────────────
-  const HEADER_H  = 56 * heightMultiplier;
-  const H1        = cards[0].height * heightMultiplier;
-  const H2        = cards[1].height * heightMultiplier;
-  const H3        = cards[2].height * heightMultiplier;
-  const CARD_GAP  = 16 * heightMultiplier;
+  // ── Dynamic Heights & Gaps ──────────────────────────────────────────────────
+  const HEADER_H = 56;
+  const CARD_GAP = 16;
+  const FOOTER_MIN_H = isSmallPhone ? 110 : 100;
+  const VERTICAL_PADDING = 24;
+
+  // Calculate available height for the cards to perfectly fill the screen
+  const availableCardHeight = pageHeight - insets.top - HEADER_H - FOOTER_MIN_H - (CARD_GAP * 2) - VERTICAL_PADDING;
+  // Ensure a minimum height so cards don't squish into nothing, but keep it small enough to not overflow on tiny phones like iPhone SE
+  const totalCardHeight = Math.max(availableCardHeight, 200);
+
+  const H1 = totalCardHeight * cards[0].weight;
+  const H2 = totalCardHeight * cards[1].weight;
+  const H3 = totalCardHeight * cards[2].weight;
 
   // ── Y positions (relative to the top of gridContainer) ───────────────────
-  const y0 = HEADER_H / 2;                              
-  const y1 = HEADER_H + H1 / 2;                         
-  const y2 = HEADER_H + H1 + CARD_GAP + H2 / 2;        
-  const y2_bottom = HEADER_H + H1 + CARD_GAP + H2;     
-  const y3_bottom = HEADER_H + H1 + CARD_GAP + H2 + CARD_GAP + H3; 
+  const y0 = HEADER_H / 2;
+  const y1 = HEADER_H + H1 / 2;
+  const y2 = HEADER_H + H1 + CARD_GAP + H2 / 2;
+  const y2_bottom = HEADER_H + H1 + CARD_GAP + H2;
+  const y3_bottom = HEADER_H + H1 + CARD_GAP + H2 + CARD_GAP + H3;
 
-  // ── Dotted line spans card2-midpoint to card3-bottom ─────────────────────
-  const y_dotted_start = HEADER_H + H1 + CARD_GAP + H2 / 2 - (24 * heightMultiplier);
-  const y_dotted_end   = y3_bottom - (16 * heightMultiplier);
+  // ── Dotted line spanning from Card 2 middle to Card 3 bottom ─────────────────────
+  const BOTTOM_CURVE_OFFSET = 24; // Lift above border radius
+  const y_dotted_start = y2;
+  const y_dotted_end = y3_bottom - BOTTOM_CURVE_OFFSET;
 
   // ── Evenly distribute 4 action buttons along the dotted line ─────────────
   const actionPositions = [
-    y_dotted_start + (y_dotted_end - y_dotted_start) * 0,
+    y_dotted_start,
     y_dotted_start + (y_dotted_end - y_dotted_start) * 0.333,
     y_dotted_start + (y_dotted_end - y_dotted_start) * 0.666,
     y_dotted_end,
@@ -320,15 +326,15 @@ function RepositoryScreen({
 
   const ACTION_LINE_X = 16;
   const ACTION_BTN_SIZE = isSmallPhone ? 36 : 48;
-  const ACTION_BTN_LEFT = isSmallPhone ? 20 : 22;
+  const ACTION_BTN_LEFT = isSmallPhone ? 26 : 30;
   const ACTION_BTN_RADIUS = ACTION_BTN_SIZE / 2;
   const actionBtnArmWidth = ACTION_BTN_LEFT - ACTION_LINE_X;
 
   return (
     <View style={[styles.screen, { width: pageWidth, height: pageHeight }]}>
       <SafeAreaView edges={['top', 'left', 'right']} style={styles.screenInner}>
-        <ScrollView 
-          contentContainerStyle={{ flexGrow: 1, paddingBottom: 24 }} 
+        <ScrollView
+          contentContainerStyle={{ flexGrow: 1, paddingBottom: 24 }}
           showsVerticalScrollIndicator={false}
           bounces={false}
         >
@@ -358,7 +364,7 @@ function RepositoryScreen({
                 fill="none"
               >
                 <Path
-                  d={`M ${TIMELINE_MID} 0 L ${TIMELINE_MID} ${y3_bottom - y2 - TIMELINE_MID} Q ${TIMELINE_MID} ${y3_bottom - y2} ${TIMELINE_COL_WIDTH} ${y3_bottom - y2}`}
+                  d={`M ${TIMELINE_MID} 0 L ${TIMELINE_MID} ${y3_bottom - y2 - BOTTOM_CURVE_OFFSET - TIMELINE_MID} Q ${TIMELINE_MID} ${y3_bottom - y2 - BOTTOM_CURVE_OFFSET} ${TIMELINE_COL_WIDTH} ${y3_bottom - y2 - BOTTOM_CURVE_OFFSET}`}
                   stroke="#6DA963"
                   strokeWidth={1.5}
                 />
@@ -391,35 +397,8 @@ function RepositoryScreen({
 
             {/* Column 3: Actions */}
             <View style={[styles.actionsCol, { width: ACTIONS_COL_WIDTH }]}>
-              {/* Card 2 Bottom-Right Top Curve */}
-              <Svg
-                style={{ position: 'absolute', top: y2_bottom - 24, left: 0 }}
-                width={16}
-                height={16}
-                viewBox="0 0 16 16"
-                fill="none"
-              >
-                <Path
-                  d="M 0 0.75 Q 16 0.75 16 16"
-                  stroke="#6DA963"
-                  strokeWidth={1.5}
-                />
-              </Svg>
-
-              {/* Card 3 Bottom-Right Bottom Curve */}
-              <Svg
-                style={{ position: 'absolute', top: y3_bottom - 16, left: 0 }}
-                width={16}
-                height={16}
-                viewBox="0 0 16 16"
-                fill="none"
-              >
-                <Path
-                  d="M 16 0 Q 16 15.25 0 15.25"
-                  stroke="#6DA963"
-                  strokeWidth={1.5}
-                />
-              </Svg>
+              {/* Action card connecting arm (solid horizontal line) */}
+              <View style={[styles.actionCardArm, { top: y2 - 0.75, width: ACTION_LINE_X }]} />
 
               {/* Dotted vertical line in between curves */}
               <View style={[styles.actionDottedLine, { top: y_dotted_start, height: y_dotted_end - y_dotted_start }]} />
@@ -432,20 +411,22 @@ function RepositoryScreen({
                     {/* Small intersection dot on the line */}
                     <View style={[styles.actionArmDot, { top: ACTION_BTN_RADIUS - 4 }]} />
 
-                    {/* Arm connecting dot to button */}
-                    <View style={[styles.actionBtnArm, { width: actionBtnArmWidth, top: ACTION_BTN_RADIUS - 0.75 }]} />
+                    {/* Arm connecting dot to button (dashed horizontal line) */}
+                    <View style={[styles.actionBtnArm, { width: actionBtnArmWidth, top: ACTION_BTN_RADIUS }]} />
 
-                    {/* Pressable button */}
-                    <Pressable
-                      style={({ pressed }) => [
-                        styles.reactionBtn,
-                        { width: ACTION_BTN_SIZE, height: ACTION_BTN_SIZE, borderRadius: ACTION_BTN_RADIUS, left: ACTION_BTN_LEFT },
-                        pressed && styles.reactionBtnPressed,
-                      ]}
+                    {/* Touchable button */}
+                    <TouchableOpacity
+                      activeOpacity={0.7}
+                      style={{ position: 'absolute', left: ACTION_BTN_LEFT, top: 0, zIndex: 20 }}
                     >
-                      <Icon size={isSmallPhone ? 14 : 16} color={color} strokeWidth={2} />
-                      <Text style={[styles.reactionCount, isSmallPhone && { fontSize: 8 }]}>{count}</Text>
-                    </Pressable>
+                      <View style={[
+                        styles.reactionBtn,
+                        { width: ACTION_BTN_SIZE, height: ACTION_BTN_SIZE, borderRadius: ACTION_BTN_RADIUS }
+                      ]}>
+                        <Icon size={isSmallPhone ? 14 : 16} color={color} strokeWidth={2} />
+                        <Text style={[styles.reactionCount, isSmallPhone && { fontSize: 8 }]}>{count}</Text>
+                      </View>
+                    </TouchableOpacity>
                   </View>
                 );
               })}
@@ -456,15 +437,6 @@ function RepositoryScreen({
     </View>
   );
 }
-
-// helper — needed by Column 3 curves (card2 bottom y)
-const _h = (cards: typeof HOME_CARDS, gap: number) => {
-  const HEADER_H = 56;
-  const H1 = cards[0].height;
-  const H2 = cards[1].height;
-  return HEADER_H + H1 + gap + H2;
-};
-// We reference y2_bottom inside RepositoryScreen via closure — kept local
 
 // ─── Footer ──────────────────────────────────────────────────────────────────
 function UserFooter({ repository, isSmallPhone }: { repository: RepositoryData, isSmallPhone?: boolean }) {
@@ -631,30 +603,27 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#6DA963',
+    borderWidth: 1.5,
+    borderColor: '#6DA963',
+    backgroundColor: '#10150F',
   },
   actionBtnArm: {
     position: 'absolute',
     left: 16,
-    width: 6,
-    top: 24 - 0.75,
-    height: 1.5,
-    backgroundColor: '#6DA963',
+    height: 0,
+    borderTopWidth: 1.5,
+    borderStyle: 'dashed',
+    borderColor: '#6DA963',
     zIndex: 10,
   },
   reactionBtn: {
-    position: 'absolute',
-    left: 22,
-    top: 0,
-    width: 48,
-    height: 48,
-    borderRadius: 24,
     backgroundColor: '#1E241E',
     borderWidth: 1.5,
     borderColor: '#6DA963',
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 4,
+    elevation: 2, // Helps Android render borders properly
   },
   reactionBtnPressed: {
     opacity: 0.7,
@@ -724,5 +693,3 @@ const styles = StyleSheet.create({
   },
 });
 
-// Suppress unused var — kept for potential future use
-void _h;

@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import redisClient from '../config/redis.js';
 import { mlService, type MlRecommendationBatches } from './mlService.js';
 
@@ -99,7 +100,8 @@ export class FeedService {
     let delay = 100; // start at 100 ms, doubles each iteration (cap 2 s)
 
     while (Date.now() < deadline) {
-      const acquired = await redisClient.set(lockKey, '1', 'PX', this.LOCK_TTL_MS, 'NX');
+      const lockToken = crypto.randomUUID();
+      const acquired = await redisClient.set(lockKey, lockToken, 'PX', this.LOCK_TTL_MS, 'NX');
 
       if (acquired === 'OK') {
         try {
@@ -108,7 +110,14 @@ export class FeedService {
           await this.processAndCacheBatch(userId, recommendations);
           return recommendations;
         } finally {
-          await redisClient.del(lockKey).catch(() => {/* best-effort */});
+          const releaseScript = `
+            if redis.call("get",KEYS[1]) == ARGV[1] then
+                return redis.call("del",KEYS[1])
+            else
+                return 0
+            end
+          `;
+          await redisClient.eval(releaseScript, 1, lockKey, lockToken).catch(() => {/* best-effort */});
         }
       }
 

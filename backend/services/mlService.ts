@@ -58,10 +58,12 @@ function normalizeStringArray(value: unknown): string[] {
 class MLService {
   private readonly baseURL: string | null;
   private readonly timeoutMs: number;
+  private readonly internalSecret: string | null;
 
   constructor() {
     this.baseURL = process.env.ML_SERVICE_URL?.replace(/\/+$/, '') ?? null;
     this.timeoutMs = parseTimeout();
+    this.internalSecret = process.env.INTERNAL_API_SECRET ?? null;
   }
 
   private async post<TResponse>(path: string, payload: unknown): Promise<TResponse> {
@@ -75,7 +77,10 @@ class MLService {
     try {
       const response = await fetch(`${this.baseURL}${path}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(this.internalSecret ? { 'x-internal-secret': this.internalSecret } : {}),
+        },
         body: JSON.stringify(payload),
         signal: controller.signal,
       });

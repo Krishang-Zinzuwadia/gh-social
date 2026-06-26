@@ -86,7 +86,7 @@ export class FeedService {
     const lockKey = this.getLockKey(userId);
 
     // Try to acquire the in-flight lock atomically.
-    const acquired = await redisClient.set(lockKey, '1', 'NX', 'PX', this.LOCK_TTL_MS);
+    const acquired = await redisClient.set(lockKey, '1', 'PX', this.LOCK_TTL_MS, 'NX');
 
     if (acquired === 'OK') {
       // This request owns the lock — call ML and populate the cache.

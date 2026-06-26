@@ -52,6 +52,7 @@ async function buildRepoPayload(body: RepoBodyInput): Promise<RepoInsert> {
     forks_count: githubRepo.forks_count || 0,
     pr_count: githubRepo.pr_count || 0,
     star_count: githubRepo.stars_count || 0,
+    open_issues_count: githubRepo.open_issues_count || 0,
   };
 }
 

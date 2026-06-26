@@ -30,6 +30,7 @@ export interface RepoMetadata {
   forks_count: number;
   stars_count: number;
   pr_count: number;
+  open_issues_count: number;
   default_branch: string | null;
   authors: Author[];
 }
@@ -77,6 +78,7 @@ export interface GitHubRepositoryNode {
     nodes: Array<{ topic: { name: string } }>;
   } | null;
   pullRequests: { totalCount: number } | null;
+  issues: { totalCount: number } | null;
   defaultBranchRef: {
     name: string;
     target: {

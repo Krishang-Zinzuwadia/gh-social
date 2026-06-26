@@ -95,28 +95,23 @@ export class FeedService {
     }
 
     const lockKey = this.getLockKey(userId);
-
-    // Try to acquire the in-flight lock atomically.
-    const acquired = await redisClient.set(lockKey, '1', 'PX', this.LOCK_TTL_MS, 'NX');
-
-    if (acquired === 'OK') {
-      // This request owns the lock — call ML and populate the cache.
-      try {
-        const batches = await mlService.generateRecommendations(userId);
-        const recommendations = this.flattenRecommendationBatches(batches);
-        await this.processAndCacheBatch(userId, recommendations);
-        return recommendations;
-      } finally {
-        // Always release the lock so waiters are unblocked immediately.
-        await redisClient.del(lockKey).catch(() => {/* best-effort */});
-      }
-    }
-
-    // Another request is generating the feed — poll until it is ready.
     const deadline = Date.now() + this.LOCK_WAIT_TIMEOUT_MS;
     let delay = 100; // start at 100 ms, doubles each iteration (cap 2 s)
 
     while (Date.now() < deadline) {
+      const acquired = await redisClient.set(lockKey, '1', 'PX', this.LOCK_TTL_MS, 'NX');
+
+      if (acquired === 'OK') {
+        try {
+          const batches = await mlService.generateRecommendations(userId);
+          const recommendations = this.flattenRecommendationBatches(batches);
+          await this.processAndCacheBatch(userId, recommendations);
+          return recommendations;
+        } finally {
+          await redisClient.del(lockKey).catch(() => {/* best-effort */});
+        }
+      }
+
       await new Promise((resolve) => setTimeout(resolve, delay));
       delay = Math.min(delay * 2, 2_000);
 
@@ -124,21 +119,9 @@ export class FeedService {
       if (feed !== null) {
         return feed;
       }
-
-      // If the lock expired without a feed being written, break and
-      // let this request attempt generation as a crash-recovery fallback.
-      const lockStillHeld = await redisClient.exists(lockKey);
-      if (!lockStillHeld) {
-        break;
-      }
     }
 
-    // Fallback: re-attempt generation if the lock holder crashed before writing.
-    console.warn(`[FeedService] Lock for ${userId} released without a populated cache — re-generating as fallback.`);
-    const batches = await mlService.generateRecommendations(userId);
-    const recommendations = this.flattenRecommendationBatches(batches);
-    await this.processAndCacheBatch(userId, recommendations);
-    return recommendations;
+    throw new Error(`[FeedService] Timeout waiting for feed generation for user ${userId}`);
   }
 
   async invalidateUserFeed(userId: string): Promise<void> {

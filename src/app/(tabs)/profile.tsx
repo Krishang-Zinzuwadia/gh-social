@@ -67,9 +67,9 @@ export default function ProfileScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: "#090D0A" }}>
       <SafeAreaView style={{ flex: 1, backgroundColor: "#090D0A" }}>
-        <View
-          style={{
-            flex: 1,
+        <ScrollView
+          contentContainerStyle={{
+            flexGrow: 1,
             alignItems: "center",
             paddingBottom: isTablet ? 20 : 20,
           }}
@@ -219,7 +219,6 @@ export default function ProfileScreen() {
             <View
               style={{
                 width: "100%",
-                flex: 1,
                 paddingTop: 0,
               }}
             >
@@ -270,14 +269,14 @@ export default function ProfileScreen() {
               </View>
 
               {/* Tab Content */}
-              <View style={{ flex: 1, width: "100%" }}>
+              <View style={{ width: "100%" }}>
                 {activetab === "Overview" && <Overview />}
                 {activetab === "Repositories" && <Repositories />}
                 {activetab === "Lists" && <Lists />}
               </View>
             </View>
           </View>
-        </View>
+        </ScrollView>
       </SafeAreaView>
 
       {/* ── Edit Profile Modal ── */}

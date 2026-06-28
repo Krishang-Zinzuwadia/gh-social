@@ -63,6 +63,7 @@ export const repos = pgTable('repo', {
   language_used: jsonb('language_used').default('[]'),
   topics: jsonb('topics').default('[]'),
   readme_summary: text('readme_summary'),
+  star_count: integer('star_count').default(0),
   likes_count: integer('likes_count').default(0),
   comments_count: integer('comments_count').default(0),
   saves_count: integer('saves_count').default(0),

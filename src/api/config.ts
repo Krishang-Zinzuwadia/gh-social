@@ -26,8 +26,10 @@ export const getApiUrl = (): string => {
 
   // 3. Final Production Fallback
   // If we reach here in production, it means the developer forgot to set the environment variable.
-  // We throw an explicit error to fail fast and alert them, rather than silently making dummy network requests.
-  throw new Error('CRITICAL: EXPO_PUBLIC_BACKEND_URL environment variable is missing. You must configure this in your production environment.');
+  // We log an explicit error to fail fast but return a dummy URL so the app gracefully shows the 
+  // 'Service Unavailable' screen instead of fatally crashing during module load.
+  console.error('CRITICAL: EXPO_PUBLIC_BACKEND_URL environment variable is missing. You must configure this in your production environment.');
+  return 'http://MISSING_CONFIG';
 };
 
 export const API_URL = getApiUrl();

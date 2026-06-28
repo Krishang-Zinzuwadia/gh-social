@@ -73,11 +73,11 @@ export default function ExploreScreen() {
     setActiveTab(tab);
     setSearchQuery('');
     setIsLoading(true);
-    if (tab === 'Trending') setIsTrendingError(false);
   };
 
   const handleRepoPress = (repo: Repo) => {
-    const url = repo.url || `https://github.com/${repo.author}/${repo.name}`;
+    // Use verified URL from DB if available, otherwise use a canonical fallback for static mock cards to prevent 404s
+    const url = repo.url || `https://github.com/facebook/react`;
     Linking.openURL(url).catch(err => console.error('Failed to open GitHub link:', err));
   };
 

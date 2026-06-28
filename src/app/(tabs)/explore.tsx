@@ -43,7 +43,8 @@ export default function ExploreScreen() {
             name: repo.repo_name,
             stars: (repo.star_count || 0).toString(),
             forks: (repo.forks_count || 0).toString(),
-            author: repo.owner_id,
+            author: repo.full_name ? repo.full_name.split('/')[0] : 'Unknown',
+            url: repo.github_repo_url,
             avatarColor: '#10B981',
             avatarInitial: repo.repo_name.charAt(0).toUpperCase(),
             hasIcon: true,
@@ -70,7 +71,7 @@ export default function ExploreScreen() {
   };
 
   const handleRepoPress = (repo: Repo) => {
-    const url = `https://github.com/${repo.author}/${repo.name}`;
+    const url = repo.url || `https://github.com/${repo.author}/${repo.name}`;
     Linking.openURL(url).catch(err => console.error('Failed to open GitHub link:', err));
   };
 

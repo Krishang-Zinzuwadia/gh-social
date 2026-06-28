@@ -17,10 +17,17 @@ export async function getAllRepos({ limit, offset }: PaginationParams) {
 export async function getTrendingRepos(limitCount: number = 10) {
   try {
     const cacheKey = `trending_repos:${limitCount}`;
-    const cachedData = await redisClient.get(cacheKey);
     
-    if (cachedData) {
-      return { data: JSON.parse(cachedData), error: null };
+    // Circuit Breaker: Try to read from cache. If Redis is completely down, fail safely 
+    // and return an empty array to protect the DB from being overwhelmed.
+    try {
+      const cachedData = await redisClient.get(cacheKey);
+      if (cachedData) {
+        return { data: JSON.parse(cachedData), error: null };
+      }
+    } catch (cacheError) {
+      console.warn('[RepoService] Redis cache read failed! Circuit breaker triggered. Returning empty list to protect DB:', cacheError);
+      return { data: [], error: null };
     }
 
     // If a request for this limit is already fetching from the DB, just wait for its result
@@ -32,8 +39,13 @@ export async function getTrendingRepos(limitCount: number = 10) {
     // Otherwise, create the database fetch promise and cache it
     const fetchPromise = (async () => {
       const result = await db.select().from(repos).orderBy(desc(repos.views_count)).limit(limitCount);
-      // Cache the trending repositories for 5 minutes (300 seconds)
-      await redisClient.setex(cacheKey, 300, JSON.stringify(result));
+      // Graceful degradation: Try to write to cache, but don't fail the request if it fails
+      try {
+        // Cache the trending repositories for 5 minutes (300 seconds)
+        await redisClient.setex(cacheKey, 300, JSON.stringify(result));
+      } catch (cacheWriteError) {
+        console.warn('[RepoService] Redis cache write failed:', cacheWriteError);
+      }
       return result;
     })();
 

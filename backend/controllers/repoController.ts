@@ -81,7 +81,8 @@ export async function getTrendingRepos(req: Request, res: Response): Promise<voi
   if (req.query.limit) {
     const parsedLimit = parseInt(req.query.limit as string, 10);
     if (!isNaN(parsedLimit) && parsedLimit > 0) {
-      limit = parsedLimit;
+      // Enforce a maximum limit of 50 to prevent unbounded DB/Redis pressure attacks
+      limit = Math.min(parsedLimit, 50);
     }
   }
 

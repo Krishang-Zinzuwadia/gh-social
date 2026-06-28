@@ -24,8 +24,10 @@ export const getApiUrl = (): string => {
     return 'http://localhost:5000/api';
   }
 
-  // 3. Final Production Fallback (Safety net if deployed without setting the env var)
-  return 'https://api.yourdomain.com/api';
+  // 3. Final Production Fallback
+  // If we reach here in production, it means the developer forgot to set the environment variable.
+  // We throw an explicit error to fail fast and alert them, rather than silently making dummy network requests.
+  throw new Error('CRITICAL: EXPO_PUBLIC_BACKEND_URL environment variable is missing. You must configure this in your production environment.');
 };
 
 export const API_URL = getApiUrl();

@@ -29,7 +29,11 @@ export default function SignUpEmail() {
   const hasNumber = /\d/.test(password);
   const hasUppercase = /[A-Z]/.test(password);
   const isPasswordValid = hasMinLength && hasNumber && hasUppercase;
-  const isFormValid = fullName.trim().length > 0 && email.trim().length > 0 && isPasswordValid;
+  
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const isEmailValid = emailRegex.test(email);
+  
+  const isFormValid = fullName.trim().length > 0 && isEmailValid && isPasswordValid;
 
   useEffect(() => {
     // Auto-scroll to bottom slowly on mount
@@ -107,6 +111,11 @@ export default function SignUpEmail() {
             autoCapitalize="none"
             keyboardType="email-address"
           />
+          {email.trim().length > 0 && !isEmailValid && (
+            <Text className="text-[#E57373] text-[13px] font-nata mt-1 ml-1">
+              Please enter a valid email address.
+            </Text>
+          )}
 
           <SectionLabel title="Password" />
           <AuthInput

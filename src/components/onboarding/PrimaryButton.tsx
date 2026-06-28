@@ -6,15 +6,19 @@ import {
 type PrimaryButtonProps = {
   title: string;
   onPress?: () => void;
+  disabled?: boolean;
 };
 
 export default function PrimaryButton({
   title,
   onPress,
+  disabled = false,
 }: PrimaryButtonProps) {
   return (
     <TouchableOpacity
       onPress={onPress}
+      disabled={disabled}
+      style={{ opacity: disabled ? 0.5 : 1 }}
       className="
         bg-[#6DA963]
         rounded-[18px]

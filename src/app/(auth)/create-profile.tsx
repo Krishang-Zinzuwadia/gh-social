@@ -13,6 +13,15 @@ import UsernameStatus from "@/components/Auth/UsernameStatus";
 export default function CreateProfile() {
   const router = useRouter();
   const [username, setUsername] = useState("");
+  const [dob, setDob] = useState("");
+
+  const isFormValid = username.trim().length > 0 && dob.trim().length > 0;
+
+  const handleCreateAccount = () => {
+    if (isFormValid) {
+      router.push("/onboarding/step1");
+    }
+  };
 
   return (
     <ScrollView
@@ -59,7 +68,12 @@ export default function CreateProfile() {
 
         {/* Date of birth */}
         <View className="mt-4">
-          <ProfileDateInput />
+          <ProfileDateInput value={dob} onChangeText={setDob} />
+          {dob.trim().length === 0 && (
+            <Text className="text-[#E57373] text-[13px] font-nata mt-1 ml-1">
+              Please enter a valid date of birth.
+            </Text>
+          )}
         </View>
 
         {/* Bio */}
@@ -71,7 +85,9 @@ export default function CreateProfile() {
         <View className="mt-8">
           <PrimaryButton
             label="Create Account"
-            onPress={() => router.push("/onboarding/step1")}
+            onPress={handleCreateAccount}
+            style={{ opacity: isFormValid ? 1 : 0.5 }}
+            disabled={!isFormValid}
           />
         </View>
 

@@ -21,6 +21,7 @@ export default function ExploreScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [trendingRepos, setTrendingRepos] = useState<Repo[]>([]);
   const [isTrendingLoading, setIsTrendingLoading] = useState(true);
+  const [isTrendingError, setIsTrendingError] = useState(false);
   const responsiveContainerStyle = getResponsiveContainerStyle(width);
 
   useEffect(() => {
@@ -53,9 +54,13 @@ export default function ExploreScreen() {
             trendingPeriod: 'Today',
           }));
           setTrendingRepos(mappedRepos);
+          setIsTrendingError(false);
+        } else {
+          setIsTrendingError(true);
         }
       } catch (error) {
         console.error('Failed to fetch trending repos', error);
+        setIsTrendingError(true);
       } finally {
         setIsTrendingLoading(false);
       }
@@ -68,6 +73,7 @@ export default function ExploreScreen() {
     setActiveTab(tab);
     setSearchQuery('');
     setIsLoading(true);
+    if (tab === 'Trending') setIsTrendingError(false);
   };
 
   const handleRepoPress = (repo: Repo) => {
@@ -131,6 +137,22 @@ export default function ExploreScreen() {
     );
   };
 
+  const renderTrendingErrorState = () => {
+    return (
+      <View className="items-center justify-center py-20 px-6">
+        <View className="w-20 h-20 rounded-full bg-[#301616] items-center justify-center mb-6 border border-[#EF4444]/30">
+          <Text style={{ fontSize: 32 }}>⚠️</Text>
+        </View>
+        <Text className="text-white text-lg font-semibold mb-2 text-center" style={{ fontFamily: 'NataSans-Bold' }}>
+          Service Unavailable
+        </Text>
+        <Text className="text-[#A49898] text-sm text-center leading-5" style={regular}>
+          The Trending feed is temporarily down due to high traffic. Our team is working to restore it.
+        </Text>
+      </View>
+    );
+  };
+
   return (
     <View className="flex-1" style={{ backgroundColor: APP_THEME.background }}>
       <StatusBar barStyle="light-content" backgroundColor={APP_THEME.background} />
@@ -187,7 +209,7 @@ export default function ExploreScreen() {
             renderItem={renderTrendingCard}
             contentContainerStyle={{ paddingBottom: 24, paddingTop: 12, gap: 16 }}
             showsVerticalScrollIndicator={false}
-            ListEmptyComponent={renderEmptyTrendingState(dataTrending.length > 0)}
+            ListEmptyComponent={isTrendingError ? renderTrendingErrorState() : renderEmptyTrendingState(dataTrending.length > 0)}
           />
         )}
       </View>

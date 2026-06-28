@@ -26,8 +26,8 @@ export async function getTrendingRepos(limitCount: number = 10) {
         return { data: JSON.parse(cachedData), error: null };
       }
     } catch (cacheError) {
-      console.warn('[RepoService] Redis cache read failed! Circuit breaker triggered. Returning empty list to protect DB:', cacheError);
-      return { data: [], error: null };
+      console.warn('[RepoService] Redis cache read failed! Circuit breaker triggered. Returning error to protect DB:', cacheError);
+      return { data: null as any, error: { code: 'CACHE_UNAVAILABLE', message: 'Trending feed is temporarily unavailable due to high load.' } as any };
     }
 
     // If a request for this limit is already fetching from the DB, just wait for its result

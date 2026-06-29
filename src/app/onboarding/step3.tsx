@@ -7,7 +7,7 @@ import PrimaryButton from "@/components/onboarding/PrimaryButton";
 import TechChip from "@/components/onboarding/TechChip";
 import LogoPlaceholder from "@/components/onboarding/LogoPlaceholder";
 import StepHeader from "@/components/onboarding/StepHeader";
-import { CATEGORIES, INTERESTS } from "./constants";
+import { CATEGORIES, INTERESTS, getTechImage } from "./constants";
 
 export default function Step3() {
   const { categories } = useLocalSearchParams();
@@ -104,6 +104,7 @@ export default function Step3() {
                 <TechChip
                   key={keyword}
                   title={keyword}
+                  image={getTechImage(keyword)}
                   selected={selectedInterests.includes(keyword)}
                   onPress={() => toggleInterest(keyword)}
                 />

@@ -140,7 +140,7 @@ export default function Step1() {
           {CATEGORIES.map((category) => (
             <SkillCard
               key={category.id}
-              icon={category.icon}
+              image={category.image}
               title={category.title}
               selected={selectedCategories.includes(category.id)}
               onPress={() => toggleCategory(category.id)}

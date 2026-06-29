@@ -13,6 +13,8 @@ import PrimaryButton from "@/components/onboarding/PrimaryButton";
 import ProgressBar from "@/components/onboarding/ProgressBar";
 import TechChip from "@/components/onboarding/TechChip";
 
+import { getTechImage } from "./constants";
+
 const PREDEFINED_TECHS = [
   "React",
   "MongoDB",
@@ -206,6 +208,7 @@ export default function Step2() {
                 <TechChip
                   key={tech}
                   title={tech}
+                  image={getTechImage(tech)}
                   selected
                   onPress={() => toggleTech(tech)}
                 />
@@ -233,6 +236,7 @@ export default function Step2() {
                 <TechChip
                   key={tech}
                   title={tech}
+                  image={getTechImage(tech)}
                   selected={false}
                   onPress={() => toggleTech(tech)}
                 />

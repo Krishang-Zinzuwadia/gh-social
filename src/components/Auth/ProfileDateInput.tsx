@@ -1,13 +1,7 @@
-import { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, Platform } from "react-native";
+import React, { useState } from "react";
+import { View, Text, TextInput, TouchableOpacity } from "react-native";
 import { CalendarIcon } from "./icons";
-
-let DateTimePicker: any = null;
-if (Platform.OS !== 'web') {
-  // The native picker must not be loaded into the web bundle.
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  DateTimePicker = require('@react-native-community/datetimepicker').default;
-}
+import CustomCalendar from "./CustomCalendar";
 
 type ProfileDateInputProps = {
   value: string;
@@ -15,17 +9,28 @@ type ProfileDateInputProps = {
 };
 
 export default function ProfileDateInput({ value, onChangeText }: ProfileDateInputProps) {
-  const [date, setDate] = useState(new Date());
   const [show, setShow] = useState(false);
-
-  const onChange = (event: any, selectedDate?: Date) => {
-    const currentDate = selectedDate || date;
-    setShow(Platform.OS === 'ios');
-    if (selectedDate) {
-        setDate(currentDate);
-        const formatted = `${currentDate.getDate().toString().padStart(2, '0')}/${(currentDate.getMonth() + 1).toString().padStart(2, '0')}/${currentDate.getFullYear()}`;
-        onChangeText(formatted);
+  
+  // Parse the current string value DD/MM/YYYY back to a Date object (if valid)
+  const parseDate = (dateStr: string) => {
+    if (!dateStr) return new Date();
+    const parts = dateStr.split("/");
+    if (parts.length === 3) {
+      const d = parseInt(parts[0], 10);
+      const m = parseInt(parts[1], 10) - 1;
+      const y = parseInt(parts[2], 10);
+      return new Date(y, m, d);
     }
+    return new Date();
+  };
+
+  const selectedDate = parseDate(value);
+
+  const handleSelectDate = (date: Date) => {
+    const d = date.getDate().toString().padStart(2, '0');
+    const m = (date.getMonth() + 1).toString().padStart(2, '0');
+    const y = date.getFullYear();
+    onChangeText(`${d}/${m}/${y}`);
   };
 
   return (
@@ -64,16 +69,13 @@ export default function ProfileDateInput({ value, onChangeText }: ProfileDateInp
         </View>
       </TouchableOpacity>
 
-      {show && Platform.OS !== 'web' && DateTimePicker && (
-        <DateTimePicker
-          testID="dateTimePicker"
-          value={date}
-          mode="date"
-          display="default"
-          onChange={onChange}
-          maximumDate={new Date()}
-        />
-      )}
+      <CustomCalendar
+        visible={show}
+        onClose={() => setShow(false)}
+        selectedDate={selectedDate}
+        onSelectDate={handleSelectDate}
+        maxDate={new Date()}
+      />
     </View>
   );
 }

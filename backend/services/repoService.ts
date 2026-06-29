@@ -1,5 +1,5 @@
 import { db } from '../db/index.js';
-import { repos } from '../db/schema.js';
+import { repos, trendingRepos } from '../db/schema.js';
 import { eq, desc, sql } from 'drizzle-orm';
 import type { RepoInsert, RepoUpdate, PaginationParams } from '../types/index.js';
 import redisClient from '../config/redis.js';
@@ -38,7 +38,24 @@ export async function getTrendingRepos(limitCount: number = 10) {
 
     // Otherwise, create the database fetch promise and cache it
     const fetchPromise = (async () => {
-      const result = await db.select().from(repos).orderBy(desc(repos.views_count)).limit(limitCount);
+      const mlData = await db.select().from(trendingRepos).orderBy(trendingRepos.trending_rank).limit(limitCount);
+      
+      // Normalize columns to match what the frontend expects from the original repos table
+      const result = mlData.map(repo => ({
+        repo_id: repo.repo_id,
+        github_repo_url: repo.url,
+        owner_id: repo.owner,
+        repo_name: repo.name,
+        full_name: repo.full_name,
+        description: repo.description,
+        language_used: repo.primary_language ? [repo.primary_language] : [],
+        topics: repo.topics || [],
+        readme_summary: repo.readme,
+        star_count: repo.star_count,
+        forks_count: repo.fork_count,
+        daily_stars: repo.daily_stars,
+        trending_rank: repo.trending_rank,
+      }));
       // Graceful degradation: Try to write to cache, but don't fail the request if it fails
       try {
         // Cache the trending repositories for 5 minutes (300 seconds)

@@ -22,6 +22,7 @@ export default function ExploreScreen() {
   const [trendingRepos, setTrendingRepos] = useState<Repo[]>([]);
   const [isTrendingLoading, setIsTrendingLoading] = useState(true);
   const [isTrendingError, setIsTrendingError] = useState(false);
+  const [trendingLimit, setTrendingLimit] = useState(10);
   const responsiveContainerStyle = getResponsiveContainerStyle(width);
 
   useEffect(() => {
@@ -35,7 +36,7 @@ export default function ExploreScreen() {
     const fetchTrending = async () => {
       try {
         setIsTrendingLoading(true);
-        const response = await fetch(`${API_URL}/repos/trending?limit=10`);
+        const response = await fetch(`${API_URL}/repos/trending?limit=${trendingLimit}`);
         const result = await response.json();
         
         if (result.success && result.data) {
@@ -67,7 +68,7 @@ export default function ExploreScreen() {
     };
     
     fetchTrending();
-  }, []);
+  }, [trendingLimit]);
 
   const handleTabChange = (tab: TabName) => {
     setActiveTab(tab);
@@ -210,6 +211,18 @@ export default function ExploreScreen() {
             contentContainerStyle={{ paddingBottom: 24, paddingTop: 12, gap: 16 }}
             showsVerticalScrollIndicator={false}
             ListEmptyComponent={isTrendingError ? renderTrendingErrorState() : renderEmptyTrendingState(dataTrending.length > 0)}
+            ListFooterComponent={
+              !isTrendingError && trendingRepos.length > 0 && trendingLimit < 30 ? (
+                <View className="items-center py-4 mt-2">
+                  <Text 
+                    className="text-[#10B981] font-semibold text-base" 
+                    onPress={() => setTrendingLimit(30)}
+                  >
+                    Show more
+                  </Text>
+                </View>
+              ) : null
+            }
           />
         )}
       </View>

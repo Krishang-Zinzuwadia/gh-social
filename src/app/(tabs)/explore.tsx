@@ -23,6 +23,7 @@ export default function ExploreScreen() {
   const [isTrendingLoading, setIsTrendingLoading] = useState(true);
   const [isTrendingError, setIsTrendingError] = useState(false);
   const [trendingLimit, setTrendingLimit] = useState(10);
+  const [retryCount, setRetryCount] = useState(0);
   const responsiveContainerStyle = getResponsiveContainerStyle(width);
 
   useEffect(() => {
@@ -68,12 +69,15 @@ export default function ExploreScreen() {
     };
     
     fetchTrending();
-  }, [trendingLimit]);
+  }, [trendingLimit, retryCount]);
 
   const handleTabChange = (tab: TabName) => {
     setActiveTab(tab);
     setSearchQuery('');
     setIsLoading(true);
+    if (tab === 'Trending' && isTrendingError) {
+      setRetryCount(prev => prev + 1);
+    }
   };
 
   const handleRepoPress = (repo: Repo) => {

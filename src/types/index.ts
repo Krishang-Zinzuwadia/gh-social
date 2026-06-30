@@ -10,6 +10,7 @@ export interface Repo {
   language?: string;
   description?: string;
   trendingPeriod?: FilterPeriod;
+  url?: string;
 }
 
 export type TabName = 'For you' | 'Trending';

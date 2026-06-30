@@ -2,7 +2,6 @@ import React, { useState } from "react"
 import { View, Pressable, Text, Modal, TextInput, ScrollView, useWindowDimensions } from "react-native"
 import Svg, { Path } from "react-native-svg"
 import { SafeAreaView } from "react-native-safe-area-context"
-import Overview from "@/components/overview"
 import Repositories from "@/components/repositories"
 import Lists from "@/components/lists"
 import {
@@ -14,8 +13,8 @@ import {
   ProfileAvatarIcon,
 } from "@/components/icons"
 
-const TABS = ["Overview", "Repositories"] as const
-type TabName = (typeof TABS)[number] | "Lists"
+const TABS = ["Lists", "Repositories"] as const
+type TabName = (typeof TABS)[number]
 
 export default function ProfileScreen() {
   const { width } = useWindowDimensions()
@@ -61,7 +60,7 @@ export default function ProfileScreen() {
   const statValueSize = isTablet ? 16 : isSmallPhone ? 12 : 14
   const statLabelSize = isTablet ? 11 : isSmallPhone ? 9 : 10
   const tabFontSize = isTablet ? 16 : 14
-  const tabGap = isTablet ? 80 : isSmallPhone ? 32 : 56
+  const tabGap = isTablet ? 96 : isSmallPhone ? 48 : 72
   const topMargin = isTablet ? 40 : isSmallPhone ? 20 : 32
 
   return (
@@ -219,7 +218,7 @@ export default function ProfileScreen() {
             <View
               style={{
                 width: "100%",
-                paddingTop: 0,
+                paddingTop: 12,
               }}
             >
               {/* Navigation Tabs */}
@@ -233,7 +232,7 @@ export default function ProfileScreen() {
                   paddingBottom: 2,
                 }}
               >
-                <Pressable onPress={() => setActivetab(activetab === "Overview" ? "Lists" : "Overview")} hitSlop={8}>
+                <Pressable onPress={() => setActivetab("Lists")} hitSlop={8}>
                   <Text
                     style={{
                       fontSize: tabFontSize,
@@ -241,16 +240,16 @@ export default function ProfileScreen() {
                       letterSpacing: 0.5,
                       paddingBottom: 4,
                       fontFamily: "NotoSans_400Regular",
-                      color: activetab === "Overview" ? "#6DA963" : "white",
-                      borderBottomWidth: activetab === "Overview" ? 2 : 0,
+                      color: activetab === "Lists" ? "#6DA963" : "white",
+                      borderBottomWidth: activetab === "Lists" ? 2 : 0,
                       borderBottomColor: "#6DA963",
                     }}
                   >
-                    Overview
+                    Lists
                   </Text>
                 </Pressable>
 
-                <Pressable onPress={() => setActivetab(activetab === "Repositories" ? "Lists" : "Repositories")} hitSlop={8}>
+                <Pressable onPress={() => setActivetab("Repositories")} hitSlop={8}>
                   <Text
                     style={{
                       fontSize: tabFontSize,
@@ -270,9 +269,8 @@ export default function ProfileScreen() {
 
               {/* Tab Content */}
               <View style={{ width: "100%" }}>
-                {activetab === "Overview" && <Overview />}
-                {activetab === "Repositories" && <Repositories />}
                 {activetab === "Lists" && <Lists />}
+                {activetab === "Repositories" && <Repositories />}
               </View>
             </View>
           </View>

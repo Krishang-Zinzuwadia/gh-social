@@ -7,9 +7,6 @@ import { APP_THEME } from '../../constants/theme';
 import { getResponsiveContainerStyle } from '../../components/responsive-layout';
 
 export default function TabsLayout() {
-  const { width } = useWindowDimensions();
-  const responsiveTabBarStyle = getResponsiveContainerStyle(width);
-
   return (
     <Tabs
       initialRouteName="explore"
@@ -17,9 +14,9 @@ export default function TabsLayout() {
         headerShown: false,
         tabBarStyle: {
           backgroundColor: APP_THEME.tabBarBackground,
-          borderTopColor: APP_THEME.tabBarBorder,
+          borderTopWidth: 0,
           height: 60,
-          ...responsiveTabBarStyle,
+          width: '100%',
         },
         tabBarItemStyle: {
           justifyContent: 'center',

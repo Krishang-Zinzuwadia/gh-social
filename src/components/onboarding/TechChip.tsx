@@ -20,7 +20,7 @@ export default function TechChip({
       onPress={onPress}
       className={`rounded-xl px-3 py-2 mr-2 mb-2 flex-row items-center ${
         selected
-          ? "bg-[#152418] border border-[#6DA963]"
+          ? "bg-[#152418] border border-[#8EFF7A]"
           : "bg-[#1A1A1A] border border-[#333]"
       }`}
     >
@@ -32,7 +32,7 @@ export default function TechChip({
       <Text
         className={`ml-2 text-base ${
           selected
-            ? "text-[#6DA963]"
+            ? "text-[#8EFF7A]"
             : "text-[#8A8A8A]"
         }`}
       >

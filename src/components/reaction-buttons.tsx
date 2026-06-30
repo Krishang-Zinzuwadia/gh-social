@@ -12,8 +12,8 @@ const TOP_REACTIONS = [
 ];
 
 const BOTTOM_REACTIONS = [
-  { id: 'fork',    Icon: GitFork,        count: '2k',  color: '#6DA963' },
-  { id: 'comment', Icon: MessageSquare,  count: '400', color: '#6DA963' },
+  { id: 'fork',    Icon: GitFork,        count: '2k',  color: '#8EFF7A' },
+  { id: 'comment', Icon: MessageSquare,  count: '400', color: '#8EFF7A' },
 ];
 
 interface ReactionButtonsProps {
@@ -35,7 +35,7 @@ export function ReactionButtons({ slot }: ReactionButtonsProps) {
     <View className="relative flex flex-col items-center w-[52px] ml-2 pt-2">
 
       {/* Dotted vertical line — full height of this button group */}
-      <View className="absolute left-1/2 top-0 bottom-0 border-l-[1.5px] border-dashed border-[#6DA963] -translate-x-1/2 z-0" />
+      <View className="absolute left-1/2 top-0 bottom-0 border-l-[1.5px] border-dashed border-[#8EFF7A] -translate-x-1/2 z-0" />
 
       {reactions.map(({ id, Icon, count, color }, i) => (
         <View
@@ -43,10 +43,10 @@ export function ReactionButtons({ slot }: ReactionButtonsProps) {
           className={`relative z-10 flex flex-col items-center${i < reactions.length - 1 ? ' mb-3' : ''}`}
         >
           {/* Small dot on the arm that connects dotted line → button */}
-          <View className="absolute left-[-10px] top-1/2 w-2 h-2 rounded-full bg-[#6DA963] -translate-y-1/2" />
+          <View className="absolute left-[-10px] top-1/2 w-2 h-2 rounded-full bg-[#8EFF7A] -translate-y-1/2" />
 
           <Pressable
-            className="w-11 h-11 rounded-full bg-[#273126] border border-[#6DA963] flex items-center justify-center active:opacity-75"
+            className="w-11 h-11 rounded-full bg-[#273126] border border-[#8EFF7A] flex items-center justify-center active:opacity-75"
           >
             <Icon size={18} color={color} strokeWidth={2} />
           </Pressable>

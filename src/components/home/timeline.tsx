@@ -27,7 +27,7 @@ const styles = StyleSheet.create({
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: '#6DA963',
+    backgroundColor: '#8EFF7A',
     borderWidth: 2,
     borderColor: '#FFFFFF',
     zIndex: 3,
@@ -38,7 +38,7 @@ const styles = StyleSheet.create({
     left: 27,      // center of 1.5px line at x = 28
     bottom: 0,
     width: 1.5,
-    backgroundColor: '#6DA963',
+    backgroundColor: '#8EFF7A',
     zIndex: 1,
   },
 });

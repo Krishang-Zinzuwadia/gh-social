@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
-import { ScrollView, View, Text } from "react-native";
+import { ScrollView, View, Text, Pressable } from "react-native";
 
 import ProgressBar from "@/components/onboarding/ProgressBar";
 import PrimaryButton from "@/components/onboarding/PrimaryButton";
@@ -42,7 +42,8 @@ export default function Step3() {
       }}
       showsVerticalScrollIndicator={false}
     >
-      <Text
+      <View style={{ maxWidth: 450, width: "100%", alignSelf: "center" }}>
+        <Text
         style={{
           color: "#F0F6EB",
           fontSize: 18,
@@ -127,6 +128,23 @@ export default function Step3() {
           disabled={selectedInterests.length < 5}
         />
       </View>
+
+      <Pressable
+        accessibilityRole="button"
+        onPress={completeOnboarding}
+        style={{ marginTop: 12, paddingVertical: 8 }}
+      >
+        <Text
+          style={{
+            color: "#8A8A8A",
+            textAlign: "center",
+            fontSize: 15,
+          }}
+        >
+          Skip for now
+        </Text>
+      </Pressable>
+    </View>
     </ScrollView>
   );
 }

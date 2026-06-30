@@ -34,7 +34,7 @@ export default function TrendingRepoCard({ repo, onPress }: TrendingRepoCardProp
       <View className="flex-row items-center mb-2.5" style={{ gap: 8 }}>
         {repo.hasIcon && (
           <View className="w-7 h-7 bg-[#142918] rounded-md items-center justify-center border border-[#1B4322]">
-            <MonitorIcon stroke="#6DA963" width={14} height={14} />
+            <MonitorIcon stroke="#8EFF7A" width={14} height={14} />
           </View>
         )}
         <Text

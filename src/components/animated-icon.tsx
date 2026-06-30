@@ -1,8 +1,7 @@
-import { View } from 'react-native';
+import { View, Dimensions } from 'react-native';
 import Animated, { Easing, Keyframe } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 import { useState } from 'react';
-import { Dimensions } from 'react-native';
 
 const INITIAL_SCALE_FACTOR = Dimensions.get('screen').height / 90;
 const DURATION = 600;

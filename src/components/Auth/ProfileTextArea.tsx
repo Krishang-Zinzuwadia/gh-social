@@ -17,7 +17,7 @@ export default function ProfileTextArea() {
         placeholder="Tell us about yourself!"
         placeholderTextColor="#666"
         className="bg-[#191F18]
- border border-[#6DA963]
+ border border-[#8EFF7A]
  rounded-xl
  h-[90px]
  px-5

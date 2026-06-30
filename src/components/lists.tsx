@@ -21,7 +21,7 @@ export default function Lists() {
 
   if (isTablet) {
     return (
-      <View className="w-full border border-[#6DA963] rounded-[10px] bg-[#191F18] px-4 pt-[24px] pb-[24px] justify-start">
+      <View className="w-full border border-[#8EFF7A] rounded-[10px] bg-[#191F18] px-4 pt-[24px] pb-[24px] justify-start">
         <View className="w-full px-1 mb-3.5 items-center">
           <Text className="text-white text-[15px] font-nataBold relative top-[-2px]">Lists</Text>
         </View>
@@ -31,7 +31,7 @@ export default function Lists() {
           ))}
 
           <View className="w-full px-1 mb-3.5 mt-4">
-            <Text className="text-[#6DA963] text-[12px] font-noto-bold relative top-[-2px]">Saved Collections</Text>
+            <Text className="text-[#8EFF7A] text-[12px] font-noto-bold relative top-[-2px]">Saved Collections</Text>
           </View>
           {savedCollections.map((item) => (
             <RecentSaves key={item.id} title={item.name} />
@@ -43,7 +43,7 @@ export default function Lists() {
 
   return (
     // Lists Box
-    <View className="w-full border border-[#6DA963] rounded-[10px] bg-[#191F18] px-4 pt-[24px] pb-[24px]">
+    <View className="w-full border border-[#8EFF7A] rounded-[10px] bg-[#191F18] px-4 pt-[24px] pb-[24px]">
       <View className="w-full px-1 mb-3.5 items-center">
         <Text className="text-white text-[15px] font-bold font-nata sans relative top-[-2px]">Lists</Text>
       </View>
@@ -54,7 +54,7 @@ export default function Lists() {
         ))}
 
         <View className="w-full px-1 mb-3.5 mt-4">
-          <Text className="text-[#6DA963] text-[12px] font-bold font-noto sans relative top-[-2px]">Saved Collections</Text>
+          <Text className="text-[#8EFF7A] text-[12px] font-bold font-noto sans relative top-[-2px]">Saved Collections</Text>
         </View>
 
         {savedCollections.map((item) => (

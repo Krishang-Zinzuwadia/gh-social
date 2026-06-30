@@ -42,7 +42,7 @@ export default function SkillCard({
       style={{
         width: "48%",
         backgroundColor: selected ? "#152418" : "#191F18",
-        borderColor: selected ? "#6DA963" : "#555252",
+borderColor: selected ? "#8EFF7A" : "#555252",
         borderWidth: 1,
         borderRadius: 12,
         paddingHorizontal: 12,

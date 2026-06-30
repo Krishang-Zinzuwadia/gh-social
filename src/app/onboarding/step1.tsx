@@ -3,6 +3,7 @@ import { router } from "expo-router";
 import {
     ScrollView,
     Text,
+    TouchableOpacity,
     View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -40,7 +41,8 @@ export default function Step1() {
           paddingBottom: 40,
         }}
       >
-        {/* Step */}
+        <View style={{ maxWidth: 450, width: "100%", alignSelf: "center" }}>
+          {/* Step */}
         <Text
           style={{
             color: "#F0F6EB",
@@ -89,7 +91,7 @@ export default function Step1() {
 
           <Text
             style={{
-              color: "#6DA963",
+              color: "#8EFF7A",
               fontSize: 38,
               fontWeight: "700",
               textAlign: "center",
@@ -154,6 +156,24 @@ export default function Step1() {
           </Text>
         )}
 
+        {/* Show More */}
+        <TouchableOpacity
+          style={{
+            alignItems: "center",
+            marginTop: 12,
+          }}
+        >
+          <Text
+            style={{
+              color: "#8EFF7A",
+              fontSize: 22,
+              fontWeight: "600",
+            }}
+          >
+            + Show more
+          </Text>
+        </TouchableOpacity>
+
         {/* Continue */}
         <View style={{ marginTop: selectedCategories.length < 2 ? 8 : 24 }}>
           <PrimaryButton
@@ -161,6 +181,25 @@ export default function Step1() {
             onPress={handleContinue}
             disabled={selectedCategories.length < 2}
           />
+        </View>
+
+        {/* Skip */}
+        <TouchableOpacity
+          onPress={() => router.push("/onboarding/step2")}
+          style={{
+            alignItems: "center",
+            marginTop: 12,
+          }}
+        >
+          <Text
+            style={{
+              color: "#8A8A8A",
+              fontSize: 18,
+            }}
+          >
+            Skip for now
+          </Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
     </SafeAreaView>

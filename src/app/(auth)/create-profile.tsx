@@ -29,7 +29,7 @@ export default function CreateProfile() {
       showsVerticalScrollIndicator={false}
       contentContainerStyle={{ paddingBottom: 50 }}
     >
-      <View className="px-8 pt-14">
+      <View className="px-8 pt-14 w-full" style={{ maxWidth: 450, alignSelf: 'center' }}>
 
         {/* Avatar */}
         <ProfileAvatar />
@@ -41,7 +41,7 @@ export default function CreateProfile() {
             className="text-white text-[32px] text-center font-nataBold"
           >
             Create{" "}
-            <Text className="text-[#6DA963] font-nataBold">
+            <Text className="text-[#8EFF7A] font-nataBold">
               your account
             </Text>
           </Text>

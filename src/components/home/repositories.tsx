@@ -1,6 +1,6 @@
 import { View, Text, useWindowDimensions } from "react-native"
 import Svg, { Path, Circle } from "react-native-svg"
-import RecentPins from "./recentpins"
+import RecentPins from "../recentpins"
 
 export default function Repositories() {
   const { width } = useWindowDimensions();
@@ -21,7 +21,7 @@ export default function Repositories() {
 
   if (isTablet) {
     return (
-      <View className="w-full border border-[#6DA963] rounded-[10px] bg-[#191F18] px-4 pt-[24px] pb-[24px] justify-start relative overflow-visible">
+      <View className="w-full border border-[#8EFF7A] rounded-[10px] bg-[#191F18] px-4 pt-[24px] pb-[24px] justify-start relative overflow-visible">
         {/* Right segment (aligned to left of Repositories tab) */}
         <Svg
           pointerEvents="none"
@@ -36,9 +36,9 @@ export default function Repositories() {
           viewBox="0 0 20 30"
           fill="none"
         >
-          <Circle cx={16} cy={4} r={3.5} stroke="#6DA963" />
-          <Circle cx={16} cy={4} r={1.9} fill="white" stroke="#6DA963" />
-          <Path d="M16 7.5 L16 22 Q16 28 10 28 L0 28" stroke="#6DA963" strokeWidth="1.5" fill="none" />
+          <Circle cx={16} cy={4} r={3.5} stroke="#8EFF7A" />
+          <Circle cx={16} cy={4} r={1.9} fill="white" stroke="#8EFF7A" />
+          <Path d="M16 7.5 L16 22 Q16 28 10 28 L0 28" stroke="#8EFF7A" strokeWidth="1.5" fill="none" />
         </Svg>
 
         {/* Floating middle line */}
@@ -51,7 +51,7 @@ export default function Repositories() {
             marginRight: 16,
             top: -14.5,
             height: 1.5,
-            backgroundColor: '#6DA963'
+            backgroundColor: '#8EFF7A'
           }}
         />
 
@@ -68,9 +68,9 @@ export default function Repositories() {
           viewBox="0 0 16 20"
           fill="none"
         >
-          <Circle cx={8} cy={4} r={3.5} stroke="#6DA963" />
-          <Circle cx={8} cy={4} r={1.9} fill="white" stroke="#6DA963" />
-          <Path d="M8 7.5 L8 20" stroke="#6DA963" strokeWidth="1.5" fill="none" />
+          <Circle cx={8} cy={4} r={3.5} stroke="#8EFF7A" />
+          <Circle cx={8} cy={4} r={1.9} fill="white" stroke="#8EFF7A" />
+          <Path d="M8 7.5 L8 20" stroke="#8EFF7A" strokeWidth="1.5" fill="none" />
         </Svg>
 
         <View style={{ width: '100%' }}>
@@ -79,7 +79,7 @@ export default function Repositories() {
           ))}
 
           <View className="w-full px-1 mb-3.5 mt-4">
-            <Text className="text-[#6DA963] text-[12px] font-bold font-noto relative top-[-2px]">All Repositories</Text>
+            <Text className="text-[#8EFF7A] text-[12px] font-bold font-noto relative top-[-2px]">All Repositories</Text>
           </View>
 
           {allRepos.map((item) => (
@@ -92,7 +92,7 @@ export default function Repositories() {
 
   return (
     // Repositories Box
-    <View className="w-full border border-[#6DA963] rounded-[10px] bg-[#191F18] px-4 pt-[24px] pb-[24px] relative overflow-visible">
+    <View className="w-full border border-[#8EFF7A] rounded-[10px] bg-[#191F18] px-4 pt-[24px] pb-[24px] relative overflow-visible">
         {/* Right segment (aligned to left of Repositories tab) */}
         <Svg
           pointerEvents="none"
@@ -107,9 +107,9 @@ export default function Repositories() {
           viewBox="0 0 20 30"
           fill="none"
         >
-          <Circle cx={16} cy={4} r={3.5} stroke="#6DA963" />
-          <Circle cx={16} cy={4} r={1.9} fill="white" stroke="#6DA963" />
-          <Path d="M16 7.5 L16 22 Q16 28 10 28 L0 28" stroke="#6DA963" strokeWidth="1.5" fill="none" />
+          <Circle cx={16} cy={4} r={3.5} stroke="#8EFF7A" />
+          <Circle cx={16} cy={4} r={1.9} fill="white" stroke="#8EFF7A" />
+          <Path d="M16 7.5 L16 22 Q16 28 10 28 L0 28" stroke="#8EFF7A" strokeWidth="1.5" fill="none" />
         </Svg>
 
         {/* Floating middle line */}
@@ -122,7 +122,7 @@ export default function Repositories() {
             marginRight: 16,
             top: -14.5,
             height: 1.5,
-            backgroundColor: '#6DA963'
+            backgroundColor: '#8EFF7A'
           }}
         />
 
@@ -139,9 +139,9 @@ export default function Repositories() {
           viewBox="0 0 16 20"
           fill="none"
         >
-          <Circle cx={8} cy={4} r={3.5} stroke="#6DA963" />
-          <Circle cx={8} cy={4} r={1.9} fill="white" stroke="#6DA963" />
-          <Path d="M8 7.5 L8 20" stroke="#6DA963" strokeWidth="1.5" fill="none" />
+          <Circle cx={8} cy={4} r={3.5} stroke="#8EFF7A" />
+          <Circle cx={8} cy={4} r={1.9} fill="white" stroke="#8EFF7A" />
+          <Path d="M8 7.5 L8 20" stroke="#8EFF7A" strokeWidth="1.5" fill="none" />
         </Svg>
         
       <View style={{ width: '100%' }}>
@@ -150,7 +150,7 @@ export default function Repositories() {
         ))}
 
         <View className="w-full px-1 mb-[13px] mt-4">
-          <Text className="text-[#6DA963] text-[12px] font-bold font-noto relative top-[-2px]">All Repositories</Text>
+          <Text className="text-[#8EFF7A] text-[12px] font-bold font-noto relative top-[-2px]">All Repositories</Text>
         </View>
 
         {allRepos.map((item) => (

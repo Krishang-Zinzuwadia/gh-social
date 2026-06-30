@@ -48,7 +48,7 @@ export default function ProfileDateInput({ value, onChangeText }: ProfileDateInp
           w-full
           h-[56px]
           bg-[#191F18]
-          border border-[#6DA963]
+          border border-[#8EFF7A]
           rounded-xl
           px-5
           flex-row

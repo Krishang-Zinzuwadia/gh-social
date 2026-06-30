@@ -10,7 +10,7 @@ export default function PrimaryButton({
 }: PrimaryButtonProps) {
   return (
     <TouchableOpacity
-      className="bg-[#6DA963] h-[52px] rounded-[9px] items-center justify-center"
+      className="bg-[#8EFF7A] h-[52px] rounded-[9px] items-center justify-center"
       activeOpacity={0.8}
       {...props}
     >

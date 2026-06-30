@@ -33,7 +33,7 @@ export default function LoginScreen() {
       showsVerticalScrollIndicator={false}
       contentContainerStyle={{ paddingBottom: 40 }}
     >
-      <View className="px-8 pt-14">
+      <View className="px-8 pt-14 w-full" style={{ maxWidth: 450, alignSelf: 'center' }}>
 
         {/* Logo */}
         <View className="items-center">

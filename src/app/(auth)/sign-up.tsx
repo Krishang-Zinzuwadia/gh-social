@@ -21,14 +21,15 @@ export default function SignUpScreen() {
         }}
         showsVerticalScrollIndicator={false}
       >
-        <View className="items-center mb-10">
-          <LogoCircle size={190} />
-        </View>
+        <View style={{ maxWidth: 450, width: '100%', alignSelf: 'center' }}>
+          <View className="items-center mb-10">
+            <LogoCircle size={190} />
+          </View>
 
         <View className="mb-10 items-center">
           <Text className="text-white text-3xl leading-tight text-center font-nataBold">
             Join the{' '}
-            <Text className="text-[#6DA963] font-nataBold">dev community</Text>
+            <Text className="text-[#8EFF7A] font-nataBold">dev community</Text>
           </Text>
           <Text className="text-white/50 text-sm mt-2 text-center font-nata">
             Connect. Collaborate. Work Together.
@@ -48,7 +49,7 @@ export default function SignUpScreen() {
           />
           <SocialButton
             label="Continue with Email"
-            icon={<MailIcon size={20} color="#6DA963" />}
+            icon={<MailIcon size={20} color="#8EFF7A" />}
             showChevron
             onPress={() => router.push('/(auth)/sign-up-email')}
           />
@@ -66,9 +67,10 @@ export default function SignUpScreen() {
 
         <Text className="text-white/30 text-[16px] text-center mt-6 leading-6 font-nata">
           By signing up, you agree to our{'\n'}
-          <Text className="text-[#6DA963] font-nata">Terms of Service</Text>{' '}
-          and <Text className="text-[#6DA963] font-nata">Privacy Policy</Text>.
+          <Text className="text-[#8EFF7A] font-nata">Terms of Service</Text>{' '}
+          and <Text className="text-[#8EFF7A] font-nata">Privacy Policy</Text>.
         </Text>
+        </View>
       </ScrollView>
     </View>
   );

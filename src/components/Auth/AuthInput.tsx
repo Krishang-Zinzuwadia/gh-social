@@ -14,7 +14,7 @@ export default function AuthInput({
   ...rest
 }: Props) {
   return (
-    <View className="h-[46px] border border-[#6DA963] rounded-xl bg-[#191F18] px-4 flex-row items-center">
+    <View className="h-[46px] border border-[#8EFF7A] rounded-xl bg-[#191F18] px-4 flex-row items-center">
       {icon === "user" && <View className="mr-3"><UserIcon /></View>}
       {icon === "mail" && <View className="mr-3"><MailIcon /></View>}
       {icon === "eye" && <View className="mr-3"><EyeIcon /></View>}

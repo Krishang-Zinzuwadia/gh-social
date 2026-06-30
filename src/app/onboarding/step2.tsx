@@ -23,7 +23,8 @@ export default function Step2() {
           paddingBottom: 40,
         }}
       >
-        {/* Step */}
+        <View style={{ maxWidth: 450, width: "100%", alignSelf: "center" }}>
+          {/* Step */}
         <Text
           style={{
             color: "#F0F6EB",
@@ -72,7 +73,7 @@ export default function Step2() {
 
           <Text
             style={{
-              color: "#6DA963",
+              color: "#8EFF7A",
               fontSize: 40,
               fontWeight: "700",
               textAlign: "center",
@@ -111,7 +112,7 @@ export default function Step2() {
             style={{
               backgroundColor: "#151515",
               borderWidth: 1,
-              borderColor: "#6DA963",
+              borderColor: "#8EFF7A",
               borderRadius: 12,
               padding: 14,
               color: "white",
@@ -183,6 +184,7 @@ export default function Step2() {
             Skip for now
           </Text>
         </TouchableOpacity>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );

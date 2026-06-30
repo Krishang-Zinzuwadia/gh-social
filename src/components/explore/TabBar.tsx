@@ -24,14 +24,14 @@ export default function TabBar({ activeTab, onTabChange }: TabBarProps): React.J
             className="pb-3"
             style={{
               borderBottomWidth: isActive ? 2 : 0,
-              borderBottomColor: isActive ? '#6DA963' : 'transparent',
+              borderBottomColor: isActive ? '#8EFF7A' : 'transparent',
             }}
           >
             <Text
               className="text-xs"
               style={[
                 isActive ? bold : regular,
-                { color: isActive ? '#6DA963' : '#8E8E93' }
+                { color: isActive ? '#8EFF7A' : '#8E8E93' }
               ]}
             >
               {tab}

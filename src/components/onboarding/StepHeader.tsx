@@ -31,7 +31,7 @@ export default function StepHeader({
 
       <Text
         style={{
-          color: "#6DA963",
+          color: "#8EFF7A",
           fontSize: 32,
           fontWeight: "700",
           textAlign: "center",

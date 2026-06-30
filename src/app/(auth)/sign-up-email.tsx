@@ -45,7 +45,7 @@ export default function SignUpEmail() {
       showsVerticalScrollIndicator={false}
       contentContainerStyle={{ paddingBottom: 40 }}
     >
-      <View className="px-8 pt-14">
+      <View className="px-8 pt-14 w-full" style={{ maxWidth: 450, alignSelf: 'center' }}>
 
         <View className="items-center">
             <LogoCircle />
@@ -56,7 +56,7 @@ export default function SignUpEmail() {
             Create your
           </Text>
 
-          <Text className="font-nataBold text-[#6DA963] text-[28px] text-center">
+          <Text className="font-nataBold text-[#8EFF7A] text-[28px] text-center">
             developer profile
           </Text>
 

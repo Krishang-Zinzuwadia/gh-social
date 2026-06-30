@@ -21,10 +21,7 @@ export default function Lists() {
 
   if (isTablet) {
     return (
-      <View className="w-full border border-[#6DA963] rounded-[10px] bg-[#191F18] px-4 pt-[24px] pb-[24px] justify-start">
-        <View className="w-full px-1 mb-3.5 items-center">
-          <Text className="text-white text-[15px] font-nataBold relative top-[-2px]">Lists</Text>
-        </View>
+      <View className="w-full border border-[#6DA963] rounded-[10px] bg-[#191F18] px-4 pt-[32px] pb-[24px] justify-center">
         <View style={{ width: '100%' }}>
           {pinnedLists.map((item) => (
             <RecentPins key={item.id} title={item.pin} isPinned={true} />
@@ -43,11 +40,7 @@ export default function Lists() {
 
   return (
     // Lists Box
-    <View className="w-full border border-[#6DA963] rounded-[10px] bg-[#191F18] px-4 pt-[24px] pb-[24px]">
-      <View className="w-full px-1 mb-3.5 items-center">
-        <Text className="text-white text-[15px] font-bold font-nata sans relative top-[-2px]">Lists</Text>
-      </View>
-      
+    <View className="w-full border border-[#6DA963] rounded-[10px] bg-[#191F18] px-4 pt-[32px] pb-[24px] justify-center">
       <View style={{ width: '100%' }}>
         {pinnedLists.map((item) => (
           <RecentPins key={item.id} title={item.pin} isPinned={true} />

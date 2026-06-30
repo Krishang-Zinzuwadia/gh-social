@@ -70,7 +70,6 @@ export const APP_THEME = {
   inactiveAccent: '#FFFFFF',
   borderDark: '#242524',
   tabBarBackground: '#0D0E0D',
-  tabBarBorder: '#2E3D2E',
 } as const;
 
 

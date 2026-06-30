@@ -70,7 +70,7 @@ export default function ProfileScreen() {
           contentContainerStyle={{
             flexGrow: 1,
             alignItems: "center",
-            paddingBottom: isTablet ? 20 : 20,
+            paddingBottom: 20,
           }}
         >
           {/* ── Main Layout Container ── */}

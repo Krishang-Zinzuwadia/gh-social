@@ -20,7 +20,11 @@ export class FeedService {
   private flattenRecommendationBatches(batches: MlRecommendationBatches): unknown[] {
     return Object.keys(batches)
       .filter((key) => key.startsWith('batch_'))
-      .sort()
+      .sort((a, b) => {
+        const numA = parseInt(a.replace('batch_', ''), 10);
+        const numB = parseInt(b.replace('batch_', ''), 10);
+        return numA - numB;
+      })
       .flatMap((key) => {
         const batch = batches[key];
         return Array.isArray(batch) ? batch : [];

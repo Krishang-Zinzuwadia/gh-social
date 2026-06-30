@@ -13,21 +13,9 @@ import PrimaryButton from "@/components/onboarding/PrimaryButton";
 import ProgressBar from "@/components/onboarding/ProgressBar";
 import TechChip from "@/components/onboarding/TechChip";
 
-import { getTechImage } from "./constants";
+import { SUGGESTED_TECHS, getTechIcon } from "@/constants/onboarding";
 
-const PREDEFINED_TECHS = [
-  "React",
-  "MongoDB",
-  "Node.js",
-  "Tailwind CSS",
-  "PostgreSQL",
-  "Next.js",
-  "TypeScript",
-  "GraphQL",
-  "Docker",
-  "Prisma",
-  "AWS",
-];
+const PREDEFINED_TECHS = SUGGESTED_TECHS.map(t => t.name);
 
 export default function Step2() {
   const { categories } = useLocalSearchParams();
@@ -180,11 +168,7 @@ export default function Step2() {
             style={{
               flex: 1,
               paddingVertical: 14,
-              backgroundColor: "#151515",
-              borderWidth: 1,
-              borderColor: "#8EFF7A",
-              borderRadius: 12,
-              padding: 14,
+              paddingHorizontal: 8,
               color: "white",
             }}
           />
@@ -214,7 +198,7 @@ export default function Step2() {
                 <TechChip
                   key={tech}
                   title={tech}
-                  image={getTechImage(tech)}
+                  image={getTechIcon(tech)}
                   selected
                   onPress={() => toggleTech(tech)}
                 />
@@ -242,7 +226,7 @@ export default function Step2() {
                 <TechChip
                   key={tech}
                   title={tech}
-                  image={getTechImage(tech)}
+                  image={getTechIcon(tech)}
                   selected={false}
                   onPress={() => toggleTech(tech)}
                 />
@@ -263,22 +247,6 @@ export default function Step2() {
           />
         </View>
 
-        <TouchableOpacity
-          onPress={() => router.push("/onboarding/step3")}
-          style={{
-            alignItems: "center",
-            marginTop: 12,
-          }}
-        >
-          <Text
-            style={{
-              color: "#8A8A8A",
-              fontSize: 18,
-            }}
-          >
-            Skip for now
-          </Text>
-        </TouchableOpacity>
         </View>
       </ScrollView>
     </SafeAreaView>

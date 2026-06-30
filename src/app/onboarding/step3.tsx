@@ -7,7 +7,7 @@ import PrimaryButton from "@/components/onboarding/PrimaryButton";
 import TechChip from "@/components/onboarding/TechChip";
 import LogoPlaceholder from "@/components/onboarding/LogoPlaceholder";
 import StepHeader from "@/components/onboarding/StepHeader";
-import { CATEGORIES, INTERESTS, getTechImage } from "./constants";
+import { INTEREST_CATEGORIES } from "@/constants/onboarding";
 
 export default function Step3() {
   const { categories } = useLocalSearchParams();
@@ -81,12 +81,8 @@ export default function Step3() {
         CHOOSE YOUR INTERESTS
       </Text>
 
-      {CATEGORIES.filter((c) => selectedCategoryIds.includes(c.id)).map((category) => {
-        const categoryInterests = INTERESTS.find(
-          (i) => i.categoryId === category.id
-        )?.keywords;
-
-        if (!categoryInterests || categoryInterests.length === 0) return null;
+      {INTEREST_CATEGORIES.filter((c) => selectedCategoryIds.includes(c.id)).map((category) => {
+        if (!category.interests || category.interests.length === 0) return null;
 
         return (
           <View key={category.id} style={{ marginBottom: 24 }}>
@@ -101,13 +97,13 @@ export default function Step3() {
               {category.title}
             </Text>
             <View className="flex-row flex-wrap">
-              {categoryInterests.map((keyword) => (
+              {category.interests.map((interest) => (
                 <TechChip
-                  key={keyword}
-                  title={keyword}
-                  image={getTechImage(keyword)}
-                  selected={selectedInterests.includes(keyword)}
-                  onPress={() => toggleInterest(keyword)}
+                  key={interest.id}
+                  title={interest.name}
+                  image={interest.icon}
+                  selected={selectedInterests.includes(interest.id)}
+                  onPress={() => toggleInterest(interest.id)}
                 />
               ))}
             </View>
@@ -129,21 +125,6 @@ export default function Step3() {
         />
       </View>
 
-      <Pressable
-        accessibilityRole="button"
-        onPress={completeOnboarding}
-        style={{ marginTop: 12, paddingVertical: 8 }}
-      >
-        <Text
-          style={{
-            color: "#8A8A8A",
-            textAlign: "center",
-            fontSize: 15,
-          }}
-        >
-          Skip for now
-        </Text>
-      </Pressable>
     </View>
     </ScrollView>
   );

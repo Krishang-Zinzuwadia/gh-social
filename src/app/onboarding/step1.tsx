@@ -11,7 +11,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import PrimaryButton from "@/components/onboarding/PrimaryButton";
 import ProgressBar from "@/components/onboarding/ProgressBar";
 import SkillCard from "@/components/onboarding/SkillCard";
-import { CATEGORIES } from "./constants";
+import { SKILL_CATEGORIES } from "@/constants/onboarding";
 
 export default function Step1() {
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
@@ -139,10 +139,10 @@ export default function Step1() {
 
         {/* Skills */}
         <View className="flex-row flex-wrap justify-between gap-y-4">
-          {CATEGORIES.map((category) => (
+          {SKILL_CATEGORIES.map((category) => (
             <SkillCard
               key={category.id}
-              image={category.image}
+              image={category.icon}
               title={category.title}
               selected={selectedCategories.includes(category.id)}
               onPress={() => toggleCategory(category.id)}
@@ -156,24 +156,6 @@ export default function Step1() {
           </Text>
         )}
 
-        {/* Show More */}
-        <TouchableOpacity
-          style={{
-            alignItems: "center",
-            marginTop: 12,
-          }}
-        >
-          <Text
-            style={{
-              color: "#8EFF7A",
-              fontSize: 22,
-              fontWeight: "600",
-            }}
-          >
-            + Show more
-          </Text>
-        </TouchableOpacity>
-
         {/* Continue */}
         <View style={{ marginTop: selectedCategories.length < 2 ? 8 : 24 }}>
           <PrimaryButton
@@ -182,24 +164,6 @@ export default function Step1() {
             disabled={selectedCategories.length < 2}
           />
         </View>
-
-        {/* Skip */}
-        <TouchableOpacity
-          onPress={() => router.push("/onboarding/step2")}
-          style={{
-            alignItems: "center",
-            marginTop: 12,
-          }}
-        >
-          <Text
-            style={{
-              color: "#8A8A8A",
-              fontSize: 18,
-            }}
-          >
-            Skip for now
-          </Text>
-          </TouchableOpacity>
         </View>
       </ScrollView>
     </SafeAreaView>

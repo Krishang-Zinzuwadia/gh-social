@@ -20,7 +20,7 @@ export default function PrimaryButton({
       disabled={disabled}
       style={{ opacity: disabled ? 0.5 : 1 }}
       className="
-        bg-[#8EFF7A]
+        bg-[#449138]
         rounded-[18px]
         py-4
         items-center

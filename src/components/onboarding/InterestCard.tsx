@@ -1,15 +1,16 @@
+import React from "react";
 import { Text, TouchableOpacity, View } from "react-native";
 
 type Props = {
   title: string;
-  icon: string;
+  image: React.ReactNode;
   selected?: boolean;
   onPress?: () => void;
 };
 
 export default function InterestCard({
   title,
-  icon,
+  image,
   selected = false,
   onPress,
 }: Props) {
@@ -41,13 +42,7 @@ export default function InterestCard({
           marginRight: 10,
         }}
       >
-        <Text
-          style={{
-            fontSize: 18,
-          }}
-        >
-          {icon}
-        </Text>
+        {image}
       </View>
 
       <Text

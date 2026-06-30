@@ -1,13 +1,16 @@
-import { Text, TouchableOpacity } from "react-native";
+import React from "react";
+import { Text, TouchableOpacity, View } from "react-native";
 
 type TechChipProps = {
   title: string;
+  image?: React.ReactNode;
   selected?: boolean;
   onPress?: () => void;
 };
 
 export default function TechChip({
   title,
+  image,
   selected = false,
   onPress,
 }: TechChipProps) {
@@ -21,6 +24,7 @@ export default function TechChip({
           : "bg-[#1A1A1A] border border-[#333]"
       }`}
     >
+      {image && <View className="mr-2">{image}</View>}
       <Text className="text-white text-sm">
         {title}
       </Text>

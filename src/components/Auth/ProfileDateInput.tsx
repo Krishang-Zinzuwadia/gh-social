@@ -1,27 +1,36 @@
-import { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, Platform } from "react-native";
+import React, { useState } from "react";
+import { View, Text, TextInput, TouchableOpacity } from "react-native";
 import { CalendarIcon } from "./icons";
+import CustomCalendar from "./CustomCalendar";
 
-let DateTimePicker: any = null;
-if (Platform.OS !== 'web') {
-  // The native picker must not be loaded into the web bundle.
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  DateTimePicker = require('@react-native-community/datetimepicker').default;
-}
+type ProfileDateInputProps = {
+  value: string;
+  onChangeText: (text: string) => void;
+};
 
-export default function ProfileDateInput() {
-  const [date, setDate] = useState(new Date());
+export default function ProfileDateInput({ value, onChangeText }: ProfileDateInputProps) {
   const [show, setShow] = useState(false);
-  const [textValue, setTextValue] = useState("");
-
-  const onChange = (event: any, selectedDate?: Date) => {
-    const currentDate = selectedDate || date;
-    setShow(Platform.OS === 'ios');
-    if (selectedDate) {
-        setDate(currentDate);
-        const formatted = `${currentDate.getDate().toString().padStart(2, '0')}/${(currentDate.getMonth() + 1).toString().padStart(2, '0')}/${currentDate.getFullYear().toString().slice(-2)}`;
-        setTextValue(formatted);
+  
+  // Parse the current string value DD/MM/YYYY back to a Date object (if valid)
+  const parseDate = (dateStr: string) => {
+    if (!dateStr) return new Date();
+    const parts = dateStr.split("/");
+    if (parts.length === 3) {
+      const d = parseInt(parts[0], 10);
+      const m = parseInt(parts[1], 10) - 1;
+      const y = parseInt(parts[2], 10);
+      return new Date(y, m, d);
     }
+    return new Date();
+  };
+
+  const selectedDate = parseDate(value);
+
+  const handleSelectDate = (date: Date) => {
+    const d = date.getDate().toString().padStart(2, '0');
+    const m = (date.getMonth() + 1).toString().padStart(2, '0');
+    const y = date.getFullYear();
+    onChangeText(`${d}/${m}/${y}`);
   };
 
   return (
@@ -32,7 +41,9 @@ export default function ProfileDateInput() {
         Date of Birth
       </Text>
 
-      <View
+      <TouchableOpacity
+        onPress={() => setShow(true)}
+        activeOpacity={0.8}
         className="
           w-full
           h-[56px]
@@ -46,27 +57,25 @@ export default function ProfileDateInput() {
         "
       >
         <TextInput
-          placeholder="DD/MM/YY"
+          placeholder="DD/MM/YYYY"
           placeholderTextColor="#666"
           className="text-white text-[15px] font-nata flex-1 outline-none"
-          value={textValue}
-          onChangeText={setTextValue}
-          keyboardType="numeric"
+          value={value}
+          editable={false}
+          pointerEvents="none"
         />
-        <TouchableOpacity onPress={() => setShow(true)} className="p-2 -mr-2">
+        <View className="p-2 -mr-2">
           <CalendarIcon size={20} color="#727272" />
-        </TouchableOpacity>
-      </View>
+        </View>
+      </TouchableOpacity>
 
-      {show && Platform.OS !== 'web' && DateTimePicker && (
-        <DateTimePicker
-          testID="dateTimePicker"
-          value={date}
-          mode="date"
-          display="default"
-          onChange={onChange}
-        />
-      )}
+      <CustomCalendar
+        visible={show}
+        onClose={() => setShow(false)}
+        selectedDate={selectedDate}
+        onSelectDate={handleSelectDate}
+        maxDate={new Date()}
+      />
     </View>
   );
 }

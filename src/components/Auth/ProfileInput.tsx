@@ -21,7 +21,7 @@ export default function ProfileInput({
       <View
         className="h-[56px]
         bg-[#191F18]
-        border border-[#6DA963]
+        border border-[#8EFF7A]
         rounded-xl
         px-5
         justify-center"

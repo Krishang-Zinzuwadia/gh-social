@@ -16,7 +16,7 @@ export default function PrimaryButton({
     <TouchableOpacity
       onPress={onPress}
       className="
-        bg-[#6DA963]
+        bg-[#8EFF7A]
         rounded-[18px]
         py-4
         items-center

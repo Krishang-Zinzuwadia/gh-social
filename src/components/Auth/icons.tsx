@@ -1,7 +1,7 @@
 import { Calendar, Camera, User, Mail, ChevronRight, Eye } from 'lucide-react-native';
 import Svg, { Path } from "react-native-svg";
 
-export function ChevronRightIcon({ size = 20, color = "#6DA963" }) {
+export function ChevronRightIcon({ size = 20, color = "#8EFF7A" }) {
   return <ChevronRight size={size} color={color} />;
 }
 
@@ -36,15 +36,15 @@ export function GithubIcon({ size = 20, color = "#ffffff" }) {
   );
 }
 
-export function MailIcon({ size = 20, color = "#6DA963" }) {
+export function MailIcon({ size = 20, color = "#8EFF7A" }) {
   return <Mail size={size} color={color} />;
 }
 
-export function CalendarIcon({ size = 20, color = "#6DA963" }) {
+export function CalendarIcon({ size = 20, color = "#8EFF7A" }) {
   return <Calendar size={size} color={color} />;
 }
 
-export function CameraIcon({ size = 24, color = "#6DA963" }) {
+export function CameraIcon({ size = 24, color = "#8EFF7A" }) {
   return <Camera size={size} color={color} />;
 }
 

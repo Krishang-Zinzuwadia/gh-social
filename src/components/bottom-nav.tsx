@@ -47,7 +47,7 @@ export function BottomNav({ activeTab, onTabPress }: BottomNavProps) {
               style={({ pressed }) => [styles.tab, pressed && styles.pressed]}
             >
               <Icon
-                color={selected ? '#6DA963' : '#FFFFFF'}
+                color={selected ? '#8EFF7A' : '#FFFFFF'}
                 size={selected ? 31 : 28}
                 strokeWidth={selected ? 2.5 : 2.4}
               />

@@ -1,6 +1,11 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import Svg, { Circle, Ellipse, Path, Rect, Text as SvgText } from 'react-native-svg';
+import Svg, { Circle, Path, Rect, Text as SvgText } from 'react-native-svg';
+
+import ReactLogoSvg from '../../assets/icons/react.svg';
+import PythonLogoSvg from '../../assets/icons/python.svg';
+import MongoDBLogoSvg from '../../assets/icons/Vector (7).svg';
+import TailwindLogoSvg from '../../assets/icons/tailwind.svg';
 
 interface RepoCardProps {
   label: string;
@@ -11,14 +16,7 @@ interface RepoCardProps {
 
 // High-fidelity Inline SVGs for brand logos
 function ReactLogo() {
-  return (
-    <Svg viewBox="-11.5 -10.23 23 20.46" width={11} height={11}>
-      <Circle cx="0" cy="0" r="2.05" fill="#61DAFB" />
-      <Ellipse rx="11" ry="4.2" fill="none" stroke="#61DAFB" strokeWidth="1" transform="rotate(0)" />
-      <Ellipse rx="11" ry="4.2" fill="none" stroke="#61DAFB" strokeWidth="1" transform="rotate(60)" />
-      <Ellipse rx="11" ry="4.2" fill="none" stroke="#61DAFB" strokeWidth="1" transform="rotate(120)" />
-    </Svg>
-  );
+  return <ReactLogoSvg width={11} height={11} />;
 }
 
 function NodeLogo() {
@@ -30,12 +28,7 @@ function NodeLogo() {
 }
 
 function PythonLogo() {
-  return (
-    <Svg viewBox="0 0 24 24" width={11} height={11}>
-      <Path fill="#3776AB" d="M11.93 2c-2.67 0-4.96.2-4.96 2.5v1.88h5V7.5H7.07c-1.84 0-3.3 1.34-3.3 3.12v2.3h2.08v-1.88c0-1.25.92-2.3 2.08-2.3h5V7.07c0-2.3-2.3-3.07-5-3.07z" />
-      <Path fill="#FFE873" d="M12.07 22c2.67 0 4.96-.2 4.96-2.5v-1.88h-5v-1.12h4.9c1.84 0 3.3-1.34 3.3-3.12v-2.3H18.15v1.88c0 1.25-.92 2.3-2.08 2.3h-5v1.67c0 2.3 2.3 3.07 5 3.07z" />
-    </Svg>
-  );
+  return <PythonLogoSvg width={11} height={11} />;
 }
 
 function TSLogo() {
@@ -48,11 +41,7 @@ function TSLogo() {
 }
 
 function MongoDBLogo() {
-  return (
-    <Svg viewBox="0 0 24 24" width={11} height={11}>
-      <Path fill="#47A248" d="M12 2c0 0-5.5 4.5-5.5 10.5S10 20.5 12 22c2-1.5 5.5-3.5 5.5-9.5S12 2 12 2zm0 17c-1.5-1-4-3-4-6.5S10.5 6 12 4.5c1.5 1.5 4 4.5 4 8s-2.5 5.5-4 6.5z" />
-    </Svg>
-  );
+  return <MongoDBLogoSvg width={11} height={11} />;
 }
 
 function DockerLogo() {
@@ -73,11 +62,7 @@ function NextLogo() {
 }
 
 function TailwindLogo() {
-  return (
-    <Svg viewBox="0 0 24 24" width={11} height={11}>
-      <Path fill="#06B6D4" d="M12 6c0 0-3 3-6 3-3.6 0-4.8 3-4.8 3s3-3 6-3c3.6 0 4.8 3 4.8 3s-3 3-6 3c-3.6 0-4.8 3-4.8 3s3-3 6-3c3.6 0 4.8 3 4.8 3s3.6-3 7.2-3c3 0 6 3 6 3s-3-3-6-3c-3.6 0-4.8-3-4.8-3s3-3 6-3c3.6 0 4.8 3 4.8 3s-3-3-6-3c-3.6 0-4.8-3-4.8-3z" />
-    </Svg>
-  );
+  return <TailwindLogoSvg width={11} height={11} />;
 }
 
 function GitLogo() {
@@ -142,7 +127,7 @@ const styles = StyleSheet.create({
     width: '100%',
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#6DA963',
+    borderColor: '#8EFF7A',
     backgroundColor: '#273126',
     overflow: 'hidden',
   },
@@ -163,7 +148,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   sectionLabel: {
-    color: '#6DA963',
+    color: '#8EFF7A',
     fontFamily: 'NataSans-Medium',
     fontSize: 11,
     letterSpacing: 0,
@@ -176,7 +161,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   techStackTitle: {
-    color: '#6DA963',
+    color: '#8EFF7A',
     fontFamily: 'NataSans-Medium',
     fontSize: 11,
     letterSpacing: 0,

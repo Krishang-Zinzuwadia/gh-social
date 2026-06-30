@@ -21,7 +21,7 @@ export default function SocialButton({
 }: SocialButtonProps) {
   return (
     <TouchableOpacity
-      className="flex-row items-center bg-[#191F18] border-2 border-[#6DA963] rounded-[9px] h-[61px] px-4"
+      className="flex-row items-center bg-[#191F18] border-2 border-[#8EFF7A] rounded-[9px] h-[61px] px-4"
       activeOpacity={0.75}
       {...props}
     >
@@ -36,7 +36,7 @@ export default function SocialButton({
       </Text>
 
       {showChevron && (
-        <ChevronRightIcon size={20} color="#6DA963" />
+        <ChevronRightIcon size={20} color="#8EFF7A" />
       )}
     </TouchableOpacity>
   );

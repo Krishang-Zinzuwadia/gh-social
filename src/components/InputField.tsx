@@ -7,7 +7,7 @@ interface InputFieldProps extends TextInputProps {
 
 export default function InputField({ onArrowPress, ...props }: InputFieldProps) {
   return (
-    <View className="flex-row items-center bg-[#191F18] border-2 border-[#6DA963] rounded-[9px] h-[61px] px-4">
+    <View className="flex-row items-center bg-[#191F18] border-2 border-[#8EFF7A] rounded-[9px] h-[61px] px-4">
       <TextInput
         className="flex-1 text-white text-base font-nata"
         placeholderTextColor="rgba(255,255,255,0.45)"
@@ -15,7 +15,7 @@ export default function InputField({ onArrowPress, ...props }: InputFieldProps) 
         {...props}
       />
       <TouchableOpacity onPress={onArrowPress} className="ml-2">
-        <ChevronRightIcon size={20} color="#6DA963" />
+        <ChevronRightIcon size={20} color="#8EFF7A" />
       </TouchableOpacity>
     </View>
   );

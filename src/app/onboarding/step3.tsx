@@ -25,7 +25,8 @@ export default function Step3() {
       }}
       showsVerticalScrollIndicator={false}
     >
-      <Text
+      <View style={{ maxWidth: 450, width: "100%", alignSelf: "center" }}>
+        <Text
         style={{
           color: "#F0F6EB",
           fontSize: 18,
@@ -108,6 +109,7 @@ export default function Step3() {
           Skip for now
         </Text>
       </Pressable>
+    </View>
     </ScrollView>
   );
 }

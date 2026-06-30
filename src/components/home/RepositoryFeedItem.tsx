@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo, useRef } from 'react';
-import { Animated, Easing, PanResponder, Platform, StyleSheet, View, type ViewStyle } from 'react-native';
+import { Animated, Easing, PanResponder, Platform, StyleSheet, View, type ViewStyle, GestureResponderEvent } from 'react-native';
 import { RepositoryData } from '../../data/repositories';
 import { RepositoryScreen } from './RepositoryScreen';
 import { SavePopup } from './save-popup';
@@ -78,43 +78,47 @@ export function RepositoryFeedItem({
   const touchStartXRef = useRef(0);
   const touchStartYRef = useRef(0);
 
-  const edgePanResponder = PanResponder.create({
-    onStartShouldSetPanResponder: () => true,
-    onStartShouldSetPanResponderCapture: () => true,
-    onMoveShouldSetPanResponder: (_, gestureState) =>
-      gestureState.dx > 2 && Math.abs(gestureState.dx) > Math.abs(gestureState.dy),
-    onMoveShouldSetPanResponderCapture: (_, gestureState) =>
-      gestureState.dx > 2 && Math.abs(gestureState.dx) > Math.abs(gestureState.dy),
-    onShouldBlockNativeResponder: () => true,
-    onPanResponderGrant: () => {
-      setIsEdgeGestureActive(true);
-      setIsPopupVisible(true);
-      drawerTranslateX.stopAnimation();
-      drawerOverlayOpacity.stopAnimation();
-      drawerTranslateX.setValue(-panelWidth);
-      drawerOverlayOpacity.setValue(0);
-    },
-    onPanResponderMove: (_, gestureState) => {
-      if (gestureState.dx <= 0 || Math.abs(gestureState.dx) < Math.abs(gestureState.dy)) return;
-      const nextPanelX = clampNumber(-panelWidth + gestureState.dx, -panelWidth, 0);
-      const openProgress = (nextPanelX + panelWidth) / panelWidth;
-      drawerTranslateX.setValue(nextPanelX);
-      drawerOverlayOpacity.setValue(openProgress);
-    },
-    onPanResponderRelease: (_, gestureState) => {
-      setIsEdgeGestureActive(false);
-      if (gestureState.dx > panelWidth * 0.4) {
-        openSaveDrawer();
-      } else {
-        closeSaveDrawer();
-      }
-    },
-    onPanResponderTerminate: () => {
-      closeSaveDrawer();
-    },
-  });
+  const edgePanResponder = useMemo(
+    () =>
+      PanResponder.create({
+        onStartShouldSetPanResponder: () => true,
+        onStartShouldSetPanResponderCapture: () => true,
+        onMoveShouldSetPanResponder: (_, gestureState) =>
+          gestureState.dx > 2 && Math.abs(gestureState.dx) > Math.abs(gestureState.dy),
+        onMoveShouldSetPanResponderCapture: (_, gestureState) =>
+          gestureState.dx > 2 && Math.abs(gestureState.dx) > Math.abs(gestureState.dy),
+        onShouldBlockNativeResponder: () => true,
+        onPanResponderGrant: () => {
+          setIsEdgeGestureActive(true);
+          setIsPopupVisible(true);
+          drawerTranslateX.stopAnimation();
+          drawerOverlayOpacity.stopAnimation();
+          drawerTranslateX.setValue(-panelWidth);
+          drawerOverlayOpacity.setValue(0);
+        },
+        onPanResponderMove: (_, gestureState) => {
+          if (gestureState.dx <= 0 || Math.abs(gestureState.dx) < Math.abs(gestureState.dy)) return;
+          const nextPanelX = clampNumber(-panelWidth + gestureState.dx, -panelWidth, 0);
+          const openProgress = (nextPanelX + panelWidth) / panelWidth;
+          drawerTranslateX.setValue(nextPanelX);
+          drawerOverlayOpacity.setValue(openProgress);
+        },
+        onPanResponderRelease: (_, gestureState) => {
+          setIsEdgeGestureActive(false);
+          if (gestureState.dx > panelWidth * 0.4) {
+            openSaveDrawer();
+          } else {
+            closeSaveDrawer();
+          }
+        },
+        onPanResponderTerminate: () => {
+          closeSaveDrawer();
+        },
+      }),
+    [drawerTranslateX, drawerOverlayOpacity, panelWidth, openSaveDrawer, closeSaveDrawer]
+  );
 
-  const handleTouchStart = (e: any) => {
+  const handleTouchStart = (e: GestureResponderEvent) => {
     if (isReadmeVisible || isPopupVisible) return;
     const pageX = e.nativeEvent.pageX ?? e.nativeEvent.touches?.[0]?.pageX ?? 0;
     const pageY = e.nativeEvent.pageY ?? e.nativeEvent.touches?.[0]?.pageY ?? 0;
@@ -124,7 +128,7 @@ export function RepositoryFeedItem({
     isDraggingRef.current = false;
   };
 
-  const handleTouchMove = (e: any) => {
+  const handleTouchMove = (e: GestureResponderEvent) => {
     if (!touchActive) return;
     const pageX = e.nativeEvent.pageX ?? e.nativeEvent.touches?.[0]?.pageX ?? 0;
     const pageY = e.nativeEvent.pageY ?? e.nativeEvent.touches?.[0]?.pageY ?? 0;

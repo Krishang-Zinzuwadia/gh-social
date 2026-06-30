@@ -8,12 +8,18 @@ import {
   PythonLogoIcon,
   AndroidLogoIcon,
 } from '@/components/icons';
+import { RepositoryData } from '../../data/repositories';
 import StackFillSvg from '../../assets/icons/ri_stack-fill.svg';
 import CommentSvg from '../../assets/icons/Vector (3).svg';
 
-type RepositoryData = {
-  description: string;
-  techStack?: string[];
+const ICON_MAP: Record<string, React.FC<{ size?: number }>> = {
+  'React': ReactLogoIcon,
+  'MongoDB': MongoDBLogoIcon,
+  'Tailwind': TailwindLogoIcon,
+  'Javascript': JavaLogoIcon,
+  'JavaScript': JavaLogoIcon,
+  'Python': PythonLogoIcon,
+  'Android SDK': AndroidLogoIcon,
 };
 
 type DescriptionCardProps = {
@@ -39,30 +45,16 @@ export default function DescriptionCard({ repository, height, isSmallPhone }: De
         <Text style={styles.customCardTitle}>Tech Stack</Text>
       </View>
       <View style={styles.techStackGrid}>
-        <View style={styles.techStackItem}>
-          <ReactLogoIcon size={26} />
-          <Text style={styles.techStackLabel}>React</Text>
-        </View>
-        <View style={styles.techStackItem}>
-          <MongoDBLogoIcon size={26} />
-          <Text style={styles.techStackLabel}>MongoDB</Text>
-        </View>
-        <View style={styles.techStackItem}>
-          <TailwindLogoIcon size={26} />
-          <Text style={styles.techStackLabel}>Tailwind</Text>
-        </View>
-        <View style={styles.techStackItem}>
-          <JavaLogoIcon size={24} />
-          <Text style={styles.techStackLabel}>Javascript</Text>
-        </View>
-        <View style={styles.techStackItem}>
-          <PythonLogoIcon size={26} />
-          <Text style={styles.techStackLabel}>Python</Text>
-        </View>
-        <View style={styles.techStackItem}>
-          <AndroidLogoIcon size={26} />
-          <Text style={styles.techStackLabel}>Android SDK</Text>
-        </View>
+        {repository.techStack?.map((tech) => {
+          const Icon = ICON_MAP[tech];
+          if (!Icon) return null;
+          return (
+            <View key={tech} style={styles.techStackItem}>
+              <Icon size={tech === 'Javascript' || tech === 'JavaScript' ? 24 : 26} />
+              <Text style={styles.techStackLabel}>{tech}</Text>
+            </View>
+          );
+        })}
       </View>
     </View>
   );

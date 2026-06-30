@@ -1,32 +1,12 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { FlatList, Platform, StyleSheet, useWindowDimensions, View, type ViewStyle } from 'react-native';
 import { getResponsiveContentWidth } from '@/components/responsive-layout';
-import { REPOSITORIES } from '@/data/repositories';
+import { REPOSITORIES, RepositoryData } from '@/data/repositories';
 import { RepositoryFeedItem } from '@/components/home/RepositoryFeedItem';
-
-type RepositoryData = {
-  id: string;
-  title: string;
-  owner: string;
-  description: string;
-  readmeSummary: string;
-  readmeFull: string;
-  stats: {
-    stars: string;
-    views: string;
-    bugs: string;
-    forks: string;
-  };
-  updatedText: string;
-};
 
 type FeedRepository = {
   feedId: string;
   repository: RepositoryData;
-};
-
-type ViewabilityItem = {
-  index?: number | null;
 };
 
 const TAB_BAR_HEIGHT = 60;
@@ -35,25 +15,17 @@ const WEB_FEED_LIST_STYLE =
     ? ({ overflowY: 'auto', scrollSnapType: 'y mandatory' } as ViewStyle)
     : null;
 
-const VIEWABILITY_CONFIG = {
-  itemVisiblePercentThreshold: 80,
-};
-
 export default function HomeScreen() {
   const { width, height } = useWindowDimensions();
   const viewportWidth = getResponsiveContentWidth(width) ?? width;
   const pageWidth = Math.max(Math.min(viewportWidth - 28, 680), 1);
   const pageHeight = Math.max(height - TAB_BAR_HEIGHT - 28, 1);
-  const [activeRepositoryIndex, setActiveRepositoryIndex] = useState(0);
   const [feedItems, setFeedItems] = useState<FeedRepository[]>(
     REPOSITORIES.map((repository, index) => ({
       feedId: `${repository.id}-${index}`,
       repository,
     }))
   );
-
-  const activeRepository = feedItems[activeRepositoryIndex]?.repository ?? feedItems[0]?.repository;
-  void activeRepository;
 
   useEffect(() => {
     if (Platform.OS !== 'web') return;
@@ -90,18 +62,6 @@ export default function HomeScreen() {
       window.removeEventListener('touchmove', handleTouchMove);
     };
   }, []);
-
-  const onViewableItemsChanged = useCallback(
-    ({ viewableItems }: { viewableItems: ViewabilityItem[] }) => {
-      const nextIndex = viewableItems.find(
-        (item) => typeof item.index === 'number' && item.index !== null
-      )?.index;
-      if (typeof nextIndex === 'number') {
-        setActiveRepositoryIndex(nextIndex);
-      }
-    },
-    []
-  );
 
   const loadMoreRepositories = () => {
     setFeedItems((current) => {
@@ -145,8 +105,6 @@ export default function HomeScreen() {
             offset: pageHeight * index,
             index,
           })}
-          onViewableItemsChanged={onViewableItemsChanged}
-          viewabilityConfig={VIEWABILITY_CONFIG}
           onEndReached={loadMoreRepositories}
           onEndReachedThreshold={0.75}
           initialNumToRender={4}

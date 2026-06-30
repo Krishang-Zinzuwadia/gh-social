@@ -12,6 +12,7 @@ export type RepositoryData = {
     forks: string;
   };
   updatedText: string;
+  techStack?: string[];
 };
 
 export const REPOSITORIES: RepositoryData[] = [
@@ -29,6 +30,7 @@ export const REPOSITORIES: RepositoryData[] = [
       forks: '2k',
     },
     updatedText: 'updated 2 days ago',
+    techStack: ['React', 'MongoDB', 'Tailwind', 'Javascript', 'Python', 'Android SDK'],
   },
   {
     id: 'opensource-hub',
@@ -44,6 +46,7 @@ export const REPOSITORIES: RepositoryData[] = [
       forks: '1.5k',
     },
     updatedText: 'updated yesterday',
+    techStack: ['React', 'Tailwind', 'Javascript'],
   },
   {
     id: 'ai-assistant',
@@ -59,6 +62,7 @@ export const REPOSITORIES: RepositoryData[] = [
       forks: '3.2k',
     },
     updatedText: 'updated 4 hours ago',
+    techStack: ['Python', 'MongoDB', 'React'],
   },
   {
     id: 'interview-prep',
@@ -74,5 +78,6 @@ export const REPOSITORIES: RepositoryData[] = [
       forks: '1.1k',
     },
     updatedText: 'updated today',
+    techStack: ['Javascript', 'Python'],
   },
 ];

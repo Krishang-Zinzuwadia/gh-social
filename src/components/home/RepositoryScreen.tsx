@@ -22,7 +22,7 @@ export function RepositoryScreen({
   pageWidth: number;
   pageHeight: number;
   repository: RepositoryData;
-  onReadFullPress?: () => void;
+  onReadFullPress: () => void;
 }) {
   const insets = useSafeAreaInsets();
   const isSmallPhone = pageWidth < 380;
@@ -143,7 +143,7 @@ export function RepositoryScreen({
               <ReadmeCard
                 repository={repository}
                 height={H2}
-                onReadFullPress={onReadFullPress!}
+                onReadFullPress={onReadFullPress}
               />
 
               {/* Footer */}

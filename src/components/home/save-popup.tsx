@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Animated, Easing, Pressable, StyleSheet, Text, TextInput, TouchableOpacity, View, ScrollView } from 'react-native';
 import { Check, Plus, X } from 'lucide-react-native';
 import { BlurView } from 'expo-blur';
@@ -28,6 +28,16 @@ export function SavePopup({
   const [isCreating, setIsCreating] = useState(false);
   const [newCollection, setNewCollection] = useState('');
   const [status, setStatus] = useState<'idle' | 'saved'>('idle');
+
+  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const closeAnimated = () => {
     Animated.parallel([
@@ -66,7 +76,10 @@ export function SavePopup({
   const saveRepository = () => {
     if (!selected) return;
     setStatus('saved');
-    setTimeout(closeAnimated, 450);
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+    saveTimeoutRef.current = setTimeout(closeAnimated, 450);
   };
 
   const sheetHeight = 450;

@@ -149,3 +149,20 @@ export const containerBoards = pgTable('container_boards', {
   pk: primaryKey({ columns: [t.container_id, t.board_id] }),
   boardIdx: index('container_boards_board_id_idx').on(t.board_id),
 }));
+
+// 12. TRENDING REPOSITORIES
+export const trendingRepos = pgTable('trending_repositories', {
+  repo_id: uuid('repo_id').primaryKey(),
+  full_name: varchar('full_name', { length: 255 }).notNull().unique(),
+  name: varchar('name', { length: 200 }).notNull(),
+  owner: varchar('owner', { length: 100 }).notNull(),
+  url: varchar('url', { length: 500 }).notNull(),
+  description: text('description'),
+  star_count: integer('star_count').default(0),
+  daily_stars: integer('daily_stars').default(0),
+  fork_count: integer('fork_count').default(0),
+  primary_language: varchar('primary_language', { length: 50 }),
+  topics: jsonb('topics').default('[]'),
+  readme: text('readme'),
+  trending_rank: integer('trending_rank'),
+});

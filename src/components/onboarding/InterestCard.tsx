@@ -22,7 +22,7 @@ export default function InterestCard({
         backgroundColor: "#181E18",
         borderRadius: 14,
         borderWidth: 1,
-        borderColor: selected ? "#6DA963" : "#303030",
+        borderColor: selected ? "#8EFF7A" : "#303030",
         flexDirection: "row",
         alignItems: "center",
         paddingHorizontal: 12,
@@ -65,7 +65,7 @@ export default function InterestCard({
       {selected && (
         <Text
           style={{
-            color: "#6DA963",
+            color: "#8EFF7A",
             fontSize: 22,
             fontWeight: "700",
           }}

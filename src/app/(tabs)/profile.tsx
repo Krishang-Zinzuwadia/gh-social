@@ -3,7 +3,7 @@ import { View, Pressable, Text, Modal, TextInput, ScrollView, useWindowDimension
 import Svg, { Path } from "react-native-svg"
 import { SafeAreaView } from "react-native-safe-area-context"
 import Overview from "@/components/overview"
-import Repositories from "@/components/repositories"
+import Repositories from "@/components/home/repositories"
 import Lists from "@/components/lists"
 import {
   HeartIcon,
@@ -14,8 +14,7 @@ import {
   ProfileAvatarIcon,
 } from "@/components/icons"
 
-const TABS = ["Overview", "Repositories"] as const
-type TabName = (typeof TABS)[number] | "Lists"
+type TabName = "Overview" | "Repositories" | "Lists";
 
 export default function ProfileScreen() {
   const { width } = useWindowDimensions()
@@ -43,13 +42,13 @@ export default function ProfileScreen() {
     const iconSize = isTablet ? 26 : isSmallPhone ? 18 : 22
     switch (id) {
       case "likes":
-        return <HeartIcon width={iconSize} height={iconSize - 3} fill="#6DA963" />
+        return <HeartIcon width={iconSize} height={iconSize - 3} fill="#8EFF7A" />
       case "followers":
-        return <GroupFollowersIcon width={iconSize} height={iconSize - 3} fill="#6DA963" />
+        return <GroupFollowersIcon width={iconSize} height={iconSize - 3} fill="#8EFF7A" />
       case "saved":
-        return <BookmarkIcon width={iconSize - 7} height={iconSize - 3} fill="#6DA963" />
+        return <BookmarkIcon width={iconSize - 7} height={iconSize - 3} fill="#8EFF7A" />
       case "following":
-        return <FollowerUserIcon width={iconSize} height={iconSize} fill="#6DA963" />
+        return <FollowerUserIcon width={iconSize} height={iconSize} fill="#8EFF7A" />
       default:
         return null
     }
@@ -134,13 +133,13 @@ export default function ProfileScreen() {
                       onPress={() => setModal(true)}
                       hitSlop={8}
                     >
-                      <PencilIcon size={isTablet ? 14 : 11} fill="#6DA963" />
+                      <PencilIcon size={isTablet ? 14 : 11} fill="#8EFF7A" />
                     </Pressable>
                   </View>
 
                   <Text
                     style={{
-                      color: "#6DA963",
+                      color: "#8EFF7A",
                       fontSize: jobFontSize,
                       fontWeight: "600",
                       marginTop: 2,
@@ -241,9 +240,9 @@ export default function ProfileScreen() {
                       letterSpacing: 0.5,
                       paddingBottom: 4,
                       fontFamily: "NotoSans_400Regular",
-                      color: activetab === "Overview" ? "#6DA963" : "white",
+                      color: activetab === "Overview" ? "#8EFF7A" : "white",
                       borderBottomWidth: activetab === "Overview" ? 2 : 0,
-                      borderBottomColor: "#6DA963",
+                      borderBottomColor: "#8EFF7A",
                     }}
                   >
                     Overview
@@ -258,9 +257,9 @@ export default function ProfileScreen() {
                       letterSpacing: 0.5,
                       paddingBottom: 4,
                       fontFamily: "NotoSans_400Regular",
-                      color: activetab === "Repositories" ? "#6DA963" : "white",
+                      color: activetab === "Repositories" ? "#8EFF7A" : "white",
                       borderBottomWidth: activetab === "Repositories" ? 2 : 0,
-                      borderBottomColor: "#6DA963",
+                      borderBottomColor: "#8EFF7A",
                     }}
                   >
                     Repositories
@@ -307,7 +306,7 @@ export default function ProfileScreen() {
               <View key={field.label}>
                 <Text
                   style={{
-                    color: "#6DA963",
+                    color: "#8EFF7A",
                     fontSize: 12,
                     fontWeight: "700",
                     marginBottom: 6,
@@ -337,7 +336,7 @@ export default function ProfileScreen() {
             ))}
 
             <Pressable
-              style={{ backgroundColor: "#6DA963", paddingVertical: isTablet ? 18 : 16, borderRadius: 12, alignItems: "center" }}
+              style={{ backgroundColor: "#8EFF7A", paddingVertical: isTablet ? 18 : 16, borderRadius: 12, alignItems: "center" }}
               onPress={() => setModal(false)}
             >
               <Text
@@ -355,7 +354,7 @@ export default function ProfileScreen() {
             </Pressable>
 
             <Pressable style={{ marginTop: 16, alignItems: "center" }} onPress={() => setModal(false)}>
-              <Text style={{ color: "#6DA963", fontSize: 14, fontFamily: "NotoSans_400Regular" }}>Cancel</Text>
+              <Text style={{ color: "#8EFF7A", fontSize: 14, fontFamily: "NotoSans_400Regular" }}>Cancel</Text>
             </Pressable>
           </View>
         </View>

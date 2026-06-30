@@ -10,7 +10,7 @@ export default function TermsFooter() {
       </Text>
 
       <Text
-        className="text-[#6DA963] text-xs mt-1 font-nata"
+        className="text-[#8EFF7A] text-xs mt-1 font-nata"
       >
         Terms of Service and Privacy Policy.
       </Text>

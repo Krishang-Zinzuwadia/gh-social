@@ -27,13 +27,13 @@ export default function Overview() {
         viewBox="0 0 26 409"
         fill="none"
       >
-        <Circle cx={4.00012} cy={4} r={3.5} stroke="#6DA963" />
-        <Circle cx={4.0001} cy={4.0001} r={1.9} fill="white" stroke="#6DA963" />
-        <Path d="M4.1403 165.087C4.1424 167.44 4.13971 164.423 4.1403 165.087ZM4.1403 165.087L4 8" stroke="#6DA963" />
+        <Circle cx={4.00012} cy={4} r={3.5} stroke="#8EFF7A" />
+        <Circle cx={4.0001} cy={4.0001} r={1.9} fill="white" stroke="#8EFF7A" />
+        <Path d="M4.1403 165.087C4.1424 167.44 4.13971 164.423 4.1403 165.087ZM4.1403 165.087L4 8" stroke="#8EFF7A" />
         <Path d="M2 167C2.51325 167 3.09091 167 3.73848 167H26" stroke="#359030" />
         <Circle cx={4.00012} cy={167} r={3.5} stroke="#4A7947" />
         <Circle cx={4.0001} cy={167} r={2.4} fill="white" />
-        <Path d="M4 171V388.127C4.52937 401.76 6.57275 406.671 15 408H26" stroke="#6DA963" />
+        <Path d="M4 171V388.127C4.52937 401.76 6.57275 406.671 15 408H26" stroke="#8EFF7A" />
       </Svg>
 
       <View 
@@ -41,10 +41,10 @@ export default function Overview() {
         className="w-full"
       >
         {/* Recent Saves Box */}
-        <View className="border border-[#6DA963] rounded-[10px] bg-[#191F18] px-4 pt-[24px] pb-[24px] w-full justify-start mt-0 mb-5">
+        <View className="border border-[#8EFF7A] rounded-[10px] bg-[#191F18] px-4 pt-[24px] pb-[24px] w-full justify-start mt-0 mb-5">
           <View className="w-full px-1 flex-row justify-between items-center mb-[13px]">
-            <Text className="text-[#6DA963] text-[12px] font-bold font-noto relative top-[-2px]">Recent Saves</Text>
-            <Text className="text-[#6DA963] text-[10px] font-bold font-noto relative top-[-2px]">View All</Text>
+            <Text className="text-[#8EFF7A] text-[12px] font-bold font-noto relative top-[-2px]">Recent Saves</Text>
+            <Text className="text-[#8EFF7A] text-[10px] font-bold font-noto relative top-[-2px]">View All</Text>
           </View>
           {recentsaves.map((item) => (
             <RecentSaves key={item.id} title={item.name} />
@@ -52,9 +52,9 @@ export default function Overview() {
         </View>
 
         {/* Recent Pins Box */}
-        <View className="border border-[#6DA963] rounded-[10px] bg-[#191F18] px-4 pt-[24px] pb-[24px] w-full justify-start">
+        <View className="border border-[#8EFF7A] rounded-[10px] bg-[#191F18] px-4 pt-[24px] pb-[24px] w-full justify-start">
           <View className="w-full px-1 mb-[13px]">
-            <Text className="text-[#6DA963] text-[12px] font-bold font-noto relative top-[-2px]">Recent Pins</Text>
+            <Text className="text-[#8EFF7A] text-[12px] font-bold font-noto relative top-[-2px]">Recent Pins</Text>
           </View>
           {recentpins.map((item) => (
             <RecentPins key={item.id} title={item.pin} isPinned={false} />

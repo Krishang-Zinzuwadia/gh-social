@@ -1,5 +1,22 @@
 import React from 'react';
 import Svg, { Path, G, Circle } from 'react-native-svg';
+import { Image } from 'react-native';
+
+import ReactLogoSvg from '../assets/icons/react.svg';
+import MongoDBLogoSvg from '../assets/icons/Vector (7).svg';
+import TailwindLogoSvg from '../assets/icons/tailwind.svg';
+import JavaLogoSvg from '../assets/icons/logos_java.svg';
+import AndroidLogoSvg from '../assets/icons/android.svg';
+import PythonLogoSvg from '../assets/icons/python.svg';
+
+import ThumbsUpLogoSvg from '../assets/icons/thumbsup.svg';
+import ThumbsDownLogoSvg from '../assets/icons/thumbsdown.svg';
+import Vector6Svg from '../assets/icons/vector-6.svg';
+import Vector8Svg from '../assets/icons/vector-8.svg';
+import Vector9Svg from '../assets/icons/vector-9.svg';
+import ExploreOutlineSvg from '../assets/icons/material-symbols-explore-outline.svg';
+import MaterialPythonSvg from '../assets/icons/material-icon-theme-python.svg';
+
 
 interface IconProps {
   className?: string;
@@ -7,9 +24,12 @@ interface IconProps {
   width?: number | string;
   height?: number | string;
   fill?: string;
+  stroke?: string;
+  strokeWidth?: number;
+  color?: string;
 }
 
-export const HeartIcon: React.FC<IconProps> = ({ className, size, width = 23, height = 20, fill = '#6DA963' }) => (
+export const HeartIcon: React.FC<IconProps> = ({ className, size, width = 23, height = 20, fill = '#8EFF7A' }) => (
   <Svg width={size || width} height={size || height} viewBox="0 0 23 20" fill="none" className={className}>
     <Path
       opacity={0.8}
@@ -19,7 +39,7 @@ export const HeartIcon: React.FC<IconProps> = ({ className, size, width = 23, he
   </Svg>
 );
 
-export const BookmarkIcon: React.FC<IconProps> = ({ className, size, width = 15, height = 19, fill = '#6DA963' }) => (
+export const BookmarkIcon: React.FC<IconProps> = ({ className, size, width = 15, height = 19, fill = '#8EFF7A' }) => (
   <Svg width={size || width} height={size || height} viewBox="0 0 15 19" fill="none" className={className}>
     <Path
       opacity={0.8}
@@ -29,7 +49,7 @@ export const BookmarkIcon: React.FC<IconProps> = ({ className, size, width = 15,
   </Svg>
 );
 
-export const GitBranchDocIcon: React.FC<IconProps> = ({ className, size, width = 19, height = 23, fill = '#6DA963' }) => (
+export const GitBranchDocIcon: React.FC<IconProps> = ({ className, size, width = 19, height = 23, fill = '#8EFF7A' }) => (
   <Svg width={size || width} height={size || height} viewBox="0 0 19 23" fill="none" className={className}>
     <Path
       d="M5.7 0H17.1C17.6039 0 18.0872 0.201934 18.4435 0.561379C18.7998 0.920823 19 1.40833 19 1.91667V17.25C19 17.7583 18.7998 18.2458 18.4435 18.6053C18.0872 18.9647 17.6039 19.1667 17.1 19.1667H5.7C5.19609 19.1667 4.71282 18.9647 4.3565 18.6053C4.00018 18.2458 3.8 17.7583 3.8 17.25V1.91667C3.8 1.40833 4.00018 0.920823 4.3565 0.561379C4.71282 0.201934 5.19609 0 5.7 0ZM12.1125 11.0208C14.725 11.0208 15.428 9.07542 15.6085 8.05C16.473 7.77208 17.1 6.9575 17.1 5.98958C17.1 4.79167 16.15 3.83333 14.9625 3.83333C13.775 3.83333 12.825 4.79167 12.825 5.98958C12.825 6.89042 13.3665 7.66667 14.1455 7.98292C13.9365 8.625 13.3 9.58333 11.4 9.58333C10.089 9.58333 9.177 9.91875 8.55 10.3883V6.58375C9.3765 6.28667 9.975 5.49125 9.975 4.55208C9.975 3.35417 9.025 2.39583 7.8375 2.39583C6.65 2.39583 5.7 3.35417 5.7 4.55208C5.7 5.49125 6.2985 6.28667 7.125 6.58375V12.5829C6.2985 12.88 5.7 13.6754 5.7 14.6146C5.7 15.8125 6.65 16.7708 7.8375 16.7708C9.025 16.7708 9.975 15.8125 9.975 14.6146C9.975 13.7233 9.443 12.9375 8.6735 12.6308C8.9395 11.9792 9.7185 11.0208 12.1125 11.0208ZM7.8375 13.8958C8.02647 13.8958 8.20769 13.9716 8.34131 14.1063C8.47493 14.2411 8.55 14.424 8.55 14.6146C8.55 14.8052 8.47493 14.988 8.34131 15.1228C8.20769 15.2576 8.02647 15.3333 7.8375 15.3333C7.64853 15.3333 7.46731 15.2576 7.33369 15.1228C7.20007 14.988 7.125 14.8052 7.125 14.6146C7.125 14.424 7.20007 14.2411 7.33369 14.1063C7.46731 13.9716 7.64853 13.8958 7.8375 13.8958ZM7.8375 3.83333C8.02647 3.83333 8.20769 3.90906 8.34131 4.04385C8.47493 4.17864 8.55 4.36146 8.55 4.55208C8.55 4.74271 8.47493 4.92552 8.34131 5.06032C8.20769 5.19511 8.02647 5.27083 7.8375 5.27083C7.64853 5.27083 7.46731 5.19511 7.33369 5.06032C7.20007 4.92552 7.125 4.74271 7.125 4.55208C7.125 4.36146 7.20007 4.17864 7.33369 4.04385C7.46731 3.90906 7.64853 3.83333 7.8375 3.83333ZM14.9625 5.27083C15.1515 5.27083 15.3327 5.34656 15.4663 5.48135C15.5999 5.61614 15.675 5.79896 15.675 5.98958C15.675 6.18021 15.5999 6.36302 15.4663 6.49782C15.3327 6.63261 15.1515 6.70833 14.9625 6.70833C14.7735 6.70833 14.5923 6.63261 14.4587 6.49782C14.3251 6.36302 14.25 6.18021 14.25 5.98958C14.25 5.79896 14.3251 5.61614 14.4587 5.48135C14.5923 5.34656 14.7735 5.27083 14.9625 5.27083ZM13.3 21.0833V23H1.9C1.39609 23 0.912816 22.7981 0.556497 22.4386C0.200178 22.0792 0 21.5917 0 21.0833V5.75H1.9V21.0833H13.3Z"
@@ -38,7 +58,7 @@ export const GitBranchDocIcon: React.FC<IconProps> = ({ className, size, width =
   </Svg>
 );
 
-export const LocationPinIcon: React.FC<IconProps> = ({ className, size, width = 13, height = 17, fill = '#6DA963' }) => (
+export const LocationPinIcon: React.FC<IconProps> = ({ className, size, width = 13, height = 17, fill = '#8EFF7A' }) => (
   <Svg width={size || width} height={size || height} viewBox="0 0 13 17" fill="none" className={className}>
     <Path
       d="M6.5 8.075C5.88432 8.075 5.29385 7.85112 4.8585 7.4526C4.42315 7.05409 4.17857 6.51359 4.17857 5.95C4.17857 5.38642 4.42315 4.84591 4.8585 4.4474C5.29385 4.04888 5.88432 3.825 6.5 3.825C7.11568 3.825 7.70615 4.04888 8.1415 4.4474C8.57685 4.84591 8.82143 5.38642 8.82143 5.95C8.82143 6.22906 8.76138 6.50539 8.64472 6.7632C8.52806 7.02102 8.35706 7.25528 8.1415 7.4526C7.92593 7.64993 7.67002 7.80645 7.38837 7.91324C7.10672 8.02004 6.80485 8.075 6.5 8.075ZM6.5 0C4.77609 0 3.12279 0.626873 1.90381 1.74271C0.684819 2.85856 0 4.37196 0 5.95C0 10.4125 6.5 17 6.5 17C6.5 17 13 10.4125 13 5.95C13 4.37196 12.3152 2.85856 11.0962 1.74271C9.87721 0.626873 8.22391 0 6.5 0Z"
@@ -47,7 +67,7 @@ export const LocationPinIcon: React.FC<IconProps> = ({ className, size, width = 
   </Svg>
 );
 
-export const PencilIcon: React.FC<IconProps> = ({ className, size, width = 15, height = 15, fill = '#6DA963' }) => (
+export const PencilIcon: React.FC<IconProps> = ({ className, size, width = 15, height = 15, fill = '#8EFF7A' }) => (
   <Svg width={size || width} height={size || height} viewBox="0 0 15 15" fill="none" className={className}>
     <Path
       d="M0 15V11.4583L11 0.479167C11.1667 0.326389 11.3508 0.208333 11.5525 0.125C11.7542 0.0416667 11.9658 0 12.1875 0C12.4092 0 12.6244 0.0416667 12.8333 0.125C13.0422 0.208333 13.2228 0.333333 13.375 0.5L14.5208 1.66667C14.6875 1.81944 14.8092 2 14.8858 2.20833C14.9625 2.41667 15.0005 2.625 15 2.83333C15 3.05556 14.9619 3.2675 14.8858 3.46917C14.8097 3.67083 14.688 3.85472 14.5208 4.02083L3.54167 15H0ZM12.1667 4L13.3333 2.83333L12.1667 1.66667L11 2.83333L12.1667 4Z"
@@ -56,7 +76,7 @@ export const PencilIcon: React.FC<IconProps> = ({ className, size, width = 15, h
   </Svg>
 );
 
-export const PushPinIcon: React.FC<IconProps> = ({ className, size, width = 14, height = 13, fill = '#6DA963' }) => (
+export const PushPinIcon: React.FC<IconProps> = ({ className, size, width = 14, height = 13, fill = '#8EFF7A' }) => (
   <Svg width={size || width} height={size || height} viewBox="0 0 14 13" fill="none" className={className}>
     <Path
       d="M9.29116 0.157944L9.36637 0.219596L13.7671 4.305C13.902 4.43089 13.9839 4.59746 13.9979 4.77455C14.0118 4.95163 13.957 5.1275 13.8434 5.2703C13.7297 5.4131 13.5647 5.51337 13.3782 5.55295C13.1918 5.59253 12.9962 5.5688 12.827 5.48605L10.2889 7.84148L9.14954 10.6619C9.11952 10.7363 9.07684 10.8058 9.02311 10.8676L8.9671 10.9271L7.76689 12.0413C7.62901 12.1691 7.44565 12.2457 7.25119 12.257C7.05674 12.2682 6.86456 12.2131 6.71071 12.1022L6.63469 12.0405L4.3999 9.96663L1.36497 12.7833C1.22097 12.9165 1.02776 12.9939 0.824564 12.9997C0.621369 13.0054 0.42343 12.9392 0.270951 12.8143C0.118472 12.6895 0.0228862 12.5155 0.00360788 12.3276C-0.0156704 12.1398 0.0428044 11.9521 0.167156 11.8028L0.233567 11.733L3.2677 8.91557L1.03371 6.84092C0.895943 6.71302 0.813183 6.54284 0.800956 6.36232C0.788729 6.1818 0.847874 6.00334 0.967296 5.86043L1.03371 5.7906L2.23392 4.6764C2.29429 4.62015 2.36399 4.57326 2.44036 4.5375L2.51877 4.5063L5.5561 3.44781L8.09335 1.09313C8.00683 0.942959 7.97852 0.76975 8.01317 0.602513C8.04782 0.435277 8.14331 0.284171 8.28366 0.174506C8.42401 0.0648412 8.60069 0.0032776 8.78411 0.000127198C8.96752 -0.0030232 9.14654 0.0531738 9.29116 0.157944Z"
@@ -65,7 +85,7 @@ export const PushPinIcon: React.FC<IconProps> = ({ className, size, width = 14, 
   </Svg>
 );
 
-export const GroupFollowersIcon: React.FC<IconProps> = ({ className, size, width = 22, height = 19, fill = '#6DA963' }) => (
+export const GroupFollowersIcon: React.FC<IconProps> = ({ className, size, width = 22, height = 19, fill = '#8EFF7A' }) => (
   <Svg width={size || width} height={size || height} viewBox="0 0 22 19" fill="none" className={className}>
     <G opacity={0.8}>
       <Path
@@ -78,7 +98,7 @@ export const GroupFollowersIcon: React.FC<IconProps> = ({ className, size, width
   </Svg>
 );
 
-export const FollowerUserIcon: React.FC<IconProps> = ({ className, size, width = 24, height = 24, fill = '#6DA963' }) => (
+export const FollowerUserIcon: React.FC<IconProps> = ({ className, size, width = 24, height = 24, fill = '#8EFF7A' }) => (
   <Svg width={size || width} height={size || height} viewBox="0 0 24 24" fill="none" className={className}>
     <Path
       d="M16 14C17.3261 14 18.5979 14.5268 19.5355 15.4645C20.4732 16.4021 21 17.6739 21 19V20C21 20.5304 20.7893 21.0391 20.4142 21.4142C20.0391 21.7893 19.5304 22 19 22H5C4.46957 22 3.96086 21.7893 3.58579 21.4142C3.21071 21.0391 3 20.5304 3 20V19C3 17.6739 3.52678 16.4021 4.46447 15.4645C5.40215 14.5268 6.67392 14 8 14H16ZM21.414 9.081C21.5935 8.89975 21.8356 8.79397 22.0905 8.78532C22.3455 8.77667 22.5942 8.8658 22.7856 9.03447C22.977 9.20313 23.0967 9.43858 23.1202 9.69262C23.1437 9.94666 23.0692 10.2001 22.912 10.401L22.828 10.496L20 13.324C19.8278 13.4962 19.5987 13.5996 19.3557 13.6149C19.1127 13.6302 18.8724 13.5563 18.68 13.407L18.586 13.324L17.172 11.91C16.9907 11.7305 16.885 11.4884 16.8763 11.2335C16.8677 10.9785 16.9568 10.7298 17.1255 10.5384C17.2941 10.5384 17.5296 10.2273 17.7836 10.2038C18.0377 10.1803 18.2911 10.2548 18.492 10.412L18.586 10.496L19.293 11.203L21.414 9.081ZM12 2C13.3261 2 14.5979 2.52678 15.5355 3.46447C16.4732 4.40215 17 5.67392 17 7C17 8.32608 16.4732 9.59785 15.5355 10.5355C14.5979 11.4732 13.3261 12 12 12C10.6739 12 9.40215 11.4732 8.46447 10.5355C7.52678 9.59785 7 8.32608 7 7C7 5.67392 7.52678 4.40215 8.46447 3.46447C9.40215 2.52678 10.6739 2 12 2Z"
@@ -89,7 +109,7 @@ export const FollowerUserIcon: React.FC<IconProps> = ({ className, size, width =
 
 export const ProfileAvatarIcon: React.FC<IconProps> = ({ className, size, width = 92, height = 92 }) => (
   <Svg width={size || width} height={size || height} viewBox="0 0 92 92" fill="none" className={className}>
-    <Circle cx="46" cy="46" r="46" fill="#6DA963" />
+    <Circle cx="46" cy="46" r="46" fill="#8EFF7A" />
     <Path
       d="M20 65.375C20 61.3304 21.396 57.4516 23.8808 54.5916C26.3657 51.7317 29.7359 50.125 33.25 50.125H59.75C63.2641 50.125 66.6343 51.7317 69.1192 54.5916C71.604 57.4516 73 61.3304 73 65.375C73 67.3973 72.302 69.3367 71.0596 70.7667C69.8172 72.1967 68.1321 73 66.375 73H26.625C24.8679 73 23.1828 72.1967 21.9404 70.7667C20.698 69.3367 20 67.3973 20 65.375Z"
       stroke="black"
@@ -104,3 +124,154 @@ export const ProfileAvatarIcon: React.FC<IconProps> = ({ className, size, width 
   </Svg>
 );
 
+export const ReactLogoIcon: React.FC<IconProps> = ({ size = 28 }) => (
+  <ReactLogoSvg width={size} height={size} />
+);
+
+export const MongoDBLogoIcon: React.FC<IconProps> = ({ size = 28 }) => (
+  <MongoDBLogoSvg width={size} height={size} />
+);
+
+export const TailwindLogoIcon: React.FC<IconProps> = ({ size = 28 }) => (
+  <TailwindLogoSvg width={size} height={size} />
+);
+
+export const JavaLogoIcon: React.FC<IconProps> = ({ size = 28 }) => (
+  <JavaLogoSvg width={size} height={size} />
+);
+
+export const PythonLogoIcon: React.FC<IconProps> = ({ className, size = 28 }) => (
+  <PythonLogoSvg width={size} height={size} className={className} />
+);
+
+export const AndroidLogoIcon: React.FC<IconProps> = ({ size = 28 }) => (
+  <AndroidLogoSvg width={size} height={size} />
+);
+
+export const Vector6Icon: React.FC<IconProps> = ({ className, size = 28 }) => (
+  <Vector6Svg width={size} height={size} className={className} />
+);
+
+export const Vector8Icon: React.FC<IconProps> = ({ className, size = 28 }) => (
+  <Vector8Svg width={size} height={size} className={className} />
+);
+
+export const Vector9Icon: React.FC<IconProps> = ({ className, size = 28 }) => (
+  <Vector9Svg width={size} height={size} className={className} />
+);
+
+export const ExploreOutlineIcon: React.FC<IconProps> = ({ className, size = 28 }) => (
+  <ExploreOutlineSvg width={size} height={size} className={className} />
+);
+
+export const MaterialPythonIcon: React.FC<IconProps> = ({ className, size = 28 }) => (
+  <MaterialPythonSvg width={size} height={size} className={className} />
+);
+
+export const EyeIcon: React.FC<IconProps> = ({ size = 24, color = "#8EFF7A", strokeWidth = 2 }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Path
+      d="M1 12S5 4 12 4s11 8 11 8-4 8-11 8-11-8-11-8z"
+      stroke={color}
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <Circle
+      cx="12"
+      cy="12"
+      r="3"
+      stroke={color}
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </Svg>
+);
+
+export const GitForkIcon: React.FC<IconProps> = ({ size = 24, color = "#8EFF7A", strokeWidth = 2 }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Circle cx="18" cy="18" r="3" stroke={color} strokeWidth={strokeWidth} />
+    <Circle cx="6" cy="6" r="3" stroke={color} strokeWidth={strokeWidth} />
+    <Circle cx="6" cy="18" r="3" stroke={color} strokeWidth={strokeWidth} />
+    <Path
+      d="M18 15V14C18 11.7909 16.2091 10 14 10H10C7.79086 10 6 11.7909 6 14V15"
+      stroke={color}
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <Path
+      d="M6 9V15"
+      stroke={color}
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </Svg>
+);
+
+export const BookOpenIcon: React.FC<IconProps> = ({ size = 24, color = "#8EFF7A", strokeWidth = 2 }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Path
+      d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2zM22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"
+      stroke={color}
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </Svg>
+);
+
+export const LayersIcon: React.FC<IconProps> = ({ size = 24, color = "#8EFF7A", strokeWidth = 2 }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Path
+      d="M12 2L2 7L12 12L22 7L12 2Z"
+      stroke={color}
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <Path
+      d="M2 17L12 22L22 17"
+      stroke={color}
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <Path
+      d="M2 12L12 17L22 12"
+      stroke={color}
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </Svg>
+);
+
+export const StarIcon: React.FC<IconProps> = ({ size = 24, color = "#8EFF7A", strokeWidth = 2 }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Path
+      d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"
+      stroke={color}
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </Svg>
+);
+
+export const ThumbsUpIcon: React.FC<IconProps> = ({ size = 24 }) => (
+  <ThumbsUpLogoSvg width={size} height={size} />
+);
+
+export const ThumbsDownIcon: React.FC<IconProps> = ({ size = 24 }) => (
+  <ThumbsDownLogoSvg width={size} height={size} />
+);
+
+export const NebulaIcon: React.FC<IconProps> = ({ size, width = 28, height = 28 }) => (
+  <Image
+    source={require('../../assets/images/nebula.png')}
+    style={{ width: (size || width) as any, height: (size || height) as any }}
+  />
+);

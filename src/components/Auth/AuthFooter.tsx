@@ -18,7 +18,7 @@ export default function AuthFooter({
       </Text>
 
       <TouchableOpacity onPress={onPress} activeOpacity={0.7}>
-        <Text className="font-nataSemiBold text-[#6DA963] text-[16px]">
+        <Text className="font-nataSemiBold text-[#8EFF7A] text-[16px]">
           {linkLabel}
         </Text>
       </TouchableOpacity>

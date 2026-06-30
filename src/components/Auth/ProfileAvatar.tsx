@@ -12,7 +12,7 @@ export default function ProfileAvatar() {
 
         <View className="absolute bottom-2 right-2
         w-[55px] h-[55px]
-        rounded-full border border-[#6DA963]
+        rounded-full border border-[#8EFF7A]
         bg-[#0A0C09] justify-center items-center">
           <CameraIcon size={24} color="#3A5A40" />
         </View>

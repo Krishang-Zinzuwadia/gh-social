@@ -31,17 +31,8 @@ export function RepositoryScreen({
   const TIMELINE_MID = TIMELINE_COL_WIDTH / 2;
   const ACTIONS_COL_WIDTH = isSmallPhone ? 44 : 50;
 
-  // ── Dynamic Heights & Gaps ──────────────────────────────────────────────────
   const HEADER_H = 56;
-  const CARD_GAP = 8;
-  const FOOTER_MIN_H = isSmallPhone ? 110 : 100;
-  const VERTICAL_PADDING = 24;
-
-  const availableCardHeight = pageHeight - insets.top - HEADER_H - FOOTER_MIN_H - (CARD_GAP * 2) - VERTICAL_PADDING;
-  const totalCardHeight = Math.max(availableCardHeight, 200);
-
   const HOME_CARD_GAP = isSmallPhone ? 28 : 34;
-  const HOME_BRANCH_GAP = isSmallPhone ? 4 : 6;
   const HOME_FOOTER_GAP = isSmallPhone ? 24 : 34;
   const HOME_BOTTOM_PADDING = isSmallPhone ? 18 : 22;
   const HOME_FOOTER_HEIGHT = isSmallPhone ? 44 : 52;

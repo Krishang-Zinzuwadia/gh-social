@@ -50,6 +50,8 @@ export function RepositoryFeedItem({
     ]).start();
   }, [drawerOverlayOpacity, drawerTranslateX]);
 
+  const [isEdgeGestureActive, setIsEdgeGestureActive] = useState(false);
+
   const closeSaveDrawer = useCallback(() => {
     Animated.parallel([
       Animated.timing(drawerTranslateX, {
@@ -75,7 +77,6 @@ export function RepositoryFeedItem({
   const [touchActive, setTouchActive] = useState(false);
   const touchStartXRef = useRef(0);
   const touchStartYRef = useRef(0);
-  const [isEdgeGestureActive, setIsEdgeGestureActive] = useState(false);
 
   const edgePanResponder = PanResponder.create({
     onStartShouldSetPanResponder: () => true,

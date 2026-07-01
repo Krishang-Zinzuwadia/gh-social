@@ -1,14 +1,8 @@
-import * as Linking from 'expo-linking';
+import * as Linking from "expo-linking";
 import { useRouter } from "expo-router";
-import * as WebBrowser from 'expo-web-browser';
+import * as WebBrowser from "expo-web-browser";
 import { useEffect, useRef, useState } from "react";
-import {
-    Alert,
-    Platform,
-    ScrollView,
-    Text,
-    View,
-} from "react-native";
+import { Alert, Platform, ScrollView, Text, View } from "react-native";
 
 import AuthFooter from "@/components/Auth/AuthFooter";
 import AuthInput from "@/components/Auth/AuthInput";
@@ -20,10 +14,10 @@ import PasswordRules from "@/components/Auth/PasswordRules";
 import PrimaryButton from "@/components/Auth/PrimaryButton";
 import SectionLabel from "@/components/Auth/SectionLabel";
 import SocialButton from "@/components/Auth/SocialButton";
-import { useAuthStore } from '@/store/authStore';
+import { useAuthStore } from "@/store/authStore";
 
 export default function SignUpEmail() {
-  const router = useRouter();  
+  const router = useRouter();
   const scrollViewRef = useRef<ScrollView>(null);
   const { signup, oauthLogin, isLoading, error, clearError } = useAuthStore();
 
@@ -36,11 +30,15 @@ export default function SignUpEmail() {
   const hasNumber = /\d/.test(password);
   const hasUppercase = /[A-Z]/.test(password);
   const isPasswordValid = hasMinLength && hasNumber && hasUppercase;
-  
+
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   const isEmailValid = emailRegex.test(email);
-  
-  const isFormValid = fullName.trim().length > 0 && isEmailValid && isPasswordValid && username.trim().length > 0;
+
+  const isFormValid =
+    fullName.trim().length > 0 &&
+    isEmailValid &&
+    isPasswordValid &&
+    username.trim().length > 0;
 
   useEffect(() => {
     // Auto-scroll to bottom slowly on mount
@@ -51,7 +49,11 @@ export default function SignUpEmail() {
 
   useEffect(() => {
     if (error) {
-      Alert.alert("Error", error);
+      if (error.includes("User already exists")) {
+        Alert.alert("Error", "User already exists. Please login instead.");
+      } else {
+        Alert.alert("Error", error);
+      }
       clearError();
     }
   }, [error, clearError]);
@@ -66,64 +68,72 @@ export default function SignUpEmail() {
   };
 
   const handleGitHubLogin = async () => {
-    Alert.alert('Button Clicked', 'GitHub OAuth button was pressed');
+    Alert.alert("Button Clicked", "GitHub OAuth button was pressed");
     try {
-      const redirectUrl = Platform.OS === 'web' 
-        ? 'http://localhost:3000/auth/callback'
-        : Linking.createURL('auth/callback');
-      const url = await oauthLogin('github', redirectUrl, 'signup');
-      
-      if (Platform.OS === 'web') {
+      const redirectUrl =
+        Platform.OS === "web"
+          ? "http://localhost:3000/auth/callback"
+          : Linking.createURL("auth/callback");
+      const url = await oauthLogin("github", redirectUrl, "signup");
+
+      if (Platform.OS === "web") {
         window.location.href = url;
         return;
       }
-      
+
       const result = await WebBrowser.openAuthSessionAsync(url, redirectUrl);
-      
-      if (result.type === 'success' && result.url) {
+
+      if (result.type === "success" && result.url) {
         const urlParams = new URL(result.url).searchParams;
-        const code = urlParams.get('code');
-        const error = urlParams.get('error');
-        
+        const code = urlParams.get("code");
+        const error = urlParams.get("error");
+
         if (error) {
-          Alert.alert('OAuth Error', error);
+          Alert.alert("OAuth Error", error);
         } else if (code) {
-          router.replace({ pathname: '/auth/callback', params: { code, intent: 'signup' } });
+          router.replace({
+            pathname: "/auth/callback",
+            params: { code, intent: "signup" },
+          });
         }
       }
     } catch (err: any) {
-      Alert.alert('GitHub Login Failed', err.message || 'An error occurred');
+      Alert.alert("GitHub Login Failed", err.message || "An error occurred");
     }
   };
 
   const handleGoogleLogin = async () => {
-    Alert.alert('Button Clicked', 'Google OAuth button was pressed');
+    Alert.alert("Button Clicked", "Google OAuth button was pressed");
     try {
-      const redirectUrl = Platform.OS === 'web' 
-        ? 'http://localhost:3000/auth/callback'
-        : Linking.createURL('auth/callback');
-      const url = await oauthLogin('google', redirectUrl, 'signup');
-      
-      if (Platform.OS === 'web') {
+      const redirectUrl =
+        Platform.OS === "web"
+          ? "http://localhost:3000/auth/callback"
+          : Linking.createURL("auth/callback");
+      const url = await oauthLogin("google", redirectUrl, "signup");
+
+      if (Platform.OS === "web") {
         window.location.href = url;
         return;
       }
-      
+
       const result = await WebBrowser.openAuthSessionAsync(url, redirectUrl);
-      
-      if (result.type === 'success' && result.url) {
+
+      if (result.type === "success" && result.url) {
         const urlParams = new URL(result.url).searchParams;
-        const code = urlParams.get('code');
-        const error = urlParams.get('error');
-        
+        const code = urlParams.get("code");
+        const error = urlParams.get("error");
+
         if (error) {
-          Alert.alert('OAuth Error', error);
+          Alert.alert("OAuth Error", error);
         } else if (code) {
-          router.replace({ pathname: '/auth/callback', params: { code, intent: 'signup' } });
+          router.replace({
+            pathname: "/auth/callback",
+            params: { code, intent: "signup" },
+          });
         }
       }
     } catch (err: any) {
-      Alert.alert('Google Login Failed', err.message || 'An error occurred');
+      Alert.alert("Google Login Failed", err.message || "An error occurred");
     }
   };
 
@@ -134,10 +144,12 @@ export default function SignUpEmail() {
       showsVerticalScrollIndicator={false}
       contentContainerStyle={{ paddingBottom: 40 }}
     >
-      <View className="px-8 pt-14 w-full" style={{ maxWidth: 450, alignSelf: 'center' }}>
-
+      <View
+        className="px-8 pt-14 w-full"
+        style={{ maxWidth: 450, alignSelf: "center" }}
+      >
         <View className="items-center">
-            <LogoCircle />
+          <LogoCircle />
         </View>
 
         <View className="mt-8 items-center">
@@ -156,21 +168,21 @@ export default function SignUpEmail() {
         </View>
 
         <View className="mt-10 gap-y-5">
-            <SocialButton
-                label="Continue with GitHub"
-                icon={<GithubIcon />}
-                showChevron
-                onPress={handleGitHubLogin}
-                disabled={isLoading}
-            />
+          <SocialButton
+            label="Continue with GitHub"
+            icon={<GithubIcon />}
+            showChevron
+            onPress={handleGitHubLogin}
+            disabled={isLoading}
+          />
 
-            <SocialButton
-                label="Continue with Google"
-                icon={<GoogleIcon />}
-                showChevron
-                onPress={handleGoogleLogin}
-                disabled={isLoading}
-            />
+          <SocialButton
+            label="Continue with Google"
+            icon={<GoogleIcon />}
+            showChevron
+            onPress={handleGoogleLogin}
+            disabled={isLoading}
+          />
         </View>
 
         <View className="mt-7">
@@ -182,7 +194,6 @@ export default function SignUpEmail() {
         </View>
 
         <View className="mt-2">
-
           <SectionLabel title="Full name" />
           <AuthInput
             placeholder="Enter your full name"
@@ -228,21 +239,19 @@ export default function SignUpEmail() {
 
           <View className="mt-10">
             <PrimaryButton
-                label="Create Account"
-                onPress={handleEmailSignup}
-                style={{ opacity: isFormValid ? 1 : 0.5 }}
-                disabled={!isFormValid || isLoading}
+              label="Create Account"
+              onPress={handleEmailSignup}
+              style={{ opacity: isFormValid ? 1 : 0.5 }}
+              disabled={!isFormValid || isLoading}
             />
           </View>
-
         </View>
 
         <AuthFooter
-            prompt="Already have an account?"
-            linkLabel="Log In"
-            onPress={() => router.push("/(auth)/login")}
+          prompt="Already have an account?"
+          linkLabel="Log In"
+          onPress={() => router.push("/(auth)/login")}
         />
-
       </View>
     </ScrollView>
   );

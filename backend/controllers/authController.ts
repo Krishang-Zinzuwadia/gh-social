@@ -84,7 +84,15 @@ export async function signUp(req: Request, res: Response): Promise<void> {
       },
     });
 
-    if (error) return sendError(res, error.status || 400, error.message);
+    if (error) {
+      if (
+        error.message.toLowerCase().includes("already registered") ||
+        error.message.toLowerCase().includes("already exists")
+      ) {
+        return sendError(res, 409, "User already exists. Please login.");
+      }
+      return sendError(res, error.status || 400, error.message);
+    }
 
     if (!data.session) {
       return sendSuccess(res, 202, {
@@ -404,7 +412,7 @@ export async function exchangeAuthCode(
         expiresIn: "7d",
       });
 
-      return sendSuccess(res, 200, { accessToken: token });
+      return sendSuccess(res, 200, { accessToken: token, user: authData.user });
     } catch (error) {
       return sendControllerError(res, error as Error);
     }

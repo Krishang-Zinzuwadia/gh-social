@@ -1,6 +1,6 @@
-import { storage } from '@/utils/storage';
-import axios from 'axios';
-import { API_URL } from './config';
+import { storage } from "@/utils/storage";
+import axios from "axios";
+import { API_URL } from "./config";
 
 interface ApiResponse<T = any> {
   success: boolean;
@@ -12,7 +12,7 @@ class ApiClient {
   private client = axios.create({
     baseURL: API_URL,
     headers: {
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
     },
   });
 
@@ -24,7 +24,7 @@ class ApiClient {
     // Request interceptor to add auth token
     this.client.interceptors.request.use(
       async (config) => {
-        const token = await storage.getItemAsync('accessToken');
+        const token = await storage.getItemAsync("accessToken");
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
         }
@@ -32,7 +32,7 @@ class ApiClient {
       },
       (error) => {
         return Promise.reject(error);
-      }
+      },
     );
 
     // Response interceptor for error handling
@@ -43,51 +43,73 @@ class ApiClient {
       async (error) => {
         if (error.response?.status === 401) {
           // Token expired or invalid, clear storage
-          await storage.deleteItemAsync('accessToken');
-          await storage.deleteItemAsync('refreshToken');
+          await storage.deleteItemAsync("accessToken");
+          await storage.deleteItemAsync("refreshToken");
         }
-        
+
         // Return standardized error format
-        const errorMessage = error.response?.data?.error || error.message || 'Network error';
+        const errorMessage =
+          error.response?.data?.error || error.message || "Network error";
         return Promise.reject({
           success: false,
           error: errorMessage,
         });
-      }
+      },
     );
   }
 
   // Auth endpoints
-  async login(email: string, password: string): Promise<ApiResponse<{ accessToken: string; user: any }>> {
-    return this.client.post('/auth/login', { email, password });
+  async login(
+    email: string,
+    password: string,
+  ): Promise<ApiResponse<{ accessToken: string; user: any }>> {
+    return this.client.post("/auth/login", { email, password });
   }
 
-  async signup(email: string, password: string, username: string, full_name: string): Promise<ApiResponse<{ accessToken: string; user: any }>> {
-    return this.client.post('/auth/signup', { email, password, username, full_name });
+  async signup(
+    email: string,
+    password: string,
+    username: string,
+    full_name: string,
+  ): Promise<ApiResponse<{ accessToken: string; user: any }>> {
+    return this.client.post("/auth/signup", {
+      email,
+      password,
+      username,
+      full_name,
+    });
   }
 
   async logout(): Promise<void> {
-    return this.client.post('/auth/logout');
+    return this.client.post("/auth/logout");
   }
 
-  async getOAuthUrl(provider: 'github' | 'google', redirectUri?: string, intent?: 'login' | 'signup'): Promise<ApiResponse<{ url: string }>> {
+  async getOAuthUrl(
+    provider: "github" | "google",
+    redirectUri?: string,
+    intent?: "login" | "signup",
+  ): Promise<ApiResponse<{ url: string }>> {
     const params: any = {};
     if (redirectUri) params.redirectUri = redirectUri;
     if (intent) params.intent = intent;
     return this.client.get(`/auth/oauth/${provider}`, { params });
   }
 
-  async exchangeAuthCode(code: string): Promise<ApiResponse<{ accessToken: string }>> {
-    return this.client.post('/auth/exchange', { code });
+  async exchangeAuthCode(
+    code: string,
+  ): Promise<ApiResponse<{ accessToken: string; user?: any }>> {
+    return this.client.post("/auth/exchange", { code });
   }
 
-  async exchangeSupabaseToken(supabaseToken: string): Promise<ApiResponse<{ accessToken: string }>> {
-    return this.client.post('/auth/exchange', { supabaseToken });
+  async exchangeSupabaseToken(
+    supabaseToken: string,
+  ): Promise<ApiResponse<{ accessToken: string; user?: any }>> {
+    return this.client.post("/auth/exchange", { supabaseToken });
   }
 
   // Onboarding endpoints
   async getOnboardingStatus(): Promise<ApiResponse<any>> {
-    return this.client.get('/users/onboarding/status');
+    return this.client.get("/users/onboarding/status");
   }
 
   async setupOnboarding(data: {
@@ -100,7 +122,7 @@ class ApiClient {
     skills?: string[];
     tech_stack?: string[];
   }): Promise<ApiResponse<any>> {
-    return this.client.put('/onboarding/setup', data);
+    return this.client.put("/onboarding/setup", data);
   }
 
   // Generic get/post/put/delete methods
@@ -108,11 +130,19 @@ class ApiClient {
     return this.client.get(url, config);
   }
 
-  async post<T = any>(url: string, data?: any, config?: any): Promise<ApiResponse<T>> {
+  async post<T = any>(
+    url: string,
+    data?: any,
+    config?: any,
+  ): Promise<ApiResponse<T>> {
     return this.client.post(url, data, config);
   }
 
-  async put<T = any>(url: string, data?: any, config?: any): Promise<ApiResponse<T>> {
+  async put<T = any>(
+    url: string,
+    data?: any,
+    config?: any,
+  ): Promise<ApiResponse<T>> {
     return this.client.put(url, data, config);
   }
 

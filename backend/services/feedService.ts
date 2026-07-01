@@ -162,8 +162,8 @@ export class FeedService {
         if (val === '__empty__') return [];
       }
 
-      // Pop the next `limit` items using a pipeline
-      const pipeline = redisClient.pipeline();
+      // Pop the next `limit` items using an atomic transaction (MULTI/EXEC)
+      const pipeline = redisClient.multi();
       pipeline.lrange(queueKey, 0, limit - 1);
       pipeline.ltrim(queueKey, limit, -1);
       pipeline.llen(queueKey);

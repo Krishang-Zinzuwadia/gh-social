@@ -1,5 +1,5 @@
-import { Platform } from 'react-native';
 import Constants from 'expo-constants';
+import { Platform } from 'react-native';
 
 export const getApiUrl = (): string => {
   // 1. Production / User-defined environment variable (Highest Priority)
@@ -12,16 +12,16 @@ export const getApiUrl = (): string => {
   if (process.env.NODE_ENV !== 'production') {
     // Try to dynamically resolve the host LAN IP (works perfectly on Expo Go for mobile devices)
     if (Constants.expoConfig?.hostUri) {
-      return `http://${Constants.expoConfig.hostUri.split(':')[0]}:5000/api`;
+      return `http://${Constants.expoConfig.hostUri.split(':')[0]}:5001/api`;
     }
     
     // Fallback for Android Emulator
     if (Platform.OS === 'android') {
-      return 'http://10.0.2.2:5000/api';
+      return 'http://10.0.2.2:5001/api';
     }
     
     // Fallback for iOS Simulator or Web
-    return 'http://localhost:5000/api';
+    return 'http://localhost:5001/api';
   }
 
   // 3. Final Production Fallback

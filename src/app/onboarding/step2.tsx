@@ -1,5 +1,5 @@
-import { useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
+import { useState } from "react";
 import {
     ScrollView,
     Text,
@@ -18,7 +18,7 @@ import { SUGGESTED_TECHS, getTechIcon } from "@/constants/onboarding";
 const PREDEFINED_TECHS = SUGGESTED_TECHS.map(t => t.name);
 
 export default function Step2() {
-  const { categories } = useLocalSearchParams();
+  const { categories, username, dob, bio } = useLocalSearchParams();
   
   const [selectedTechs, setSelectedTechs] = useState<string[]>([
     "React",
@@ -241,7 +241,13 @@ export default function Step2() {
             onPress={() =>
               router.push({
                 pathname: "/onboarding/step3",
-                params: { categories },
+                params: { 
+                  categories,
+                  techStack: selectedTechs.join(","),
+                  username,
+                  dob,
+                  bio,
+                }
               })
             }
           />

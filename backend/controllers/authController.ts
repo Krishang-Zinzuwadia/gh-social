@@ -1,12 +1,12 @@
-import type { Request, Response } from 'express';
-import supabase, { supabaseAdmin } from '../config/supabase.js'; 
 import crypto from 'crypto';
-import { sendError, sendSuccess, sendControllerError } from '../utils/response.js';
-import { isValidUuid } from '../utils/validators.js';
-import { db } from '../db/index.js';
-import { refreshTokens, oauthCodes, users } from '../db/schema.js';
 import { eq } from 'drizzle-orm';
+import type { Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
+import supabase, { supabaseAdmin } from '../config/supabase.js';
+import { db } from '../db/index.js';
+import { oauthCodes, refreshTokens, users } from '../db/schema.js';
+import { sendControllerError, sendError, sendSuccess } from '../utils/response.js';
+import { isValidUuid } from '../utils/validators.js';
 
 const CLIENT_URL = process.env.CLIENT_URL;
 const BACKEND_URL = process.env.BACKEND_URL;
@@ -275,12 +275,29 @@ export async function refreshToken(req: Request, res: Response): Promise<void> {
 // GET /api/auth/:provider
 export async function getOAuthUrl(req: Request, res: Response): Promise<void> {
   const { provider } = req.params;
+  const { redirectUri, intent } = req.query;
+  
   if (provider !== 'github' && provider !== 'google') return sendError(res, 400, 'Invalid provider.');
 
   try {
     const url = new URL(`${process.env.SUPABASE_URL}/auth/v1/authorize`);
     url.searchParams.set('provider', provider);
-    url.searchParams.set('redirect_to', `${BACKEND_URL}/api/auth/callback`);
+    
+    // Force account selection for Google OAuth
+    if (provider === 'google') {
+      url.searchParams.set('prompt', 'select_account');
+    }
+    
+    // Use the provided redirectUri if available, otherwise fall back to backend callback
+    let redirectTo = redirectUri ? redirectUri as string : `${BACKEND_URL}/api/auth/callback`;
+    
+    // Append intent to the redirect URL if provided
+    if (intent) {
+      const separator = redirectTo.includes('?') ? '&' : '?';
+      redirectTo += `${separator}intent=${intent}`;
+    }
+    
+    url.searchParams.set('redirect_to', redirectTo);
 
     return sendSuccess(res, 200, { url: url.toString() });
   } catch (error) {
@@ -328,8 +345,35 @@ export async function handleOAuthCallback(req: Request, res: Response): Promise<
 
 // POST /api/auth/exchange
 export async function exchangeAuthCode(req: Request, res: Response): Promise<void> {
-  const { code } = req.body;
+  const { code, supabaseToken } = req.body;
 
+  // Support both code-based exchange (OAuth flow) and direct Supabase token exchange
+  if (supabaseToken) {
+    // Direct Supabase token exchange
+    try {
+      const { data: authData, error } = await supabaseAdmin.auth.getUser(supabaseToken);
+      
+      if (error || !authData?.user) {
+        return sendError(res, 401, 'Invalid Supabase token');
+      }
+
+      const userId = authData.user.id;
+      const email = authData.user.email;
+
+      // Mint custom JWT
+      const token = jwt.sign(
+        { userId, email },
+        JWT_SECRET,
+        { expiresIn: '7d' }
+      );
+
+      return sendSuccess(res, 200, { accessToken: token });
+    } catch (error) {
+      return sendControllerError(res, error as Error);
+    }
+  }
+
+  // Original code-based exchange (OAuth flow)
   if (!code) {
     return sendError(res, 400, 'Authorization code is required');
   }
@@ -370,7 +414,7 @@ export async function exchangeAuthCode(req: Request, res: Response): Promise<voi
     const token = jwt.sign(
       { userId, email },
       JWT_SECRET,
-      { expiresIn: '15m' }
+      { expiresIn: '7d' }
     );
 
     const refreshToken = crypto.randomBytes(40).toString('hex');

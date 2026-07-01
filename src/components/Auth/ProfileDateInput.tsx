@@ -1,7 +1,7 @@
-import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity } from "react-native";
-import { CalendarIcon } from "./icons";
+import { useState } from "react";
+import { Text, TextInput, TouchableOpacity, View } from "react-native";
 import CustomCalendar from "./CustomCalendar";
+import { CalendarIcon } from "./icons";
 
 type ProfileDateInputProps = {
   value: string;
@@ -11,13 +11,13 @@ type ProfileDateInputProps = {
 export default function ProfileDateInput({ value, onChangeText }: ProfileDateInputProps) {
   const [show, setShow] = useState(false);
   
-  // Parse the current string value DD/MM/YYYY back to a Date object (if valid)
+  // Parse the current string value MM/DD/YYYY back to a Date object (if valid)
   const parseDate = (dateStr: string) => {
     if (!dateStr) return new Date();
     const parts = dateStr.split("/");
     if (parts.length === 3) {
-      const d = parseInt(parts[0], 10);
-      const m = parseInt(parts[1], 10) - 1;
+      const m = parseInt(parts[0], 10) - 1;
+      const d = parseInt(parts[1], 10);
       const y = parseInt(parts[2], 10);
       return new Date(y, m, d);
     }
@@ -27,10 +27,32 @@ export default function ProfileDateInput({ value, onChangeText }: ProfileDateInp
   const selectedDate = parseDate(value);
 
   const handleSelectDate = (date: Date) => {
-    const d = date.getDate().toString().padStart(2, '0');
     const m = (date.getMonth() + 1).toString().padStart(2, '0');
+    const d = date.getDate().toString().padStart(2, '0');
     const y = date.getFullYear();
-    onChangeText(`${d}/${m}/${y}`);
+    onChangeText(`${m}/${d}/${y}`);
+  };
+
+  const handleTextChange = (text: string) => {
+    // Auto-format as MM/DD/YYYY while typing
+    const cleaned = text.replace(/\D/g, '');
+    let formatted = '';
+    
+    if (cleaned.length >= 1) {
+      formatted += cleaned.substring(0, 2);
+    }
+    if (cleaned.length >= 3) {
+      formatted += '/' + cleaned.substring(2, 4);
+    }
+    if (cleaned.length >= 5) {
+      formatted += '/' + cleaned.substring(4, 8);
+    }
+    
+    onChangeText(formatted);
+  };
+
+  const handleCalendarPress = () => {
+    setShow(true);
   };
 
   return (
@@ -41,9 +63,7 @@ export default function ProfileDateInput({ value, onChangeText }: ProfileDateInp
         Date of Birth
       </Text>
 
-      <TouchableOpacity
-        onPress={() => setShow(true)}
-        activeOpacity={0.8}
+      <View
         className="
           w-full
           h-[56px]
@@ -57,17 +77,22 @@ export default function ProfileDateInput({ value, onChangeText }: ProfileDateInp
         "
       >
         <TextInput
-          placeholder="DD/MM/YYYY"
+          placeholder="MM/DD/YYYY"
           placeholderTextColor="#666"
           className="text-white text-[15px] font-nata flex-1 outline-none"
           value={value}
-          editable={false}
-          pointerEvents="none"
+          onChangeText={handleTextChange}
+          keyboardType="numeric"
+          maxLength={10}
         />
-        <View className="p-2 -mr-2">
+        <TouchableOpacity 
+          onPress={handleCalendarPress}
+          className="p-2 -mr-2"
+          activeOpacity={0.8}
+        >
           <CalendarIcon size={20} color="#727272" />
-        </View>
-      </TouchableOpacity>
+        </TouchableOpacity>
+      </View>
 
       <CustomCalendar
         visible={show}

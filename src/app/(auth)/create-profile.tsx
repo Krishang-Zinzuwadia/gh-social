@@ -14,12 +14,20 @@ export default function CreateProfile() {
   const router = useRouter();
   const [username, setUsername] = useState("");
   const [dob, setDob] = useState("");
+  const [bio, setBio] = useState("");
 
   const isFormValid = username.trim().length > 0 && dob.trim().length > 0;
 
   const handleCreateAccount = () => {
     if (isFormValid) {
-      router.push("/onboarding/step1");
+      router.push({
+        pathname: "/onboarding/step1",
+        params: {
+          username: username.trim(),
+          dob: dob.trim(),
+          bio: bio.trim(),
+        }
+      });
     }
   };
 

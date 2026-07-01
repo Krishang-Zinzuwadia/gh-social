@@ -1,19 +1,22 @@
-import { useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
-import { ScrollView, View, Text, Pressable } from "react-native";
+import { useState } from "react";
+import { Alert, ScrollView, Text, View } from "react-native";
 
-import ProgressBar from "@/components/onboarding/ProgressBar";
-import PrimaryButton from "@/components/onboarding/PrimaryButton";
-import TechChip from "@/components/onboarding/TechChip";
+import { apiClient } from "@/api/client";
 import LogoPlaceholder from "@/components/onboarding/LogoPlaceholder";
+import PrimaryButton from "@/components/onboarding/PrimaryButton";
+import ProgressBar from "@/components/onboarding/ProgressBar";
 import StepHeader from "@/components/onboarding/StepHeader";
+import TechChip from "@/components/onboarding/TechChip";
 import { INTEREST_CATEGORIES } from "@/constants/onboarding";
 
 export default function Step3() {
-  const { categories } = useLocalSearchParams();
+  const { categories, techStack, username, dob, bio } = useLocalSearchParams();
   const selectedCategoryIds = typeof categories === "string" ? categories.split(",") : [];
+  const techStackArray = typeof techStack === "string" ? techStack.split(",") : [];
 
   const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
 
   const toggleInterest = (keyword: string) => {
     setSelectedInterests((prev) =>
@@ -23,9 +26,49 @@ export default function Step3() {
     );
   };
 
-  const completeOnboarding = () => {
+  const completeOnboarding = async () => {
     if (selectedInterests.length >= 5) {
-      router.replace("/(tabs)/home");
+      setIsLoading(true);
+      try {
+        // Format date_of_birth from MM/DD/YYYY to YYYY-MM-DD
+        let formattedDateOfBirth = undefined;
+        if (dob) {
+          const dateStr = dob as string;
+          // Try to parse MM/DD/YYYY format
+          const parts = dateStr.split('/');
+          if (parts.length === 3) {
+            const [month, day, year] = parts;
+            formattedDateOfBirth = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+          } else {
+            // Try to parse other formats or use as-is if already YYYY-MM-DD
+            formattedDateOfBirth = dateStr;
+          }
+        }
+
+        const payload = {
+          username: username as string || "",
+          full_name: username as string || "", // Using username as full_name for now since it's required
+          date_of_birth: formattedDateOfBirth,
+          bio: (bio as string) || "", // Convert undefined to empty string
+          interests: selectedInterests,
+          skills: selectedCategoryIds,
+          tech_stack: techStackArray,
+        };
+        
+        console.log("Submitting Onboarding Payload:", payload);
+        
+        const response = await apiClient.setupOnboarding(payload);
+
+        if (response.success) {
+          router.replace("/(tabs)/home");
+        } else {
+          Alert.alert('Error', response.error || 'Failed to complete onboarding');
+        }
+      } catch (error: any) {
+        Alert.alert('Error', error.error || error.message || 'Failed to complete onboarding');
+      } finally {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -119,9 +162,9 @@ export default function Step3() {
 
       <View style={{ marginTop: selectedInterests.length < 5 ? 8 : 20 }}>
         <PrimaryButton
-          title="Finish"
+          title={isLoading ? "Completing..." : "Finish"}
           onPress={completeOnboarding}
-          disabled={selectedInterests.length < 5}
+          disabled={selectedInterests.length < 5 || isLoading}
         />
       </View>
 

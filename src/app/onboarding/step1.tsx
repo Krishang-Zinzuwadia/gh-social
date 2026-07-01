@@ -1,10 +1,9 @@
+import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
-import { router } from "expo-router";
 import {
-    ScrollView,
-    Text,
-    TouchableOpacity,
-    View,
+  ScrollView,
+  Text,
+  View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -14,6 +13,7 @@ import SkillCard from "@/components/onboarding/SkillCard";
 import { SKILL_CATEGORIES } from "@/constants/onboarding";
 
 export default function Step1() {
+  const params = useLocalSearchParams();
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
 
   const toggleCategory = (id: string) => {
@@ -26,7 +26,12 @@ export default function Step1() {
     if (selectedCategories.length >= 2) {
       router.push({
         pathname: "/onboarding/step2",
-        params: { categories: selectedCategories.join(",") }
+        params: { 
+          categories: selectedCategories.join(","),
+          username: params.username,
+          dob: params.dob,
+          bio: params.bio,
+        }
       });
     }
   };

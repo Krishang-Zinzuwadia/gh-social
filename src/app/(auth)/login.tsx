@@ -1,6 +1,8 @@
+import * as Linking from 'expo-linking';
 import { useRouter } from "expo-router";
-import { useEffect, useRef } from "react";
-import { ScrollView, Text, View } from "react-native";
+import * as WebBrowser from 'expo-web-browser';
+import { useEffect, useRef, useState } from "react";
+import { Alert, Platform, ScrollView, Text, View } from "react-native";
 
 import AuthFooter from "@/components/Auth/AuthFooter";
 import LogoCircle from "@/components/Auth/LogoCircle";
@@ -15,16 +17,109 @@ import {
     GithubIcon,
     GoogleIcon,
 } from "@/components/Auth/icons";
+import { useAuthStore } from '@/store/authStore';
 
 export default function LoginScreen() {
   const router = useRouter();
   const scrollViewRef = useRef<ScrollView>(null);
+  const { login, oauthLogin, isLoading, error, clearError, checkOnboardingStatus } = useAuthStore();
+  
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
   useEffect(() => {
     setTimeout(() => {
       scrollViewRef.current?.scrollToEnd({ animated: true });
     }, 500);
   }, []);
+
+  useEffect(() => {
+    if (error) {
+      Alert.alert("Error", error);
+      clearError();
+    }
+  }, [error, clearError]);
+
+  const handleEmailLogin = async () => {
+    try {
+      await login(email.trim(), password);
+      
+      // Check onboarding status to determine routing
+      const { onboarding_completed } = await checkOnboardingStatus();
+      
+      if (onboarding_completed) {
+        router.replace("/(tabs)/home");
+      } else {
+        router.replace("/(auth)/create-profile");
+      }
+    } catch (err) {
+      // Error is handled by the store and shown in Alert
+    }
+  };
+
+  const handleGitHubLogin = async () => {
+    try {
+      const redirectUrl = Platform.OS === 'web' 
+        ? 'http://localhost:3000/auth/callback'
+        : Linking.createURL('auth/callback');
+      const url = await oauthLogin('github', redirectUrl, 'login');
+      
+      // On web, use direct redirect to avoid COOP policy issues
+      if (Platform.OS === 'web') {
+        window.location.href = url;
+        return;
+      }
+      
+      const result = await WebBrowser.openAuthSessionAsync(url, redirectUrl);
+      
+      if (result.type === 'success' && result.url) {
+        const urlParams = new URL(result.url).searchParams;
+        const code = urlParams.get('code');
+        const error = urlParams.get('error');
+        
+        if (error) {
+          Alert.alert('OAuth Error', error);
+        } else if (code) {
+          // The callback will handle the routing
+          router.replace({ pathname: '/auth/callback', params: { code, intent: 'login' } });
+        }
+      }
+    } catch (err: any) {
+      Alert.alert('GitHub Login Failed', err.message || 'An error occurred');
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    try {
+      const redirectUrl = Platform.OS === 'web' 
+        ? 'http://localhost:3000/auth/callback'
+        : Linking.createURL('auth/callback');
+      const url = await oauthLogin('google', redirectUrl, 'login');
+      
+      // On web, use direct redirect to avoid COOP policy issues
+      if (Platform.OS === 'web') {
+        window.location.href = url;
+        return;
+      }
+      
+      const result = await WebBrowser.openAuthSessionAsync(url, redirectUrl);
+      
+      if (result.type === 'success' && result.url) {
+        const urlParams = new URL(result.url).searchParams;
+        const code = urlParams.get('code');
+        const error = urlParams.get('error');
+        
+        if (error) {
+          Alert.alert('OAuth Error', error);
+        } else if (code) {
+          // The callback will handle the routing
+          router.replace({ pathname: '/auth/callback', params: { code, intent: 'login' } });
+        }
+      }
+    } catch (err: any) {
+      Alert.alert('Google Login Failed', err.message || 'An error occurred');
+    }
+  };
 
   return (
     <ScrollView
@@ -63,12 +158,16 @@ export default function LoginScreen() {
             label="Continue with GitHub"
             icon={<GithubIcon />}
             showChevron
+            onPress={handleGitHubLogin}
+            disabled={isLoading}
           />
 
           <SocialButton
             label="Continue with Google"
             icon={<GoogleIcon />}
             showChevron
+            onPress={handleGoogleLogin}
+            disabled={isLoading}
           />
         </View>
 
@@ -82,11 +181,15 @@ export default function LoginScreen() {
           
           className="text-white text-[15px] mt-8 mb-3 font-nata"
         >
-          Email or username
+          Email
         </Text>
 
         <LoginInput
-          placeholder="Enter your email or username"
+          placeholder="Enter your email"
+          value={email}
+          onChangeText={setEmail}
+          autoCapitalize="none"
+          keyboardType="email-address"
         />
 
         {/* Password */}
@@ -100,6 +203,8 @@ export default function LoginScreen() {
         <LoginInput
           placeholder="Enter your password"
           secureTextEntry
+          value={password}
+          onChangeText={setPassword}
         />
 
         {/* Remember me */}
@@ -109,7 +214,8 @@ export default function LoginScreen() {
         <View className="mt-8">
           <PrimaryButton
             label="Log In"
-            onPress={() => router.replace("/(tabs)/home")}
+            onPress={handleEmailLogin}
+            disabled={isLoading}
           />
         </View>
 

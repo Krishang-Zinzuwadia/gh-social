@@ -16,7 +16,9 @@ export default function CreateProfile() {
   const [dob, setDob] = useState("");
   const [bio, setBio] = useState("");
 
-  const isFormValid = username.trim().length > 0 && dob.trim().length > 0;
+  const dobRegex = /^(0[1-9]|[12][0-9]|3[01])\/(0[1-9]|1[0-2])\/\d{4}$/;
+  const isDobValid = dobRegex.test(dob.trim());
+  const isFormValid = username.trim().length > 0 && isDobValid;
 
   const handleCreateAccount = () => {
     if (isFormValid) {
@@ -26,7 +28,7 @@ export default function CreateProfile() {
           username: username.trim(),
           dob: dob.trim(),
           bio: bio.trim(),
-        }
+        },
       });
     }
   };
@@ -37,27 +39,21 @@ export default function CreateProfile() {
       showsVerticalScrollIndicator={false}
       contentContainerStyle={{ paddingBottom: 50 }}
     >
-      <View className="px-8 pt-14 w-full" style={{ maxWidth: 450, alignSelf: 'center' }}>
-
+      <View
+        className="px-8 pt-14 w-full"
+        style={{ maxWidth: 450, alignSelf: "center" }}
+      >
         {/* Avatar */}
         <ProfileAvatar />
 
         {/* Heading */}
         <View className="items-center mt-4">
-          <Text
-            
-            className="text-white text-[32px] text-center font-nataBold"
-          >
+          <Text className="text-white text-[32px] text-center font-nataBold">
             Create{" "}
-            <Text className="text-[#8EFF7A] font-nataBold">
-              your account
-            </Text>
+            <Text className="text-[#8EFF7A] font-nataBold">your account</Text>
           </Text>
 
-          <Text
-            
-            className="text-[#8A8A8A] text-[14px] text-center mt-3 font-nata"
-          >
+          <Text className="text-[#8A8A8A] text-[14px] text-center mt-3 font-nata">
             Let&apos;s set up your profile.
           </Text>
         </View>
@@ -77,16 +73,16 @@ export default function CreateProfile() {
         {/* Date of birth */}
         <View className="mt-4">
           <ProfileDateInput value={dob} onChangeText={setDob} />
-          {dob.trim().length === 0 && (
+          {!isDobValid && (
             <Text className="text-[#E57373] text-[13px] font-nata mt-1 ml-1">
-              Please enter a valid date of birth.
+              Please enter a valid date (dd/mm/yyyy)
             </Text>
           )}
         </View>
 
         {/* Bio */}
         <View className="mt-4">
-            <ProfileTextArea />
+          <ProfileTextArea />
         </View>
 
         {/* Create Account */}
@@ -101,7 +97,6 @@ export default function CreateProfile() {
 
         {/* Terms */}
         <TermsFooter />
-
       </View>
     </ScrollView>
   );

@@ -1,7 +1,10 @@
 import type { Request, Response } from 'express';
 import * as activityService from '../services/activityService.js';
+import { FeedService } from '../services/feedService.js';
 import { sendError, sendSuccess, sendDatabaseError } from '../utils/response.js';
 import { isValidUuid } from '../utils/validators.js';
+
+const feedService = new FeedService();
 
 // Return every activity row.
 export async function getAllActivity(_req: Request, res: Response): Promise<void> {
@@ -139,6 +142,8 @@ export async function likeRepo(req: Request, res: Response): Promise<void> {
     return sendDatabaseError(res, error);
   }
 
+  void feedService.invalidateUserFeed(userId);
+
   return sendSuccess(res, 200, data);
 }
 
@@ -155,6 +160,8 @@ export async function saveRepo(req: Request, res: Response): Promise<void> {
   if (error) {
     return sendDatabaseError(res, error);
   }
+
+  void feedService.invalidateUserFeed(userId);
 
   return sendSuccess(res, 200, data);
 }

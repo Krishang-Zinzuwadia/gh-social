@@ -1,92 +1,62 @@
+import crypto from 'crypto';
 import redisClient from '../config/redis.js';
-import { db } from '../db/index.js';
-import { repos } from '../db/schema.js';
-import { inArray } from 'drizzle-orm';
-import axios from 'axios';
+import { mlService, type MlRecommendationBatches } from './mlService.js';
 
 export class FeedService {
   private SESSION_TTL = 600; // 10 minutes cache lifetime
+  /** How long the in-flight lock is held before auto-expiring (ms). */
+  private LOCK_TTL_MS = 30_000;
+  /** Max time a waiter will poll for the lock to be released (ms). */
+  private LOCK_WAIT_TIMEOUT_MS = 35_000;
+
+  private getQueueKey(userId: string): string {
+    return `user:${userId}:delivery_queue`;
+  }
+
+  private getLockKey(userId: string): string {
+    return `user:${userId}:feed_generating`;
+  }
+
+  private flattenRecommendationBatches(batches: MlRecommendationBatches): unknown[] {
+    return Object.keys(batches)
+      .filter((key) => key.startsWith('batch_'))
+      .sort((a, b) => {
+        const numA = parseInt(a.replace('batch_', ''), 10);
+        const numB = parseInt(b.replace('batch_', ''), 10);
+        return numA - numB;
+      })
+      .flatMap((key) => {
+        const batch = batches[key];
+        return Array.isArray(batch) ? batch : [];
+      });
+  }
 
   /**
-   * Task --> Routes scoring IDs through the Python ML microservice to apply
-   * freshness and exploration injections, then stitches relational metadata
-   * from PostgreSQL and caches the final layout sequence into Redis.
+   * Stores ML recommendation objects in the Redis delivery queue.
    */
-  async processAndCacheBatch(userId: string, mlRepoIds: string[]): Promise<void> {
-    const fallbackIds = mlRepoIds.slice(0, 15); // Safeguard to guarantee exactly 15 elements
-    const queueKey = `user:${userId}:delivery_queue`;
+  async processAndCacheBatch(userId: string, recommendations: unknown[]): Promise<void> {
+    const queueKey = this.getQueueKey(userId);
 
     try {
-      // 1. Initialize our tracking array with the base machine learning ranking order
-      let finalRankedIds: string[] = fallbackIds;
-      
-      try {
-        // Map the flat ID strings into the structured candidates array the Python API expects
-        const candidatePayload = fallbackIds.map(id => ({ repo_id: id }));
-        
-        // Fire HTTP POST request to your live background FastAPI application process
-        const mlResponse = await axios.post(`${process.env.ML_SERVICE_URL}/api/internal/ml/assemble-feed`, {
-          candidates: candidatePayload
-        });
-        
-        if (mlResponse.data && Array.isArray(mlResponse.data.rankedRepoIds)) {
-          finalRankedIds = mlResponse.data.rankedRepoIds;
-        }
-      } catch (mlError) {
-        // Failsafe: If the Python server is offline, log it and fall back gracefully to the original ML order
-        console.error('[FeedService] ML injection service unavailable, using fallback standard rank:', mlError);
+      if (recommendations.length === 0) {
+        await redisClient.set(queueKey, '__empty__', 'EX', this.SESSION_TTL);
+        return;
       }
 
-      // 2. Fetching metadata in a single batch query using real Drizzle ORM syntax
-      const dbRepos = await db
-        .select()
-        .from(repos)
-        .where(inArray(repos.repo_id, finalRankedIds));
-
-      // 3. Format the database payload into a clean structure optimized json file for the frontend layout
-      // CRITICAL: We map over finalRankedIds here to guarantee we preserve the precise sorted order calculated by Python!
-      const formattedPosts = finalRankedIds.map(id => {
-        const repo = dbRepos.find(r => r.repo_id === id);
-        if (!repo) return null;
-
-        return {
-          id: repo.repo_id,
-          url: repo.github_repo_url,
-          title: repo.repo_name,
-          owner: repo.owner_id || 'Unknown',
-          description: repo.description,
-          // Since language_used and topics are JSONB arrays in your schema, we ensure type safety with fallback arrays
-          tags: [
-            ...(Array.isArray(repo.language_used) ? repo.language_used : []),
-            ...(Array.isArray(repo.topics) ? repo.topics : [])
-          ],
-          readmePreview: repo.readme_summary,
-          engagement: {
-            likes: repo.likes_count ?? 0,
-            comments: repo.comments_count ?? 0,
-            saves: repo.saves_count ?? 0,
-            views: repo.views_count ?? 0
-          }
-        };
-      }).filter(Boolean); // Clears out any null mapping items cleanly
-
-      // 4. Store directly into your running Redis cache pipeline
       const pipeline = redisClient.pipeline();
-      
-      // Clear out any old expired delivery queue data snapshots first
-      pipeline.del(queueKey); 
 
-      for (const post of formattedPosts) {
+      pipeline.del(queueKey);
+
+      for (const post of recommendations) {
         pipeline.rpush(queueKey, JSON.stringify(post));
       }
 
-      // Automatically expire the queue if the user closes the app
       pipeline.expire(queueKey, this.SESSION_TTL);
       await pipeline.exec();
 
-      console.log(`[FeedService] Successfully stitched and cached ${formattedPosts.length} posts for User: ${userId}`);
+      console.log(`[FeedService] Cached ${recommendations.length} ML recommendations for User: ${userId}`);
     } catch (error) {
-      console.error('[FeedService] Error processing data batch:', error);
+      console.error('[FeedService] Error caching feed batch:', error);
       throw error;
     }
   }
@@ -94,22 +64,84 @@ export class FeedService {
   /**
    * Task --> Pulls the pre-stitched feed from the Redis queue for the mobile client
    */
-  async getCachedFeed(userId: string): Promise<any[]> {
-    const queueKey = `user:${userId}:delivery_queue`;
+  async getCachedFeed(userId: string): Promise<any[] | null> {
+    const queueKey = this.getQueueKey(userId);
 
     try {
-      // Pull all stringified objects currently stored in the Redis List
+      const type = await redisClient.type(queueKey);
+      if (type === 'string') {
+        const val = await redisClient.get(queueKey);
+        if (val === '__empty__') return [];
+      }
+
       const rawFeedItems = await redisClient.lrange(queueKey, 0, -1);
 
       if (!rawFeedItems || rawFeedItems.length === 0) {
-        return []; // Return empty array if nothing is pushed yet or cache expired
+        return null;
       }
 
-      // Parse the JSON strings back into readable JavaScript objects for the mobile app
-      return rawFeedItems.map(item => JSON.parse(item));
+      return rawFeedItems.map((item: string) => JSON.parse(item));
     } catch (error) {
       console.error('[FeedService] Failed to retrieve cached feed:', error);
       throw error;
+    }
+  }
+
+  /**
+   * Returns the cached feed if available. On a cache miss, acquires a short-lived
+   * Redis lock (SET NX PX) so that only one concurrent request calls the ML service.
+   * Other simultaneous requests poll with exponential back-off until the feed is
+   * populated, then return the cached result — preventing duplicate ML calls.
+   */
+  async getOrGenerateFeed(userId: string): Promise<any[]> {
+    const cachedFeed = await this.getCachedFeed(userId);
+    if (cachedFeed !== null) {
+      return cachedFeed;
+    }
+
+    const lockKey = this.getLockKey(userId);
+    const deadline = Date.now() + this.LOCK_WAIT_TIMEOUT_MS;
+    let delay = 100; // start at 100 ms, doubles each iteration (cap 2 s)
+
+    while (Date.now() < deadline) {
+      const lockToken = crypto.randomUUID();
+      const acquired = await redisClient.set(lockKey, lockToken, 'PX', this.LOCK_TTL_MS, 'NX');
+
+      if (acquired === 'OK') {
+        try {
+          const batches = await mlService.generateRecommendations(userId);
+          const recommendations = this.flattenRecommendationBatches(batches);
+          await this.processAndCacheBatch(userId, recommendations);
+          return recommendations;
+        } finally {
+          const releaseScript = `
+            if redis.call("get",KEYS[1]) == ARGV[1] then
+                return redis.call("del",KEYS[1])
+            else
+                return 0
+            end
+          `;
+          await redisClient.eval(releaseScript, 1, lockKey, lockToken).catch(() => {/* best-effort */});
+        }
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, delay));
+      delay = Math.min(delay * 2, 2_000);
+
+      const feed = await this.getCachedFeed(userId);
+      if (feed !== null) {
+        return feed;
+      }
+    }
+
+    throw new Error(`[FeedService] Timeout waiting for feed generation for user ${userId}`);
+  }
+
+  async invalidateUserFeed(userId: string): Promise<void> {
+    try {
+      await redisClient.del(this.getQueueKey(userId));
+    } catch (error) {
+      console.error(`[FeedService] Failed to invalidate feed cache for ${userId}:`, error);
     }
   }
 }

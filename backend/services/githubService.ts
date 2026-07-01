@@ -102,6 +102,9 @@ const repoMetadataQuery = `
       pullRequests {
         totalCount
       }
+      issues(states: OPEN) {
+        totalCount
+      }
       defaultBranchRef {
         name
         target {
@@ -249,6 +252,7 @@ function formatRepositoryMetadata(repository: GitHubRepositoryNode): RepoMetadat
     forks_count: repository.forkCount || 0,
     stars_count: repository.stargazerCount || 0,
     pr_count: repository.pullRequests?.totalCount || 0,
+    open_issues_count: repository.issues?.totalCount || 0,
     default_branch: repository.defaultBranchRef?.name || null,
     authors: getUniqueAuthors(historyNodes),
   };

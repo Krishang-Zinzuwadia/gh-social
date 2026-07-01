@@ -63,12 +63,14 @@ export const repos = pgTable('repo', {
   language_used: jsonb('language_used').default('[]'),
   topics: jsonb('topics').default('[]'),
   readme_summary: text('readme_summary'),
-  star_count: integer('star_count').default(0),
+  readme_md: text('readme_md'),
   likes_count: integer('likes_count').default(0),
   comments_count: integer('comments_count').default(0),
   saves_count: integer('saves_count').default(0),
   views_count: integer('views_count').default(0),
   forks_count: integer('forks_count').default(0),
+  star_count: integer('star_count').default(0),
+  open_issues_count: integer('open_issues_count').default(0),
   pr_count: integer('pr_count').default(0),
   created_at: timestamp('created_at', { mode: 'string' }).defaultNow(),
   updated_at: timestamp('updated_at', { mode: 'string' }).defaultNow(),
@@ -164,4 +166,3 @@ export const trendingRepos = pgTable('trending_repositories', {
   readme: text('readme'),
   trending_rank: integer('trending_rank'),
 });
-

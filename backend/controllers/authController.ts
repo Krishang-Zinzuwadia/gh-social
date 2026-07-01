@@ -7,6 +7,7 @@ import { db } from '../db/index.js';
 import { refreshTokens, oauthCodes, users } from '../db/schema.js';
 import { eq } from 'drizzle-orm';
 import jwt from 'jsonwebtoken';
+import { mlService } from '../services/mlService.js';
 
 const CLIENT_URL = process.env.CLIENT_URL;
 const BACKEND_URL = process.env.BACKEND_URL;
@@ -75,6 +76,18 @@ export async function signUp(req: Request, res: Response): Promise<void> {
     });
 
     if (error) return sendError(res, error.status || 400, error.message);
+
+    if (data.user) {
+      void mlService.onboardUserBestEffort({
+        user_id: data.user.id,
+        username,
+        full_name,
+        bio: typeof data.user.user_metadata?.bio === 'string' ? data.user.user_metadata.bio : null,
+        interests: [],
+        skills: [],
+        tech_stack: [],
+      });
+    }
 
     if (!data.session) {
       return sendSuccess(res, 202, { 

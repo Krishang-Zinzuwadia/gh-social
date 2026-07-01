@@ -277,16 +277,13 @@ export async function getOAuthUrl(req: Request, res: Response): Promise<void> {
   const { provider } = req.params;
   const { redirectUri, intent } = req.query;
   
+  const { redirectUri, intent } = req.query;
+  
   if (provider !== 'github' && provider !== 'google') return sendError(res, 400, 'Invalid provider.');
 
   try {
     const url = new URL(`${process.env.SUPABASE_URL}/auth/v1/authorize`);
     url.searchParams.set('provider', provider);
-    
-    // Force account selection for Google OAuth
-    if (provider === 'google') {
-      url.searchParams.set('prompt', 'select_account');
-    }
     
     // Use the provided redirectUri if available, otherwise fall back to backend callback
     let redirectTo = redirectUri ? redirectUri as string : `${BACKEND_URL}/api/auth/callback`;

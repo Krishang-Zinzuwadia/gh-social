@@ -311,7 +311,7 @@ export async function getOAuthUrl(req: Request, res: Response): Promise<void> {
     const url = new URL(`${process.env.SUPABASE_URL}/auth/v1/authorize`);
     url.searchParams.set("provider", provider);
 
-    // Force account selection for Google OAuth
+    // Keep: Force account selection for Google OAuth
     if (provider === "google") {
       url.searchParams.set("prompt", "select_account");
     }

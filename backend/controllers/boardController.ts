@@ -1,4 +1,5 @@
 import type { Request, Response } from 'express';
+import type { AuthRequest } from '../middlewares/authMiddleware.js';
 import * as boardService from '../services/boardService.js';
 import { sendError, sendSuccess, sendDatabaseError, sendControllerError } from '../utils/response.js';
 import { isValidUuid } from '../utils/validators.js';
@@ -33,16 +34,17 @@ async function resolveRepoId(repoIdOrFullName: string): Promise<string | null> {
   return null;
 }
 
-export async function createBoard(req: Request, res: Response): Promise<void> {
+export async function createBoard(req: AuthRequest, res: Response): Promise<void> {
   const body = req.body as BoardInsert;
+  const authUserId = req.user?.userId;
 
-  if (!body.user_id || !body.board_name) {
-    return sendError(res, 400, 'user_id and board_name are required.');
+  if (!authUserId) return sendError(res, 401, 'Unauthorized');
+  
+  if (!body.board_name) {
+    return sendError(res, 400, 'board_name is required.');
   }
 
-  if (!isValidUuid(body.user_id)) {
-    return sendError(res, 400, 'user_id must be a valid UUID.');
-  }
+  body.user_id = authUserId;
 
   try {
     const { data, error } = await boardService.createBoard(body);
@@ -88,21 +90,22 @@ export async function getBoardById(req: Request, res: Response): Promise<void> {
   return sendSuccess(res, 200, data);
 }
 
-export async function addRepoToBoard(req: Request, res: Response): Promise<void> {
+export async function addRepoToBoard(req: AuthRequest, res: Response): Promise<void> {
   const boardId = req.params.boardId as string;
   let repoId = req.body.repo_id as string;
-  const userId = req.body.user_id as string | undefined;
+  const authUserId = req.user?.userId;
+
+  if (!authUserId) return sendError(res, 401, 'Unauthorized');
 
   const resolvedRepoId = await resolveRepoId(repoId);
   if (!resolvedRepoId) return sendError(res, 400, 'Invalid repository format or could not create repo.');
   repoId = resolvedRepoId;
 
   if (!isValidUuid(boardId)) return sendError(res, 400, 'boardId must be a valid UUID.');
-  if (!userId || !isValidUuid(userId)) return sendError(res, 400, 'user_id is required and must be a valid UUID.');
 
   const { data: board, error: boardError } = await boardService.getBoardById(boardId);
   if (boardError) return sendDatabaseError(res, boardError, { notFoundMessage: 'Board not found.' });
-  if (board.user_id !== userId) return sendError(res, 403, 'You do not own this board.');
+  if (board.user_id !== authUserId) return sendError(res, 403, 'You do not own this board.');
 
   try {
     const { data, error } = await boardService.addRepoToBoard(boardId, repoId);
@@ -127,24 +130,25 @@ export async function addRepoToBoard(req: Request, res: Response): Promise<void>
   }
 }
 
-export async function saveRepoToBoard(req: Request, res: Response): Promise<void> {
+export async function saveRepoToBoard(req: AuthRequest, res: Response): Promise<void> {
   const boardId = req.params.boardId as string;
   let repoId = req.body.repo_id as string;
-  const userId = req.body.user_id as string | undefined;
+  const authUserId = req.user?.userId;
+
+  if (!authUserId) return sendError(res, 401, 'Unauthorized');
 
   const resolvedRepoId = await resolveRepoId(repoId);
   if (!resolvedRepoId) return sendError(res, 400, 'Invalid repository format or could not create repo.');
   repoId = resolvedRepoId;
 
   if (!isValidUuid(boardId)) return sendError(res, 400, 'boardId must be a valid UUID.');
-  if (!userId || !isValidUuid(userId)) return sendError(res, 400, 'user_id is required and must be a valid UUID.');
 
   const { data: board, error: boardError } = await boardService.getBoardById(boardId);
   if (boardError) return sendDatabaseError(res, boardError, { notFoundMessage: 'Board not found.' });
-  if (board.user_id !== userId) return sendError(res, 403, 'You do not own this board.');
+  if (board.user_id !== authUserId) return sendError(res, 403, 'You do not own this board.');
 
   try {
-    const { data, error } = await boardService.saveRepoToBoardAtomic(userId, boardId, repoId);
+    const { data, error } = await boardService.saveRepoToBoardAtomic(authUserId, boardId, repoId);
     if (error) {
       return sendDatabaseError(res, error, {
         invalidReferenceMessage: 'Repo does not exist or is not linked to a valid record.',
@@ -156,15 +160,16 @@ export async function saveRepoToBoard(req: Request, res: Response): Promise<void
   }
 }
 
-export async function removeRepoFromBoard(req: Request, res: Response): Promise<void> {
+export async function removeRepoFromBoard(req: AuthRequest, res: Response): Promise<void> {
   const { boardId, repoId } = req.params as { boardId: string; repoId: string };
-  const userId = req.body.user_id as string | undefined;
+  const authUserId = req.user?.userId;
+
+  if (!authUserId) return sendError(res, 401, 'Unauthorized');
   if (!isValidUuid(boardId) || !isValidUuid(repoId)) return sendError(res, 400, 'boardId and repoId must be valid UUIDs.');
-  if (!userId || !isValidUuid(userId)) return sendError(res, 400, 'user_id is required and must be a valid UUID.');
 
   const { data: board, error: boardError } = await boardService.getBoardById(boardId);
   if (boardError) return sendDatabaseError(res, boardError, { notFoundMessage: 'Board not found.' });
-  if (board.user_id !== userId) return sendError(res, 403, 'You do not own this board.');
+  if (board.user_id !== authUserId) return sendError(res, 403, 'You do not own this board.');
 
   try {
     const { error, count } = await boardService.removeRepoFromBoard(boardId, repoId);
@@ -178,15 +183,16 @@ export async function removeRepoFromBoard(req: Request, res: Response): Promise<
   }
 }
 
-export async function deleteBoardById(req: Request, res: Response): Promise<void> {
+export async function deleteBoardById(req: AuthRequest, res: Response): Promise<void> {
   const boardId = req.params.boardId as string;
-  const userId = req.body.user_id as string | undefined;
+  const authUserId = req.user?.userId;
+
+  if (!authUserId) return sendError(res, 401, 'Unauthorized');
   if (!isValidUuid(boardId)) return sendError(res, 400, 'boardId must be a valid UUID.');
-  if (!userId || !isValidUuid(userId)) return sendError(res, 400, 'user_id is required and must be a valid UUID.');
 
   const { data: board, error: boardError } = await boardService.getBoardById(boardId);
   if (boardError) return sendDatabaseError(res, boardError, { notFoundMessage: 'Board not found.' });
-  if (board.user_id !== userId) return sendError(res, 403, 'You do not own this board.');
+  if (board.user_id !== authUserId) return sendError(res, 403, 'You do not own this board.');
 
   try {
     const { error, count } = await boardService.deleteBoard(boardId);

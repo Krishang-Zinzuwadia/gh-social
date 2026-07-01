@@ -44,8 +44,8 @@ export async function processBatchedActivity(userId: string, events: BatchedActi
         WHERE repo.full_name = ${event.repo_id} OR repo.repo_id::text = ${event.repo_id}
         ON CONFLICT (user_id, repo_id) DO UPDATE 
         SET 
-          time_spent = activity.time_spent + ${dwell}::interval,
-          likelihood_count = activity.likelihood_count + EXCLUDED.likelihood_count,
+          time_spent = activity.time_spent + EXCLUDED.time_spent,
+          likelihood_count = GREATEST(activity.likelihood_count, EXCLUDED.likelihood_count),
           is_saved = EXCLUDED.is_saved OR activity.is_saved
       `);
     }

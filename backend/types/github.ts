@@ -30,7 +30,6 @@ export interface RepoMetadata {
   forks_count: number;
   stars_count: number;
   pr_count: number;
-  open_issues_count: number;
   default_branch: string | null;
   authors: Author[];
 }

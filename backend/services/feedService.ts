@@ -1,7 +1,9 @@
 import crypto from 'crypto';
 import redisClient from '../config/redis.js';
 import { mlService, type MlRecommendationBatches } from './mlService.js';
-
+import { db } from '../db/index.js';
+import { repos } from '../db/schema.js';
+import { inArray } from 'drizzle-orm';
 export class FeedService {
   private SESSION_TTL = 600; // 10 minutes cache lifetime
   /** How long the in-flight lock is held before auto-expiring (ms). */
@@ -31,10 +33,48 @@ export class FeedService {
       });
   }
 
+  private async enrichRecommendations(recommendations: any[]): Promise<any[]> {
+    if (recommendations.length === 0) return [];
+
+    const fullNames = recommendations.map(r => r.full_name).filter(Boolean);
+    if (fullNames.length === 0) return recommendations;
+
+    try {
+      const repoData = await db.select().from(repos).where(inArray(repos.full_name, fullNames));
+      const repoMap = new Map();
+      repoData.forEach(r => repoMap.set(r.full_name, r));
+
+      return recommendations.map(r => {
+        const dbRepo = repoMap.get(r.full_name);
+        if (!dbRepo) return r;
+
+        let languages = r.languages || [];
+        if (dbRepo.language_used && typeof dbRepo.language_used === 'object') {
+          languages = Object.keys(dbRepo.language_used);
+        }
+
+        return {
+          ...r,
+          repo_id: dbRepo.repo_id,
+          description: dbRepo.description || r.description,
+          readme_summary: dbRepo.readme_summary || r.readme_summary,
+          readme_md: dbRepo.readme_md || r.readme_md,
+          languages,
+          topics: dbRepo.topics || r.topics,
+          star_count: dbRepo.star_count || r.star_count,
+          fork_count: dbRepo.fork_count || r.fork_count,
+        };
+      });
+    } catch (err) {
+      console.error('[FeedService] Error enriching recommendations:', err);
+      return recommendations;
+    }
+  }
+
   /**
    * Stores ML recommendation objects in the Redis delivery queue.
    */
-  async processAndCacheBatch(userId: string, recommendations: unknown[]): Promise<void> {
+  async processAndCacheBatch(userId: string, recommendations: any[]): Promise<void> {
     const queueKey = this.getQueueKey(userId);
 
     try {
@@ -43,28 +83,76 @@ export class FeedService {
         return;
       }
 
+      const enriched = await this.enrichRecommendations(recommendations);
       const pipeline = redisClient.pipeline();
 
       pipeline.del(queueKey);
 
-      for (const post of recommendations) {
+      for (const post of enriched) {
         pipeline.rpush(queueKey, JSON.stringify(post));
       }
 
       pipeline.expire(queueKey, this.SESSION_TTL);
       await pipeline.exec();
 
-      console.log(`[FeedService] Cached ${recommendations.length} ML recommendations for User: ${userId}`);
+      console.log(`[FeedService] Cached ${enriched.length} ML recommendations for User: ${userId}`);
     } catch (error) {
       console.error('[FeedService] Error caching feed batch:', error);
       throw error;
     }
   }
 
+  async appendBatch(userId: string, recommendations: any[]): Promise<void> {
+    const queueKey = this.getQueueKey(userId);
+
+    try {
+      if (recommendations.length === 0) return;
+
+      const enriched = await this.enrichRecommendations(recommendations);
+      const pipeline = redisClient.pipeline();
+
+      for (const post of enriched) {
+        pipeline.rpush(queueKey, JSON.stringify(post));
+      }
+
+      await pipeline.exec();
+      console.log(`[FeedService] Appended ${enriched.length} ML recommendations for User: ${userId}`);
+    } catch (error) {
+      console.error('[FeedService] Error appending feed batch:', error);
+    }
+  }
+
+  private async replenishFeedBackground(userId: string): Promise<void> {
+    const lockKey = this.getLockKey(userId);
+    const lockToken = crypto.randomUUID();
+    
+    // Non-blocking try-lock. If we don't get it, someone else is replenishing.
+    const acquired = await redisClient.set(lockKey, lockToken, 'PX', this.LOCK_TTL_MS, 'NX');
+    
+    if (acquired === 'OK') {
+      try {
+        const batches = await mlService.generateRecommendations(userId);
+        const recommendations = this.flattenRecommendationBatches(batches);
+        await this.appendBatch(userId, recommendations);
+      } catch (error) {
+        console.error('[FeedService] Background replenishment failed:', error);
+      } finally {
+        const releaseScript = `
+          if redis.call("get",KEYS[1]) == ARGV[1] then
+              return redis.call("del",KEYS[1])
+          else
+              return 0
+          end
+        `;
+        await redisClient.eval(releaseScript, 1, lockKey, lockToken).catch(() => {});
+      }
+    }
+  }
+
   /**
-   * Task --> Pulls the pre-stitched feed from the Redis queue for the mobile client
+   * Task --> Pulls a slice of the pre-stitched feed from the Redis queue for the mobile client
    */
-  async getCachedFeed(userId: string): Promise<any[] | null> {
+  async getCachedFeed(userId: string, limit: number = 5): Promise<any[] | null> {
     const queueKey = this.getQueueKey(userId);
 
     try {
@@ -74,10 +162,25 @@ export class FeedService {
         if (val === '__empty__') return [];
       }
 
-      const rawFeedItems = await redisClient.lrange(queueKey, 0, -1);
+      // Pop the next `limit` items using a pipeline
+      const pipeline = redisClient.pipeline();
+      pipeline.lrange(queueKey, 0, limit - 1);
+      pipeline.ltrim(queueKey, limit, -1);
+      pipeline.llen(queueKey);
+      const results = await pipeline.exec();
+
+      if (!results) return null;
+
+      const rawFeedItems = results[0]?.[1] as string[] | undefined;
+      const remaining = results[2]?.[1] as number | undefined;
 
       if (!rawFeedItems || rawFeedItems.length === 0) {
         return null;
+      }
+
+      // Just-In-Time Replenishment
+      if (remaining !== undefined && remaining < 3) {
+        void this.replenishFeedBackground(userId);
       }
 
       return rawFeedItems.map((item: string) => JSON.parse(item));
@@ -93,8 +196,8 @@ export class FeedService {
    * Other simultaneous requests poll with exponential back-off until the feed is
    * populated, then return the cached result — preventing duplicate ML calls.
    */
-  async getOrGenerateFeed(userId: string): Promise<any[]> {
-    const cachedFeed = await this.getCachedFeed(userId);
+  async getOrGenerateFeed(userId: string, limit: number = 5): Promise<any[]> {
+    const cachedFeed = await this.getCachedFeed(userId, limit);
     if (cachedFeed !== null) {
       return cachedFeed;
     }
@@ -112,7 +215,9 @@ export class FeedService {
           const batches = await mlService.generateRecommendations(userId);
           const recommendations = this.flattenRecommendationBatches(batches);
           await this.processAndCacheBatch(userId, recommendations);
-          return recommendations;
+          
+          // Re-fetch now that it's cached so we pop exactly `limit`
+          return await this.getCachedFeed(userId, limit) || [];
         } finally {
           const releaseScript = `
             if redis.call("get",KEYS[1]) == ARGV[1] then
@@ -128,7 +233,7 @@ export class FeedService {
       await new Promise((resolve) => setTimeout(resolve, delay));
       delay = Math.min(delay * 2, 2_000);
 
-      const feed = await this.getCachedFeed(userId);
+      const feed = await this.getCachedFeed(userId, limit);
       if (feed !== null) {
         return feed;
       }

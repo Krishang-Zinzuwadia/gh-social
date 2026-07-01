@@ -1,23 +1,37 @@
-import { View, Text, useWindowDimensions } from "react-native"
+import { View, Text, useWindowDimensions, ActivityIndicator } from "react-native"
 import Svg, { Path, Circle } from "react-native-svg"
 import RecentPins from "../recentpins"
+import { useInfiniteQuery } from "@tanstack/react-query"
+import * as SecureStore from "expo-secure-store"
+import { getSavedRepos } from "../../api/activity"
 
-export default function Repositories() {
+interface RepositoriesProps {
+  userId?: string;
+}
+
+export default function Repositories({ userId }: RepositoriesProps) {
   const { width } = useWindowDimensions();
   const isTablet = width >= 768;
 
-  const pinnedRepos = [
-    { id: 1, pin: "github-social-mobileapp" },
-    { id: 2, pin: "weather-app" },
-    { id: 3, pin: "task-manager" }
-  ]
+  const fetchSavedRepos = async ({ pageParam = 0 }) => {
+    if (!userId) return [];
+    const token = await SecureStore.getItemAsync("access_token");
+    if (!token) throw new Error("No token");
+    return getSavedRepos(userId, token, 15, pageParam);
+  };
 
-  const allRepos = [
-    { id: 4, pin: "notes-app" },
-    { id: 5, pin: "calculator-app" },
-    { id: 6, pin: "no-name-app" },
-    { id: 7, pin: "stocks-app" }
-  ]
+  const {
+    data: savedReposData,
+    isLoading: isLoadingRepos,
+  } = useInfiniteQuery({
+    queryKey: ["savedRepos", userId],
+    queryFn: fetchSavedRepos,
+    getNextPageParam: (lastPage, allPages) => lastPage.length === 15 ? allPages.length * 15 : undefined,
+    initialPageParam: 0,
+    enabled: !!userId,
+  });
+
+  const pinnedRepos = savedReposData?.pages.flat() || [];
 
   if (isTablet) {
     return (
@@ -74,17 +88,15 @@ export default function Repositories() {
         </Svg>
 
         <View style={{ width: '100%' }}>
-          {pinnedRepos.map((item) => (
-            <RecentPins key={item.id} title={item.pin} isPinned={true} />
-          ))}
-
-          <View className="w-full px-1 mb-3.5 mt-4">
-            <Text className="text-[#8EFF7A] text-[12px] font-bold font-noto relative top-[-2px]">All Repositories</Text>
-          </View>
-
-          {allRepos.map((item) => (
-            <RecentPins key={item.id} title={item.pin} isPinned={false} />
-          ))}
+          {isLoadingRepos ? (
+            <ActivityIndicator size="small" color="#8EFF7A" style={{ marginTop: 20 }} />
+          ) : pinnedRepos.length > 0 ? (
+            pinnedRepos.map((item: any, idx: number) => (
+              <RecentPins key={`pin-${item.activity_id || idx}`} title={item.repo?.repo_name || "Repository"} isPinned={true} />
+            ))
+          ) : (
+            <Text className="text-[#8A8A8A] text-[14px] font-noto text-center py-4">No recent saves</Text>
+          )}
         </View>
       </View>
     )
@@ -145,17 +157,15 @@ export default function Repositories() {
         </Svg>
         
       <View style={{ width: '100%' }}>
-        {pinnedRepos.map((item) => (
-          <RecentPins key={item.id} title={item.pin} isPinned={true} />
-        ))}
-
-        <View className="w-full px-1 mb-[13px] mt-4">
-          <Text className="text-[#8EFF7A] text-[12px] font-bold font-noto relative top-[-2px]">All Repositories</Text>
-        </View>
-
-        {allRepos.map((item) => (
-          <RecentPins key={item.id} title={item.pin} isPinned={false} />
-        ))}
+        {isLoadingRepos ? (
+          <ActivityIndicator size="small" color="#8EFF7A" style={{ marginTop: 20 }} />
+        ) : pinnedRepos.length > 0 ? (
+          pinnedRepos.map((item: any, idx: number) => (
+            <RecentPins key={`pin-${item.activity_id || idx}`} title={item.repo?.repo_name || "Repository"} isPinned={true} />
+          ))
+        ) : (
+          <Text className="text-[#8A8A8A] text-[14px] font-noto text-center py-4">No recent saves</Text>
+        )}
       </View>
     </View>
   )

@@ -15,6 +15,9 @@ router.get('/:boardId', boardController.getBoardById);
 // Add a saved repo to a board. Body: { repo_id }
 router.post('/:boardId/repos', boardController.addRepoToBoard);
 
+// Atomically save a repo and add it to a board. Body: { user_id, repo_id }
+router.post('/:boardId/save-repo', boardController.saveRepoToBoard);
+
 // Remove a repo from a board. Path params: boardId, repoId
 router.delete('/:boardId/repos/:repoId', boardController.removeRepoFromBoard);
 

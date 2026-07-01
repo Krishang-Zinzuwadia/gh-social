@@ -8,6 +8,7 @@ import {
     View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useOnboarding } from "../../store/OnboardingContext";
 
 import PrimaryButton from "@/components/onboarding/PrimaryButton";
 import ProgressBar from "@/components/onboarding/ProgressBar";
@@ -19,6 +20,7 @@ const PREDEFINED_TECHS = SUGGESTED_TECHS.map(t => t.name);
 
 export default function Step2() {
   const { categories } = useLocalSearchParams();
+  const { updateData } = useOnboarding();
   
   const [selectedTechs, setSelectedTechs] = useState<string[]>([
     "React",
@@ -52,6 +54,14 @@ export default function Step2() {
     setSelectedTechs((prev) =>
       prev.includes(tech) ? prev.filter((t) => t !== tech) : [...prev, tech]
     );
+  };
+
+  const handleContinue = () => {
+    updateData({ tech_stack: selectedTechs });
+    router.push({
+      pathname: "/onboarding/step3",
+      params: { categories },
+    });
   };
 
   const suggestedTechs = [...PREDEFINED_TECHS, ...customTechs].filter(
@@ -238,12 +248,7 @@ export default function Step2() {
         <View style={{ marginTop: 16 }}>
           <PrimaryButton
             title="Continue"
-            onPress={() =>
-              router.push({
-                pathname: "/onboarding/step3",
-                params: { categories },
-              })
-            }
+            onPress={handleContinue}
           />
         </View>
 

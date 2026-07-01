@@ -16,7 +16,18 @@ import Vector8Svg from '../assets/icons/vector-8.svg';
 import Vector9Svg from '../assets/icons/vector-9.svg';
 import ExploreOutlineSvg from '../assets/icons/material-symbols-explore-outline.svg';
 import MaterialPythonSvg from '../assets/icons/material-icon-theme-python.svg';
-
+import JavascriptSvg from '../assets/icons/javascript.svg';
+import TypescriptSvg from '../assets/icons/typescript.svg';
+import CsharpSvg from '../assets/icons/csharp.svg';
+import GoSvg from '../assets/icons/go.svg';
+import PhpSvg from '../assets/icons/php.svg';
+import RubySvg from '../assets/icons/ruby.svg';
+import RustSvg from '../assets/icons/rust.svg';
+import CplusplusSvg from '../assets/icons/cplusplus.svg';
+import HtmlSvg from '../assets/icons/html.svg';
+import CssSvg from '../assets/icons/css.svg';
+import AstroSvg from '../assets/icons/astro.svg';
+import ShellSvg from '../assets/icons/shell.svg';
 
 interface IconProps {
   className?: string;
@@ -166,6 +177,54 @@ export const ExploreOutlineIcon: React.FC<IconProps> = ({ className, size = 28 }
 
 export const MaterialPythonIcon: React.FC<IconProps> = ({ className, size = 28 }) => (
   <MaterialPythonSvg width={size} height={size} className={className} />
+);
+
+export const JavascriptLogoIcon: React.FC<IconProps> = ({ className, size = 28 }) => (
+  <JavascriptSvg width={size} height={size} className={className} />
+);
+
+export const TypescriptLogoIcon: React.FC<IconProps> = ({ className, size = 28 }) => (
+  <TypescriptSvg width={size} height={size} className={className} />
+);
+
+export const CsharpLogoIcon: React.FC<IconProps> = ({ className, size = 28 }) => (
+  <CsharpSvg width={size} height={size} className={className} />
+);
+
+export const GoLogoIcon: React.FC<IconProps> = ({ className, size = 28 }) => (
+  <GoSvg width={size} height={size} className={className} />
+);
+
+export const PhpLogoIcon: React.FC<IconProps> = ({ className, size = 28 }) => (
+  <PhpSvg width={size} height={size} className={className} />
+);
+
+export const RubyLogoIcon: React.FC<IconProps> = ({ className, size = 28 }) => (
+  <RubySvg width={size} height={size} className={className} />
+);
+
+export const RustLogoIcon: React.FC<IconProps> = ({ className, size = 28 }) => (
+  <RustSvg width={size} height={size} className={className} />
+);
+
+export const CplusplusLogoIcon: React.FC<IconProps> = ({ className, size = 28 }) => (
+  <CplusplusSvg width={size} height={size} className={className} />
+);
+
+export const HtmlLogoIcon: React.FC<IconProps> = ({ className, size = 28 }) => (
+  <HtmlSvg width={size} height={size} className={className} />
+);
+
+export const CssLogoIcon: React.FC<IconProps> = ({ className, size = 28 }) => (
+  <CssSvg width={size} height={size} className={className} />
+);
+
+export const AstroLogoIcon: React.FC<IconProps> = ({ className, size = 28 }) => (
+  <AstroSvg width={size} height={size} className={className} />
+);
+
+export const ShellLogoIcon: React.FC<IconProps> = ({ className, size = 28 }) => (
+  <ShellSvg width={size} height={size} className={className} />
 );
 
 export const EyeIcon: React.FC<IconProps> = ({ size = 24, color = "#8EFF7A", strokeWidth = 2 }) => (

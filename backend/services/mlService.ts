@@ -1,6 +1,6 @@
 import type { RepoRow, UserProfile } from '../types/database.js';
 
-const DEFAULT_ML_TIMEOUT_MS = 10000;
+const DEFAULT_ML_TIMEOUT_MS = 30000;
 
 export interface MlRecommendationBatches {
   batch_1?: unknown[];
@@ -32,7 +32,6 @@ export interface MlEmbedRepositoryPayload {
   readme_summary?: string | null;
   star_count?: number;
   fork_count?: number;
-  open_issues_count?: number;
   created_at?: string | null;
   updated_at?: string | null;
 }
@@ -116,6 +115,17 @@ class MLService {
     }
   }
 
+  async sendBatchedActivityFeedback(events: { user_id: string; repo_id: string; action: string; dwell_seconds?: number }[]): Promise<void> {
+    try {
+      await Promise.all(
+        events.map((event) => this.post('/api/v1/feedback', event))
+      );
+    } catch (error) {
+      console.error(`[MLService] sendBatchedActivityFeedback failed:`, error);
+      // Best effort; do not crash on feedback failure
+    }
+  }
+
   async onboardUser(payload: MlOnboardPayload): Promise<void> {
     try {
       await this.post('/api/v1/onboard', payload);
@@ -186,7 +196,6 @@ export function buildMlEmbedRepositoryPayload(repo: RepoRow): MlEmbedRepositoryP
     readme_summary: repo.readme_summary,
     star_count: repo.star_count ?? 0,
     fork_count: repo.forks_count ?? 0,
-    open_issues_count: repo.open_issues_count ?? 0,
     created_at: repo.created_at,
     updated_at: repo.updated_at,
   };

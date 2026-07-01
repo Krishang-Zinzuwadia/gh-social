@@ -13,19 +13,36 @@ function clampNumber(value: number, minimum: number, maximum: number) {
   return Math.min(Math.max(value, minimum), maximum);
 }
 
+function formatNumber(num: number): string {
+  if (num >= 1000000) return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
+  if (num >= 1000) return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'k';
+  return num.toString();
+}
+
 export function RepositoryScreen({
   pageWidth,
   pageHeight,
   repository,
   onReadFullPress,
+  onQueueActivity,
 }: {
   pageWidth: number;
   pageHeight: number;
   repository: RepositoryData;
   onReadFullPress: () => void;
+  onQueueActivity?: (event: { repo_id: string; action: 'like' | 'save' | 'skip' | 'dwell'; dwell_seconds?: number }, flushNow?: boolean) => void;
 }) {
   const insets = useSafeAreaInsets();
   const isSmallPhone = pageWidth < 380;
+
+  const [hasLiked, setHasLiked] = React.useState(false);
+  const [hasDisliked, setHasDisliked] = React.useState(false);
+
+  const initialLikes = parseInt(repository.stats?.likes || '0', 10) || 0;
+  const displayedLikes = Math.max(0, initialLikes + (hasLiked ? 1 : 0) - (hasDisliked ? 1 : 0));
+  // Default dislike count placeholder
+  const displayedDislikes = hasDisliked ? 1 : 0;
+
 
   const TIMELINE_COL_WIDTH = isSmallPhone ? 32 : 38;
   const TIMELINE_MID = TIMELINE_COL_WIDTH / 2;
@@ -163,6 +180,18 @@ export function RepositoryScreen({
               {/* Thumbs Up Button */}
               <TouchableOpacity
                 activeOpacity={0.7}
+                onPress={() => {
+                  if (!hasLiked) {
+                    setHasLiked(true);
+                    setHasDisliked(false);
+                    if (onQueueActivity) {
+                      // Pass true to flush immediately
+                      onQueueActivity({ repo_id: repository.id, action: 'like' }, true);
+                    }
+                  } else {
+                    setHasLiked(false);
+                  }
+                }}
                 style={[
                   styles.loopReactionBtn,
                   {
@@ -171,16 +200,27 @@ export function RepositoryScreen({
                     width: ACTION_BTN_SIZE,
                     height: ACTION_BTN_SIZE,
                     borderRadius: ACTION_BTN_SIZE / 2,
+                    backgroundColor: hasLiked ? '#8EFF7A' : '#273126',
+                    borderColor: hasLiked ? '#8EFF7A' : '#8EFF7A',
                   }
                 ]}
               >
-                <ThumbsUpHomeIcon size={14} color="#F5C54D" strokeWidth={2} />
-                <Text style={styles.loopReactionCount}>1k</Text>
+                <ThumbsUpHomeIcon size={14} color={hasLiked ? '#111511' : '#8EFF7A'} strokeWidth={2} />
+                <Text style={[styles.loopReactionCount, hasLiked ? { color: '#111511' } : { color: '#8EFF7A' }]}>{formatNumber(displayedLikes)}</Text>
               </TouchableOpacity>
 
               {/* Thumbs Down Button */}
               <TouchableOpacity
                 activeOpacity={0.7}
+                onPress={() => {
+                  if (!hasDisliked) {
+                    setHasDisliked(true);
+                    setHasLiked(false);
+                    // Usually you'd queue a 'dislike' action if backend supported it
+                  } else {
+                    setHasDisliked(false);
+                  }
+                }}
                 style={[
                   styles.loopReactionBtn,
                   {
@@ -189,11 +229,13 @@ export function RepositoryScreen({
                     width: ACTION_BTN_SIZE,
                     height: ACTION_BTN_SIZE,
                     borderRadius: ACTION_BTN_SIZE / 2,
+                    backgroundColor: hasDisliked ? '#FF5C5C' : '#273126',
+                    borderColor: hasDisliked ? '#FF5C5C' : '#8EFF7A',
                   }
                 ]}
               >
-                <ThumbsDownHomeIcon size={14} color="#F5C54D" strokeWidth={2} />
-                <Text style={styles.loopReactionCount}>200</Text>
+                <ThumbsDownHomeIcon size={14} color={hasDisliked ? '#111511' : '#FF5C5C'} strokeWidth={2} />
+                <Text style={[styles.loopReactionCount, hasDisliked ? { color: '#111511' } : { color: '#FF5C5C' }]}>{displayedDislikes}</Text>
               </TouchableOpacity>
             </View>
           </View>

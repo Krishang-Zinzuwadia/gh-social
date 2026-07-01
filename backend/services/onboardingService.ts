@@ -34,6 +34,16 @@ export function buildSetupUpdates(body: OnboardingSetupBody): UserUpdate {
     updates.avatar_url = body.avatar_url;
   }
 
+  // If the essential fields from the final step are present, officially mark it complete in the DB!
+  if (
+    body.username &&
+    body.full_name &&
+    body.interests && body.interests.length > 0 &&
+    body.tech_stack && body.tech_stack.length > 0
+  ) {
+    updates.onboarding_completed = true;
+  }
+
   return updates;
 }
 
@@ -43,7 +53,7 @@ export async function getOnboardingStatus(userId: string) {
 
 export async function setupOnboardingProfile(userId: string, body: OnboardingSetupBody) {
   const updates = buildSetupUpdates(body);
-  return userService.updateUserProfile(userId, updates);
+  return userService.upsertUserProfile(userId, updates);
 }
 
 function extractGitHubHandleFromAuthIdentity(user: {

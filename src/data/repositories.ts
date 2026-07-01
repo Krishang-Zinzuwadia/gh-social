@@ -10,6 +10,7 @@ export type RepositoryData = {
     views: string;
     bugs: string;
     forks: string;
+    likes?: string;
   };
   updatedText: string;
   techStack?: string[];
@@ -17,7 +18,7 @@ export type RepositoryData = {
 
 export const REPOSITORIES: RepositoryData[] = [
   {
-    id: 'github-social',
+    id: '47f30433-7c76-43ce-a748-75bb5ebf924d',
     title: 'gh-social',
     owner: 'acm_vit',
     description: 'A social platform that transforms GitHub into an engaging developer community. Discover projects, connect with builders, and showcase your work effortlessly.',
@@ -33,7 +34,7 @@ export const REPOSITORIES: RepositoryData[] = [
     techStack: ['React', 'MongoDB', 'Tailwind', 'Javascript', 'Python', 'Android SDK'],
   },
   {
-    id: 'opensource-hub',
+    id: '3a3ebcc5-7099-46f3-9c9a-0dac7fc3fd4f',
     title: 'opensource-hub',
     owner: 'open-source-team',
     description: 'A centralized hub for discoverability and management of open-source contributions. Connect with maintainers, find issues, and streamline your workflow.',
@@ -49,7 +50,7 @@ export const REPOSITORIES: RepositoryData[] = [
     techStack: ['React', 'Tailwind', 'Javascript'],
   },
   {
-    id: 'ai-assistant',
+    id: '91d18b92-c83a-4405-9411-88523568d30f',
     title: 'ai-assistant',
     owner: 'ml-studio',
     description: 'An intelligent developer assistant that automates code generation, debugging, and project configuration. Level up your productivity with custom-tailored AI assistance.',
@@ -65,7 +66,7 @@ export const REPOSITORIES: RepositoryData[] = [
     techStack: ['Python', 'MongoDB', 'React'],
   },
   {
-    id: 'interview-prep',
+    id: '47f30433-7c76-43ce-a748-75bb5ebf924d',
     title: 'interview-prep',
     owner: 'career-labs',
     description: 'The ultimate resources and curriculum guide to ace your technical coding interviews. Practice algorithms, system design, and behavioral questions.',

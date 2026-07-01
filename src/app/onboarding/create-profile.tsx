@@ -1,6 +1,8 @@
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { ScrollView, Text, View } from "react-native";
+import { useOnboarding } from "../../store/OnboardingContext";
+import { useAuth } from "../../store/AuthContext";
 
 import PrimaryButton from "@/components/Auth/PrimaryButton";
 import ProfileAvatar from "@/components/Auth/ProfileAvatar";
@@ -12,13 +14,35 @@ import UsernameStatus from "@/components/Auth/UsernameStatus";
 
 export default function CreateProfile() {
   const router = useRouter();
-  const [username, setUsername] = useState("");
+  const { updateData } = useOnboarding();
+  const { user } = useAuth();
+  
+  const [username, setUsername] = useState(user?.username || "");
   const [dob, setDob] = useState("");
+  const [bio, setBio] = useState("");
 
-  const isFormValid = username.trim().length > 0 && dob.trim().length > 0;
+  const isValidDate = (dateString: string) => {
+    // Regex for YYYY-MM-DD format
+    const regex = /^\d{4}-\d{2}-\d{2}$/;
+    if (!regex.test(dateString)) return false;
+    // Check if it's an actual calendar date
+    const d = new Date(dateString);
+    const dNum = d.getTime();
+    if (!dNum && dNum !== 0) return false; 
+    return d.toISOString().slice(0, 10) === dateString;
+  };
+
+  const isDobValid = dob.trim().length === 0 || isValidDate(dob.trim());
+  const isFormValid = username.trim().length > 0 && dob.trim().length > 0 && isDobValid;
 
   const handleCreateAccount = () => {
     if (isFormValid) {
+      updateData({ 
+        username, 
+        date_of_birth: dob,
+        bio,
+        full_name: user?.full_name || "New User" // We can grab this from auth or prompt
+      });
       router.push("/onboarding/step1");
     }
   };
@@ -69,16 +93,16 @@ export default function CreateProfile() {
         {/* Date of birth */}
         <View className="mt-4">
           <ProfileDateInput value={dob} onChangeText={setDob} />
-          {dob.trim().length === 0 && (
+          {dob.trim().length > 0 && !isDobValid && (
             <Text className="text-[#E57373] text-[13px] font-nata mt-1 ml-1">
-              Please enter a valid date of birth.
+              Please enter a valid date in YYYY-MM-DD format.
             </Text>
           )}
         </View>
 
         {/* Bio */}
         <View className="mt-4">
-            <ProfileTextArea />
+            <ProfileTextArea value={bio} onChangeText={setBio} />
         </View>
 
         {/* Create Account */}

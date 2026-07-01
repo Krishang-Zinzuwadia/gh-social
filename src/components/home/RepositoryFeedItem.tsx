@@ -18,10 +18,14 @@ export function RepositoryFeedItem({
   repository,
   pageWidth,
   pageHeight,
+  isViewable,
+  onQueueActivity,
 }: {
   repository: RepositoryData;
   pageWidth: number;
   pageHeight: number;
+  isViewable?: boolean;
+  onQueueActivity?: (event: { repo_id: string; action: 'like' | 'save' | 'skip' | 'dwell'; dwell_seconds?: number }, flushNow?: boolean) => void;
 }) {
   const [isPopupVisible, setIsPopupVisible] = useState(false);
   const [isReadmeVisible, setIsReadmeVisible] = useState(false);
@@ -31,6 +35,24 @@ export function RepositoryFeedItem({
   const drawerOverlayOpacity = useMemo(() => new Animated.Value(0), []);
 
   const isDraggingRef = useRef(false);
+  const visibleStartTime = useRef<number | null>(null);
+  const userActionTaken = useRef(false);
+
+  React.useEffect(() => {
+    if (isViewable) {
+      visibleStartTime.current = Date.now();
+      userActionTaken.current = false;
+    } else if (visibleStartTime.current !== null) {
+      const dwellSeconds = (Date.now() - visibleStartTime.current) / 1000;
+      if (!userActionTaken.current && onQueueActivity) {
+        onQueueActivity({ repo_id: repository.id, action: 'skip', dwell_seconds: dwellSeconds });
+      } else if (userActionTaken.current && onQueueActivity) {
+        // Just record dwell time if action was already sent
+        onQueueActivity({ repo_id: repository.id, action: 'dwell', dwell_seconds: dwellSeconds });
+      }
+      visibleStartTime.current = null;
+    }
+  }, [isViewable, onQueueActivity, repository.id]);
 
   const openSaveDrawer = useCallback(() => {
     setIsPopupVisible(true);
@@ -163,10 +185,14 @@ export function RepositoryFeedItem({
     >
       <View style={{ width: pageWidth, height: pageHeight }}>
         <RepositoryScreen
+          repository={repository}
           pageWidth={pageWidth}
           pageHeight={pageHeight}
-          repository={repository}
           onReadFullPress={() => setIsReadmeVisible(true)}
+          onQueueActivity={(e, flushNow) => {
+            userActionTaken.current = true;
+            onQueueActivity?.(e, flushNow);
+          }}
         />
       </View>
 
@@ -178,11 +204,17 @@ export function RepositoryFeedItem({
 
       <SavePopup
         isVisible={isPopupVisible}
-        onClose={() => setIsPopupVisible(false)}
+        onClose={closeSaveDrawer}
         panelWidth={panelWidth}
         panelTranslateX={drawerTranslateX}
         overlayOpacity={drawerOverlayOpacity}
         isGestureActive={isEdgeGestureActive}
+        repoId={repository.id}
+        repoName={repository.title}
+        onQueueActivity={(e) => {
+          userActionTaken.current = true;
+          onQueueActivity?.(e);
+        }}
       />
       <ReadmePopup
         isVisible={isReadmeVisible}

@@ -1,13 +1,12 @@
-import { useEffect, useState } from 'react';
-import { FlatList, Platform, StyleSheet, useWindowDimensions, View, type ViewStyle } from 'react-native';
+import { useEffect, useState, useRef, useCallback } from 'react';
+import { FlatList, Platform, StyleSheet, useWindowDimensions, View, type ViewStyle, ActivityIndicator, Text } from 'react-native';
 import { getResponsiveContentWidth } from '@/components/responsive-layout';
-import { REPOSITORIES, RepositoryData } from '@/data/repositories';
+import { RepositoryData } from '@/data/repositories';
 import { RepositoryFeedItem } from '@/components/home/RepositoryFeedItem';
-
-type FeedRepository = {
-  feedId: string;
-  repository: RepositoryData;
-};
+import { useInfiniteQuery } from '@tanstack/react-query';
+import * as SecureStore from 'expo-secure-store';
+import { fetchFeed } from '@/api/feed';
+import { sendBatchedActivity } from '@/api/activity';
 
 const TAB_BAR_HEIGHT = 60;
 const WEB_FEED_LIST_STYLE =
@@ -15,67 +14,100 @@ const WEB_FEED_LIST_STYLE =
     ? ({ overflowY: 'auto', scrollSnapType: 'y mandatory' } as ViewStyle)
     : null;
 
+// Helper to map backend ML JSON to the frontend RepositoryData format
+function mapBackendToFrontend(backendItem: any): RepositoryData {
+  const repoFullName = backendItem.full_name || backendItem.repo_id || backendItem.id || '';
+  const [owner = 'unknown', title = 'repo'] = repoFullName.includes('/') ? repoFullName.split('/') : ['unknown', 'repo'];
+  return {
+    id: backendItem.repo_id || repoFullName || Math.random().toString(),
+    title,
+    owner,
+    description: backendItem.description || '',
+    readmeSummary: backendItem.readme_summary || 'No summary available.',
+    readmeFull: backendItem.readme_md || backendItem.readme || 'No readme available.',
+    stats: {
+      stars: (backendItem.star_count || 0).toString(),
+      views: (backendItem.views_count || 0).toString(),
+      bugs: '0',
+      forks: (backendItem.fork_count || 0).toString(),
+      likes: (backendItem.likes_count || 0).toString(),
+    },
+    updatedText: 'updated recently',
+    techStack: backendItem.languages || [],
+  };
+}
+
 export default function HomeScreen() {
   const { width, height } = useWindowDimensions();
   const viewportWidth = getResponsiveContentWidth(width) ?? width;
   const pageWidth = Math.max(Math.min(viewportWidth - 28, 680), 1);
   const pageHeight = Math.max(height - TAB_BAR_HEIGHT - 28, 1);
-  const [feedItems, setFeedItems] = useState<FeedRepository[]>(
-    REPOSITORIES.map((repository, index) => ({
-      feedId: `${repository.id}-${index}`,
-      repository,
-    }))
-  );
+  
+  const pendingActivityBatch = useRef<{ repo_id: string; action: 'like' | 'save' | 'skip' | 'dwell'; dwell_seconds?: number }[]>([]);
 
-  useEffect(() => {
-    if (Platform.OS !== 'web') return;
-
-    let startX = 0;
-    let startY = 0;
-
-    const handleTouchStart = (e: TouchEvent) => {
-      if (e.touches.length === 1) {
-        startX = e.touches[0].clientX;
-        startY = e.touches[0].clientY;
-      }
-    };
-
-    const handleTouchMove = (e: TouchEvent) => {
-      if (e.touches.length === 1) {
-        const diffX = e.touches[0].clientX - startX;
-        const diffY = e.touches[0].clientY - startY;
-
-        // Prevent browser back/forward swipe gesture navigation when dragging horizontally
-        if (Math.abs(diffX) > Math.abs(diffY)) {
-          if (e.cancelable) {
-            e.preventDefault();
-          }
+  const flushActivityBatch = useCallback(async () => {
+    if (pendingActivityBatch.current.length > 0) {
+      try {
+        const token = await SecureStore.getItemAsync('access_token');
+        if (token) {
+          const events = [...pendingActivityBatch.current];
+          pendingActivityBatch.current = [];
+          await sendBatchedActivity(events, token);
         }
+      } catch (err) {
+        console.error('Failed to flush batched activity', err);
       }
-    };
-
-    window.addEventListener('touchstart', handleTouchStart, { passive: true });
-    window.addEventListener('touchmove', handleTouchMove, { passive: false });
-
-    return () => {
-      window.removeEventListener('touchstart', handleTouchStart);
-      window.removeEventListener('touchmove', handleTouchMove);
-    };
+    }
   }, []);
 
-  const loadMoreRepositories = () => {
-    setFeedItems((current) => {
-      if (current.length >= 16) return current;
-
-      const nextBatchStart = current.length;
-      const nextBatch = REPOSITORIES.map((repository, index) => ({
-        feedId: `${repository.id}-${nextBatchStart + index}`,
-        repository,
-      }));
-
-      return [...current, ...nextBatch];
-    });
+  const fetchFeedPage = async () => {
+    const token = await SecureStore.getItemAsync('access_token');
+    if (!token) throw new Error('No token');
+    
+    // Flush batched activity before fetching the next page
+    await flushActivityBatch();
+    
+    return fetchFeed(token);
   };
+
+  const {
+    data,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isLoading,
+  } = useInfiniteQuery({
+    queryKey: ['feed'],
+    queryFn: fetchFeedPage,
+    getNextPageParam: (lastPage) => (lastPage && lastPage.length > 0 ? true : undefined),
+    initialPageParam: true,
+  });
+
+  const feedItems = data?.pages.flat().map((item, index) => ({
+    feedId: `${item.repo_id || index}-${index}`,
+    repository: mapBackendToFrontend(item),
+  })) || [];
+
+  const handleQueueActivity = useCallback((event: { repo_id: string; action: 'like' | 'save' | 'skip' | 'dwell'; dwell_seconds?: number }, flushNow?: boolean) => {
+    pendingActivityBatch.current.push(event);
+    if (flushNow) {
+      flushActivityBatch();
+    }
+  }, [flushActivityBatch]);
+
+  const [viewableItems, setViewableItems] = useState<string[]>([]);
+  const onViewableItemsChanged = useRef(({ viewableItems }: any) => {
+    setViewableItems(viewableItems.map((v: any) => v.item.feedId));
+  }).current;
+  const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 50 }).current;
+
+  if (isLoading && feedItems.length === 0) {
+    return (
+      <View style={[styles.outer, { justifyContent: 'center' }]}>
+        <ActivityIndicator size="large" color="#8EFF7A" />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.outer}>
@@ -89,6 +121,8 @@ export default function HomeScreen() {
               repository={item.repository}
               pageWidth={pageWidth}
               pageHeight={pageHeight}
+              onQueueActivity={handleQueueActivity}
+              isViewable={viewableItems.includes(item.feedId)}
             />
           )}
           style={[styles.feedList, { height: pageHeight }, WEB_FEED_LIST_STYLE]}
@@ -105,11 +139,17 @@ export default function HomeScreen() {
             offset: pageHeight * index,
             index,
           })}
-          onEndReached={loadMoreRepositories}
+          onEndReached={() => {
+            if (hasNextPage && !isFetchingNextPage) {
+              fetchNextPage();
+            }
+          }}
           onEndReachedThreshold={0.75}
           initialNumToRender={4}
           maxToRenderPerBatch={4}
           removeClippedSubviews={false}
+          onViewableItemsChanged={onViewableItemsChanged}
+          viewabilityConfig={viewabilityConfig}
         />
       </View>
     </View>

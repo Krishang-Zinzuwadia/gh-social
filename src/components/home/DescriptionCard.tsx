@@ -7,19 +7,44 @@ import {
   JavaLogoIcon,
   PythonLogoIcon,
   AndroidLogoIcon,
+  JavascriptLogoIcon,
+  TypescriptLogoIcon,
+  CsharpLogoIcon,
+  GoLogoIcon,
+  PhpLogoIcon,
+  RubyLogoIcon,
+  RustLogoIcon,
+  CplusplusLogoIcon,
+  HtmlLogoIcon,
+  CssLogoIcon,
+  AstroLogoIcon,
+  ShellLogoIcon,
 } from '@/components/icons';
 import { RepositoryData } from '../../data/repositories';
 import StackFillSvg from '../../assets/icons/ri_stack-fill.svg';
 import CommentSvg from '../../assets/icons/Vector (3).svg';
 
-const ICON_MAP: Record<string, React.FC<{ size?: number }>> = {
+const ICON_MAP: Record<string, React.FC<{ size?: number; width?: number; height?: number }>> = {
   'React': ReactLogoIcon,
   'MongoDB': MongoDBLogoIcon,
   'Tailwind': TailwindLogoIcon,
-  'Javascript': JavaLogoIcon,
-  'JavaScript': JavaLogoIcon,
+  'Java': JavaLogoIcon,
   'Python': PythonLogoIcon,
   'Android SDK': AndroidLogoIcon,
+  'Javascript': JavascriptLogoIcon,
+  'JavaScript': JavascriptLogoIcon,
+  'TypeScript': TypescriptLogoIcon,
+  'C#': CsharpLogoIcon,
+  'Go': GoLogoIcon,
+  'PHP': PhpLogoIcon,
+  'Ruby': RubyLogoIcon,
+  'Rust': RustLogoIcon,
+  'C++': CplusplusLogoIcon,
+  'HTML': HtmlLogoIcon,
+  'CSS': CssLogoIcon,
+  'Astro': AstroLogoIcon,
+  'Shell': ShellLogoIcon,
+  'Bash': ShellLogoIcon,
 };
 
 type DescriptionCardProps = {
@@ -45,13 +70,21 @@ export default function DescriptionCard({ repository, height, isSmallPhone }: De
         <Text style={styles.customCardTitle}>Tech Stack</Text>
       </View>
       <View style={styles.techStackGrid}>
-        {repository.techStack?.map((tech) => {
+        {repository.techStack?.slice(0, 6).map((tech) => {
           const Icon = ICON_MAP[tech];
-          if (!Icon) return null;
+          const isJS = tech === 'Javascript' || tech === 'JavaScript';
+          const iconSize = isJS ? 24 : 26;
+          
           return (
             <View key={tech} style={styles.techStackItem}>
-              <Icon size={tech === 'Javascript' || tech === 'JavaScript' ? 24 : 26} />
-              <Text style={styles.techStackLabel}>{tech}</Text>
+              {Icon ? (
+                <Icon size={iconSize} width={iconSize} height={iconSize} />
+              ) : (
+                <View style={{height: 26, width: 26, backgroundColor: '#1E241E', borderRadius: 6, alignItems: 'center', justifyContent: 'center'}}>
+                  <Text style={{color: '#8EFF7A', fontSize: 12, fontFamily: 'NataSans-Bold'}}>{tech.substring(0, 1).toUpperCase()}</Text>
+                </View>
+              )}
+              <Text style={styles.techStackLabel} numberOfLines={1}>{tech}</Text>
             </View>
           );
         })}

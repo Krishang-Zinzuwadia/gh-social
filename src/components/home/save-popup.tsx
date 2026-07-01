@@ -3,6 +3,12 @@ import { Animated, Easing, Pressable, StyleSheet, Text, TextInput, TouchableOpac
 import { Check, Plus, X } from 'lucide-react-native';
 import { BlurView } from 'expo-blur';
 import { NebulaIcon } from '../icons';
+import { useAuth } from '../../store/AuthContext';
+import { useInfiniteQuery } from '@tanstack/react-query';
+import { getUserBoards } from '../../api/boards';
+import * as SecureStore from 'expo-secure-store';
+import { useOptimisticMutations } from '../../hooks/useOptimisticMutations';
+import { ActivityIndicator } from 'react-native';
 
 interface SavePopupProps {
   isVisible: boolean;
@@ -11,6 +17,9 @@ interface SavePopupProps {
   panelTranslateX: Animated.Value;
   overlayOpacity: Animated.Value;
   isGestureActive: boolean;
+  repoId?: string;
+  repoName?: string;
+  onQueueActivity?: (event: { repo_id: string; action: 'like' | 'save' | 'skip' | 'dwell'; dwell_seconds?: number }) => void;
 }
 
 const INITIAL_COLLECTIONS: string[] = ['AI Projects', 'Web Development', 'Open Source', 'Inspiration'];
@@ -22,9 +31,31 @@ export function SavePopup({
   panelTranslateX,
   overlayOpacity,
   isGestureActive,
+  repoId,
+  repoName,
+  onQueueActivity,
 }: SavePopupProps) {
-  const [selected, setSelected] = useState<string | null>('AI Projects');
-  const [collections, setCollections] = useState<string[]>(INITIAL_COLLECTIONS);
+  const { user } = useAuth();
+  const { createBoardMutation, addRepoToBoardMutation } = useOptimisticMutations(user?.user_id);
+
+  const { data: boardsData, isLoading: isLoadingBoards } = useInfiniteQuery({
+    queryKey: ["boards", user?.user_id],
+    queryFn: async ({ pageParam = 0 }) => {
+      if (!user?.user_id) throw new Error("No user id");
+      const token = await SecureStore.getItemAsync("access_token");
+      if (!token) throw new Error("No token");
+      return getUserBoards(user.user_id, token, 20, pageParam);
+    },
+    initialPageParam: 0,
+    getNextPageParam: (lastPage, allPages) => {
+      return lastPage.length === 20 ? allPages.length * 20 : undefined;
+    },
+    enabled: !!user?.user_id && isVisible,
+  });
+
+  const collections = boardsData?.pages.flat() || [];
+
+  const [selected, setSelected] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [newCollection, setNewCollection] = useState('');
   const [status, setStatus] = useState<'idle' | 'saved'>('idle');
@@ -65,17 +96,33 @@ export function SavePopup({
   const createCollection = () => {
     const name = newCollection.trim();
     if (!name) return;
-    if (!collections.includes(name)) {
-      setCollections((current) => [...current, name]);
+    if (!user) {
+      alert("Error: User session not found");
+      return;
     }
-    setSelected(name);
-    setIsCreating(false);
-    setNewCollection('');
+    
+    createBoardMutation.mutate(name, {
+      onSuccess: (data) => {
+        setIsCreating(false);
+        setNewCollection('');
+        // If the backend returns the new board, automatically select it
+        if (data && data.board_id) {
+          setSelected(data.board_id);
+        }
+      },
+      onError: (err: any) => {
+        alert(`Failed to create collection: ${err.message}`);
+      }
+    });
   };
 
   const saveRepository = () => {
-    if (!selected) return;
+    if (!selected || !repoId || !repoName) return;
     setStatus('saved');
+    if (onQueueActivity) {
+      onQueueActivity({ repo_id: repoId, action: 'save' });
+    }
+    addRepoToBoardMutation.mutate({ boardId: selected, repoId, repoName });
     if (saveTimeoutRef.current) {
       clearTimeout(saveTimeoutRef.current);
     }
@@ -124,32 +171,34 @@ export function SavePopup({
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
         >
-          {collections.map((name) => {
-            const active = selected === name;
-            return (
-              <TouchableOpacity
-                key={name}
-                onPress={() => setSelected(name)}
-                activeOpacity={0.7}
-                style={[
-                  styles.collectionCard,
-                  active ? styles.collectionCardActive : styles.collectionCardInactive,
-                ]}
-              >
-                {/* Circular collection thumbnail */}
-                <View style={styles.thumbnail}>
-                  <NebulaIcon width={38} height={38} />
-                </View>
+          {isLoadingBoards ? (
+            <ActivityIndicator size="small" color="#8EFF7A" style={{ marginTop: 20 }} />
+          ) : (
+            collections.map((board: any) => {
+              const active = selected === board.board_id;
+              return (
+                <TouchableOpacity
+                  key={board.board_id}
+                  onPress={() => setSelected(board.board_id)}
+                  activeOpacity={0.7}
+                  style={[
+                    styles.collectionCard,
+                    active ? styles.collectionCardActive : styles.collectionCardInactive,
+                  ]}
+                >
+                  <View style={styles.thumbnail}>
+                    <NebulaIcon width={38} height={38} />
+                  </View>
 
-                <Text style={styles.collectionName}>{name}</Text>
-                
-                {/* Radio selection indicator */}
-                <View style={[styles.radio, active ? styles.radioActive : styles.radioInactive]}>
-                  {active ? <View style={styles.radioDot} /> : null}
-                </View>
-              </TouchableOpacity>
-            );
-          })}
+                  <Text style={styles.collectionName}>{board.board_name}</Text>
+                  
+                  <View style={[styles.radio, active ? styles.radioActive : styles.radioInactive]}>
+                    {active ? <View style={styles.radioDot} /> : null}
+                  </View>
+                </TouchableOpacity>
+              );
+            })
+          )}
         </ScrollView>
 
         {/* Footer Actions */}
@@ -164,10 +213,15 @@ export function SavePopup({
                 placeholder="Collection name"
                 placeholderTextColor="#757575"
                 style={styles.createInput}
+                editable={!createBoardMutation.isPending}
               />
-              <Pressable onPress={createCollection} style={styles.createSubmit}>
-                <Check size={18} color="#0A0C09" />
-              </Pressable>
+              <TouchableOpacity onPress={createCollection} style={styles.createSubmit} disabled={createBoardMutation.isPending}>
+                {createBoardMutation.isPending ? (
+                  <ActivityIndicator size="small" color="#0A0C09" />
+                ) : (
+                  <Check size={18} color="#0A0C09" />
+                )}
+              </TouchableOpacity>
             </View>
           ) : (
             <TouchableOpacity
@@ -187,7 +241,12 @@ export function SavePopup({
             disabled={!selected}
           >
             <Text style={[styles.saveText, !selected && { color: '#8E8E93' }]}>
-              {status === 'saved' ? 'Saved!' : selected ? `Save to ${selected}` : 'Save to Collection'}
+              {(() => {
+                if (status === 'saved') return 'Saved!';
+                const selectedBoardName = collections.find((b: any) => b.board_id === selected)?.board_name;
+                if (selectedBoardName) return `Save to ${selectedBoardName}`;
+                return 'Save to Collection';
+              })()}
             </Text>
           </TouchableOpacity>
         </View>

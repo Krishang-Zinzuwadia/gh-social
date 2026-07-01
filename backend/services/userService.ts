@@ -5,6 +5,7 @@ import type { UserProfile, UserUpdate } from '../types/database.js';
 import type { OnboardingStatusResponse, OnboardingStepStatus } from '../types/onboarding.js';
 
 const USER_PROFILE_COLUMNS = {
+  user_id: users.user_id,
   username: users.username,
   full_name: users.full_name,
   date_of_birth: users.date_of_birth,
@@ -63,7 +64,8 @@ function buildMissingFields(steps: OnboardingStepStatus, profile: OnboardingProf
     if (!profile.username.trim() || isDefaultUsername(profile.username)) missing.push('username');
     if (!profile.full_name?.trim()) missing.push('full_name');
   }
-  if (!steps.github) missing.push('github');
+  // GitHub is optional for email signups during initial onboarding.
+  // if (!steps.github) missing.push('github');
   if (!steps.interests) missing.push('interests');
   if (!steps.skills) missing.push('skills');
   if (!steps.tech_stack) missing.push('tech_stack');
@@ -90,7 +92,21 @@ function buildOnboardingStatus(profile: UserProfile): OnboardingStatusResponse {
 export async function getUserProfile(userId: string) {
   try {
     const [data] = await db.select(ONBOARDING_EVALUATION_COLUMNS).from(users).where(eq(users.user_id, userId)).limit(1);
-    if (!data) throw { code: 'PGRST116', message: 'Not found' };
+    
+    if (!data) {
+      // If user is not found in public.users, it means they are a new OAuth user
+      // Return a default incomplete status to force them through onboarding
+      return { 
+        data: {
+          isComplete: false,
+          steps: { profile: false, github: false, interests: false, skills: false, tech_stack: false },
+          missingFields: ['username', 'full_name', 'interests', 'skills', 'tech_stack'],
+          profile: null
+        }, 
+        error: null 
+      };
+    }
+    
     return { data: buildOnboardingStatus(data as unknown as UserProfile), error: null };
   } catch (error) { return { data: null as any, error: error as any }; }
 }
@@ -145,5 +161,18 @@ export async function updateUserProfile(userId: string, updates: UserUpdate) {
     const [updatedRow] = await db.update(users).set(updates).where(eq(users.user_id, userId)).returning(USER_PROFILE_COLUMNS);
     if (!updatedRow) throw { code: 'PGRST116', message: 'Not found' };
     return { data: updatedRow, error: null };
+  } catch (error) { return { data: null as any, error: error as any }; }
+}
+
+export async function upsertUserProfile(userId: string, updates: UserUpdate) {
+  try {
+    // Requires username to be present in updates for new inserts
+    const [upsertedRow] = await db.insert(users)
+      .values({ user_id: userId, ...(updates as any) })
+      .onConflictDoUpdate({ target: users.user_id, set: updates })
+      .returning(USER_PROFILE_COLUMNS);
+      
+    if (!upsertedRow) throw { code: 'PGRST116', message: 'Upsert failed' };
+    return { data: upsertedRow, error: null };
   } catch (error) { return { data: null as any, error: error as any }; }
 }

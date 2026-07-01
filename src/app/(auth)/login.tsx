@@ -1,34 +1,39 @@
+import * as Linking from "expo-linking";
 import { useRouter } from "expo-router";
+import * as WebBrowser from "expo-web-browser";
 import { useEffect, useRef, useState } from "react";
-import { ScrollView, Text, View } from "react-native";
-import { useAuth } from "../../store/AuthContext";
-import { login } from "../../api/auth";
+import { Alert, Platform, ScrollView, Text, View } from "react-native";
 
 import AuthFooter from "@/components/Auth/AuthFooter";
+import LoginInput from "@/components/Auth/LoginInput";
 import LogoCircle from "@/components/Auth/LogoCircle";
 import OrDivider from "@/components/Auth/OrDivider";
 import PrimaryButton from "@/components/Auth/PrimaryButton";
+import RememberMe from "@/components/Auth/RememberMe";
 import SocialButton from "@/components/Auth/SocialButton";
 
-import LoginInput from "@/components/Auth/LoginInput";
-import RememberMe from "@/components/Auth/RememberMe";
-
-import {
-    GithubIcon,
-    GoogleIcon,
-} from "@/components/Auth/icons";
+import { GithubIcon, GoogleIcon } from "@/components/Auth/icons";
+import { useAuthStore } from "@/store/authStore";
 
 export default function LoginScreen() {
   const router = useRouter();
   const scrollViewRef = useRef<ScrollView>(null);
-  const { setSession } = useAuth();
+
+  const {
+    login,
+    oauthLogin,
+    isLoading,
+    error,
+    clearError,
+    checkOnboardingStatus,
+  } = useAuthStore();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [errorMsg, setErrorMsg] = useState("");
 
-  const isFormValid = email.trim().length > 0 && password.length > 0 && !isLoading;
+  // Validation logic for the UI
+  const isFormValid =
+    email.trim().length > 0 && password.length > 0 && !isLoading;
 
   useEffect(() => {
     setTimeout(() => {
@@ -36,18 +41,96 @@ export default function LoginScreen() {
     }, 500);
   }, []);
 
-  const handleLogin = async () => {
+  useEffect(() => {
+    if (error) {
+      Alert.alert("Error", error);
+      clearError();
+    }
+  }, [error, clearError]);
+
+  const handleEmailLogin = async () => {
     if (!isFormValid) return;
-    setIsLoading(true);
-    setErrorMsg("");
     try {
-      const data = await login(email, password);
-      await setSession(data.accessToken, data.user);
-      // _layout.tsx will handle redirection
+      await login(email.trim(), password);
+
+      // Check onboarding status to determine routing
+      const { onboarding_completed } = await checkOnboardingStatus();
+
+      if (onboarding_completed) {
+        router.replace("/(tabs)/home");
+      } else {
+        router.replace("/(auth)/create-profile");
+      }
+    } catch (err) {
+      // Error is handled by the store and shown in Alert
+    }
+  };
+
+  const handleGitHubLogin = async () => {
+    try {
+      const redirectUrl =
+        Platform.OS === "web"
+          ? "http://localhost:3000/auth/callback"
+          : Linking.createURL("auth/callback");
+      const url = await oauthLogin("github", redirectUrl, "login");
+
+      if (Platform.OS === "web") {
+        window.location.href = url;
+        return;
+      }
+
+      const result = await WebBrowser.openAuthSessionAsync(url, redirectUrl);
+
+      if (result.type === "success" && result.url) {
+        const urlParams = new URL(result.url).searchParams;
+        const code = urlParams.get("code");
+        const error = urlParams.get("error");
+
+        if (error) {
+          Alert.alert("OAuth Error", error);
+        } else if (code) {
+          router.replace({
+            pathname: "/auth/callback",
+            params: { code, intent: "login" },
+          });
+        }
+      }
     } catch (err: any) {
-      setErrorMsg(err.message || 'Login failed');
-    } finally {
-      setIsLoading(false);
+      Alert.alert("GitHub Login Failed", err.message || "An error occurred");
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    try {
+      const redirectUrl =
+        Platform.OS === "web"
+          ? "http://localhost:3000/auth/callback"
+          : Linking.createURL("auth/callback");
+      const url = await oauthLogin("google", redirectUrl, "login");
+
+      if (Platform.OS === "web") {
+        window.location.href = url;
+        return;
+      }
+
+      const result = await WebBrowser.openAuthSessionAsync(url, redirectUrl);
+
+      if (result.type === "success" && result.url) {
+        const urlParams = new URL(result.url).searchParams;
+        const code = urlParams.get("code");
+        const error = urlParams.get("error");
+
+        if (error) {
+          Alert.alert("OAuth Error", error);
+        } else if (code) {
+          router.replace({
+            pathname: "/auth/callback",
+            params: { code, intent: "login" },
+          });
+        }
+      }
+    } catch (err: any) {
+      Alert.alert("Google Login Failed", err.message || "An error occurred");
     }
   };
 
@@ -58,56 +141,46 @@ export default function LoginScreen() {
       showsVerticalScrollIndicator={false}
       contentContainerStyle={{ paddingBottom: 40 }}
     >
-      <View className="px-8 pt-14 w-full" style={{ maxWidth: 450, alignSelf: 'center' }}>
-
-        {/* Logo */}
+      <View
+        className="px-8 pt-14 w-full"
+        style={{ maxWidth: 450, alignSelf: "center" }}
+      >
         <View className="items-center">
           <LogoCircle />
         </View>
 
-        {/* Heading */}
         <View className="items-center mt-8">
-          <Text
-            
-            className="text-white text-[30px] text-center font-nataBold"
-          >
+          <Text className="text-white text-[30px] text-center font-nataBold">
             Welcome Back!
           </Text>
-
-          <Text
-            
-            className="text-[#8A8A8A] text-[14px] mt-3 text-center font-nata"
-          >
+          <Text className="text-[#8A8A8A] text-[14px] mt-3 text-center font-nata">
             Glad to see you again.
           </Text>
         </View>
 
-        {/* Social buttons */}
         <View className="mt-10 gap-y-5">
           <SocialButton
             label="Continue with GitHub"
             icon={<GithubIcon />}
             showChevron
+            onPress={handleGitHubLogin}
+            disabled={isLoading}
           />
-
           <SocialButton
             label="Continue with Google"
             icon={<GoogleIcon />}
             showChevron
+            onPress={handleGoogleLogin}
+            disabled={isLoading}
           />
         </View>
 
-        {/* Divider */}
         <View className="mt-7">
           <OrDivider />
         </View>
 
-        {/* Email */}
-        <Text
-          
-          className="text-white text-[15px] mt-8 mb-3 font-nata"
-        >
-          Email Address
+        <Text className="text-white text-[15px] mt-8 mb-3 font-nata">
+          Email
         </Text>
 
         <LoginInput
@@ -118,11 +191,7 @@ export default function LoginScreen() {
           keyboardType="email-address"
         />
 
-        {/* Password */}
-        <Text
-          
-          className="text-white text-[15px] mt-7 mb-3 font-nata"
-        >
+        <Text className="text-white text-[15px] mt-7 mb-3 font-nata">
           Password
         </Text>
 
@@ -133,32 +202,22 @@ export default function LoginScreen() {
           onChangeText={setPassword}
         />
 
-        {/* Remember me */}
         <RememberMe />
 
-        {errorMsg ? (
-          <Text className="text-[#E57373] text-[13px] font-nata mt-4 text-center">
-            {errorMsg}
-          </Text>
-        ) : null}
-
-        {/* Button */}
         <View className="mt-8">
           <PrimaryButton
             label={isLoading ? "Logging In..." : "Log In"}
-            onPress={handleLogin}
+            onPress={handleEmailLogin}
             style={{ opacity: isFormValid ? 1 : 0.5 }}
             disabled={!isFormValid}
           />
         </View>
 
-        {/* Footer */}
         <AuthFooter
           prompt="Don't have an account?"
           linkLabel="Sign up"
           onPress={() => router.push("/(auth)/sign-up")}
         />
-
       </View>
     </ScrollView>
   );

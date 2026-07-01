@@ -35,15 +35,16 @@ export default function CreateProfile() {
   const isDobValid = dob.trim().length === 0 || isValidDate(dob.trim());
   const isFormValid = username.trim().length > 0 && dob.trim().length > 0 && isDobValid;
 
-  const handleCreateAccount = () => {
+const handleCreateAccount = () => {
     if (isFormValid) {
-      updateData({ 
-        username, 
-        date_of_birth: dob,
-        bio,
-        full_name: user?.full_name || "New User" // We can grab this from auth or prompt
+      router.push({
+        pathname: "/onboarding/step1",
+        params: {
+          username: username.trim(),
+          dob: dob.trim(),
+          bio: bio.trim(),
+        }
       });
-      router.push("/onboarding/step1");
     }
   };
 

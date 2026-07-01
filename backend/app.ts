@@ -1,23 +1,25 @@
-import express, { type Request, type Response, type NextFunction } from 'express';
+import cookieParser from 'cookie-parser';
 import cors from 'cors';
-import authRoutes from './routes/authRoutes.js';
+import express, { type NextFunction, type Request, type Response } from 'express';
 import activityRoutes from './routes/activityRoutes.js';
+import authRoutes from './routes/authRoutes.js';
+import boardRoutes from './routes/boardRoutes.js';
 import commentRoutes from './routes/commentRoutes.js';
+import containersRoutes from './routes/containersRoutes.js';
+import feedRoutes from './routes/feedRoutes.js';
+import onboardingRoutes from './routes/onboardingRoutes.js';
 import repoRoutes from './routes/repoRoutes.js';
 import userRoutes from './routes/userRoutes.js';
-import boardRoutes from './routes/boardRoutes.js';
-import containersRoutes from './routes/containersRoutes.js';
-import onboardingRoutes from './routes/onboardingRoutes.js';
-import cookieParser from 'cookie-parser';
-import feedRoutes from './routes/feedRoutes.js';
 
 const app = express();
 
 // Global middleware used by every route.
 app.use(
   cors({
-    origin: process.env.CLIENT_URL,
+    origin: ['http://localhost:3000', 'http://localhost:8081'],
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
   })
 );
 app.use(express.json());

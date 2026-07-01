@@ -1,28 +1,22 @@
-import { useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
-import { ScrollView, View, Text, Pressable } from "react-native";
-import { useAuth } from "../../store/AuthContext";
-import { useOnboarding } from "../../store/OnboardingContext";
-import * as SecureStore from 'expo-secure-store';
-import { setupOnboarding } from "../../api/onboarding";
+import { useState } from "react";
+import { Alert, ScrollView, Text, View } from "react-native";
 
-import ProgressBar from "@/components/onboarding/ProgressBar";
-import PrimaryButton from "@/components/onboarding/PrimaryButton";
-import TechChip from "@/components/onboarding/TechChip";
+import { apiClient } from "@/api/client";
 import LogoPlaceholder from "@/components/onboarding/LogoPlaceholder";
+import PrimaryButton from "@/components/onboarding/PrimaryButton";
+import ProgressBar from "@/components/onboarding/ProgressBar";
 import StepHeader from "@/components/onboarding/StepHeader";
+import TechChip from "@/components/onboarding/TechChip";
 import { INTEREST_CATEGORIES } from "@/constants/onboarding";
 
 export default function Step3() {
-  const { categories } = useLocalSearchParams();
+  const { categories, techStack, username, dob, bio } = useLocalSearchParams();
   const selectedCategoryIds = typeof categories === "string" ? categories.split(",") : [];
+  const techStackArray = typeof techStack === "string" ? techStack.split(",") : [];
 
   const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
-
-  const { data: onboardingData } = useOnboarding();
-  const { checkOnboardingStatus } = useAuth();
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [errorMsg, setErrorMsg] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   const toggleInterest = (keyword: string) => {
     setSelectedInterests((prev) =>
@@ -34,26 +28,46 @@ export default function Step3() {
 
   const completeOnboarding = async () => {
     if (selectedInterests.length >= 5) {
-      setIsSubmitting(true);
-      setErrorMsg("");
+      setIsLoading(true);
       try {
-        const token = await SecureStore.getItemAsync('access_token');
-        if (!token) throw new Error("No access token found");
-        
-        await setupOnboarding(token, {
-          ...onboardingData,
-          username: onboardingData.username || "",
-          full_name: onboardingData.full_name || "",
+        // Format date_of_birth from MM/DD/YYYY to YYYY-MM-DD
+        let formattedDateOfBirth = undefined;
+        if (dob) {
+          const dateStr = dob as string;
+          // Try to parse MM/DD/YYYY format
+          const parts = dateStr.split('/');
+          if (parts.length === 3) {
+            const [month, day, year] = parts;
+            formattedDateOfBirth = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+          } else {
+            // Try to parse other formats or use as-is if already YYYY-MM-DD
+            formattedDateOfBirth = dateStr;
+          }
+        }
+
+        const payload = {
+          username: username as string || "",
+          full_name: username as string || "", // Using username as full_name for now since it's required
+          date_of_birth: formattedDateOfBirth,
+          bio: (bio as string) || "", // Convert undefined to empty string
           interests: selectedInterests,
-          skills: selectedCategoryIds // Just putting the categories as skills for now as a placeholder for the multi-step flow
-        });
+          skills: selectedCategoryIds,
+          tech_stack: techStackArray,
+        };
         
-        await checkOnboardingStatus();
-        // The _layout.tsx will now automatically redirect to (tabs)
-      } catch (err: any) {
-        setErrorMsg(err.message || 'Failed to save profile');
+        console.log("Submitting Onboarding Payload:", payload);
+        
+        const response = await apiClient.setupOnboarding(payload);
+
+        if (response.success) {
+          router.replace("/(tabs)/home");
+        } else {
+          Alert.alert('Error', response.error || 'Failed to complete onboarding');
+        }
+      } catch (error: any) {
+        Alert.alert('Error', error.error || error.message || 'Failed to complete onboarding');
       } finally {
-        setIsSubmitting(false);
+        setIsLoading(false);
       }
     }
   };
@@ -154,9 +168,9 @@ export default function Step3() {
 
       <View style={{ marginTop: selectedInterests.length < 5 ? 8 : 20 }}>
         <PrimaryButton
-          title={isSubmitting ? "Saving..." : "Finish"}
+          title={isLoading ? "Completing..." : "Finish"}
           onPress={completeOnboarding}
-          disabled={selectedInterests.length < 5 || isSubmitting}
+          disabled={selectedInterests.length < 5 || isLoading}
         />
       </View>
 

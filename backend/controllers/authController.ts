@@ -63,7 +63,7 @@ export async function signUp(req: Request, res: Response): Promise<void> {
   username = username.trim();
 
   try {
-    // 0. Pre-emptively check if username is taken to avoid messy trigger constraint violations
+    // 0. Pre-emptively check if username is taken
     if (username) {
       const existingUser = await db
         .select()
@@ -74,10 +74,11 @@ export async function signUp(req: Request, res: Response): Promise<void> {
       }
     }
 
+    // Use the updated 'options' structure for Supabase Admin
     const { data, error } = await supabaseAdmin.auth.admin.createUser({
       email,
       password,
-      email_confirm: true, // Bypass email verification so we can login immediately
+      email_confirm: true,
       user_metadata: {
         user_name: username,
         full_name: full_name,
@@ -86,15 +87,13 @@ export async function signUp(req: Request, res: Response): Promise<void> {
 
     if (error) return sendError(res, error.status || 400, error.message);
 
+    // Keep your mlService integration here
     if (data.user) {
       void mlService.onboardUserBestEffort({
         user_id: data.user.id,
         username,
         full_name,
-        bio:
-          typeof data.user.user_metadata?.bio === "string"
-            ? data.user.user_metadata.bio
-            : null,
+        bio: typeof data.user.user_metadata?.bio === "string" ? data.user.user_metadata.bio : null,
         interests: [],
         skills: [],
         tech_stack: [],
@@ -311,7 +310,6 @@ export async function getOAuthUrl(req: Request, res: Response): Promise<void> {
     const url = new URL(`${process.env.SUPABASE_URL}/auth/v1/authorize`);
     url.searchParams.set("provider", provider);
 
-    // Keep: Force account selection for Google OAuth
     if (provider === "google") {
       url.searchParams.set("prompt", "select_account");
     }

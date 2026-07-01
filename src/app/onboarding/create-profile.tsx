@@ -21,18 +21,11 @@ export default function CreateProfile() {
   const [dob, setDob] = useState("");
   const [bio, setBio] = useState("");
 
-  const isValidDate = (dateString: string) => {
-    // Regex for YYYY-MM-DD format
-    const regex = /^\d{4}-\d{2}-\d{2}$/;
-    if (!regex.test(dateString)) return false;
-    // Check if it's an actual calendar date
-    const d = new Date(dateString);
-    const dNum = d.getTime();
-    if (!dNum && dNum !== 0) return false; 
-    return d.toISOString().slice(0, 10) === dateString;
-  };
-
-  const isDobValid = dob.trim().length === 0 || isValidDate(dob.trim());
+// Regex for MM/DD/YYYY format
+  const dobRegex = /^(0[1-9]|1[0-2])\/(0[1-9]|[12][0-9]|3[01])\/\d{4}$/;
+  
+  // Validation logic
+  const isDobValid = dob.trim().length === 0 || dobRegex.test(dob.trim());
   const isFormValid = username.trim().length > 0 && dob.trim().length > 0 && isDobValid;
 
 const handleCreateAccount = () => {
@@ -43,7 +36,7 @@ const handleCreateAccount = () => {
           username: username.trim(),
           dob: dob.trim(),
           bio: bio.trim(),
-        }
+        },
       });
     }
   };
@@ -54,27 +47,21 @@ const handleCreateAccount = () => {
       showsVerticalScrollIndicator={false}
       contentContainerStyle={{ paddingBottom: 50 }}
     >
-      <View className="px-8 pt-14 w-full" style={{ maxWidth: 450, alignSelf: 'center' }}>
-
+      <View
+        className="px-8 pt-14 w-full"
+        style={{ maxWidth: 450, alignSelf: "center" }}
+      >
         {/* Avatar */}
         <ProfileAvatar />
 
         {/* Heading */}
         <View className="items-center mt-4">
-          <Text
-            
-            className="text-white text-[32px] text-center font-nataBold"
-          >
+          <Text className="text-white text-[32px] text-center font-nataBold">
             Create{" "}
-            <Text className="text-[#8EFF7A] font-nataBold">
-              your account
-            </Text>
+            <Text className="text-[#8EFF7A] font-nataBold">your account</Text>
           </Text>
 
-          <Text
-            
-            className="text-[#8A8A8A] text-[14px] text-center mt-3 font-nata"
-          >
+          <Text className="text-[#8A8A8A] text-[14px] text-center mt-3 font-nata">
             Let&apos;s set up your profile.
           </Text>
         </View>
@@ -94,9 +81,9 @@ const handleCreateAccount = () => {
         {/* Date of birth */}
         <View className="mt-4">
           <ProfileDateInput value={dob} onChangeText={setDob} />
-          {dob.trim().length > 0 && !isDobValid && (
+        {dob.trim().length > 0 && !isDobValid && (
             <Text className="text-[#E57373] text-[13px] font-nata mt-1 ml-1">
-              Please enter a valid date in YYYY-MM-DD format.
+              Please enter a valid date (mm/dd/yyyy)
             </Text>
           )}
         </View>
@@ -118,7 +105,6 @@ const handleCreateAccount = () => {
 
         {/* Terms */}
         <TermsFooter />
-
       </View>
     </ScrollView>
   );

@@ -55,9 +55,27 @@ export default function OAuthCallback() {
           return;
         }
 
-        // Get the updated user state after exchange
-        const currentUserId = useAuthStore.getState().user?.id;
+        // Get the updated user state after exchange (our equivalent of supabase.auth.getUser)
+        let currentUserId = useAuthStore.getState().user?.id;
+
+        if (!currentUserId) {
+          console.warn(
+            "[OAuth Callback] User ID undefined, waiting 500ms for session to hydrate...",
+          );
+          await new Promise((resolve) => setTimeout(resolve, 500));
+
+          // Retry checking state
+          await useAuthStore.getState().checkAuth();
+          currentUserId = useAuthStore.getState().user?.id;
+        }
+
         console.log("Current UserID:", currentUserId);
+
+        if (!currentUserId) {
+          throw new Error(
+            "Failed to populate user state after authentication. User ID is undefined.",
+          );
+        }
 
         // Intent-based routing
         if (intent === "signup") {

@@ -1,6 +1,6 @@
-import { apiClient } from '@/api/client';
-import { storage } from '@/utils/storage';
-import { create } from 'zustand';
+import { apiClient } from "@/api/client";
+import { storage } from "@/utils/storage";
+import { create } from "zustand";
 
 interface User {
   id: string;
@@ -16,12 +16,21 @@ interface AuthState {
   isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
-  
+
   // Actions
   login: (email: string, password: string) => Promise<void>;
-  signup: (email: string, password: string, username: string, full_name: string) => Promise<void>;
+  signup: (
+    email: string,
+    password: string,
+    username: string,
+    full_name: string,
+  ) => Promise<void>;
   logout: () => Promise<void>;
-  oauthLogin: (provider: 'github' | 'google', redirectUri?: string, intent?: 'login' | 'signup') => Promise<string>;
+  oauthLogin: (
+    provider: "github" | "google",
+    redirectUri?: string,
+    intent?: "login" | "signup",
+  ) => Promise<string>;
   exchangeOAuthCode: (code: string) => Promise<void>;
   exchangeSupabaseToken: (supabaseToken: string) => Promise<void>;
   setOAuthTokens: (accessToken: string, user: User) => Promise<void>;
@@ -37,62 +46,72 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   error: null,
 
   login: async (email: string, password: string) => {
-    console.log('[AuthStore] Login called with:', email);
+    console.log("[AuthStore] Login called with:", email);
     set({ isLoading: true, error: null });
     try {
       const response = await apiClient.login(email, password);
-      console.log('[AuthStore] Login response:', response);
-      
+      console.log("[AuthStore] Login response:", response);
+
       if (response.success && response.data) {
         const { accessToken, user } = response.data;
-        console.log('[AuthStore] Storing access token and user');
-        
+        console.log("[AuthStore] Storing access token and user");
+
         // Store tokens
-        await storage.setItemAsync('accessToken', accessToken);
-        
-        set({ 
-          user, 
-          isAuthenticated: true, 
-          isLoading: false 
+        await storage.setItemAsync("accessToken", accessToken);
+
+        set({
+          user,
+          isAuthenticated: true,
+          isLoading: false,
         });
-        console.log('[AuthStore] Login successful, state updated');
+        console.log("[AuthStore] Login successful, state updated");
       } else {
-        console.log('[AuthStore] Login failed:', response.error);
-        throw new Error(response.error || 'Invalid credentials');
+        console.log("[AuthStore] Login failed:", response.error);
+        throw new Error(response.error || "Invalid credentials");
       }
     } catch (error: any) {
-      console.error('[AuthStore] Login error:', error);
-      set({ 
-        error: error.error || error.message || 'Invalid credentials', 
-        isLoading: false 
+      console.error("[AuthStore] Login error:", error);
+      set({
+        error: error.error || error.message || "Invalid credentials",
+        isLoading: false,
       });
       throw error;
     }
   },
 
-  signup: async (email: string, password: string, username: string, full_name: string) => {
+  signup: async (
+    email: string,
+    password: string,
+    username: string,
+    full_name: string,
+  ) => {
     set({ isLoading: true, error: null });
     try {
-      const response = await apiClient.signup(email, password, username, full_name);
-      
+      const response = await apiClient.signup(
+        email,
+        password,
+        username,
+        full_name,
+      );
+
       if (response.success && response.data) {
         const { accessToken, user } = response.data;
-        
+
         // Store tokens
-        await storage.setItemAsync('accessToken', accessToken);
-        
-        set({ 
-          user, 
-          isAuthenticated: true, 
-          isLoading: false 
+        await storage.setItemAsync("accessToken", accessToken);
+
+        set({
+          user,
+          isAuthenticated: true,
+          isLoading: false,
         });
       } else {
-        throw new Error(response.error || 'Signup failed');
+        throw new Error(response.error || "Signup failed");
       }
     } catch (error: any) {
-      set({ 
-        error: error.error || error.message || 'Signup failed', 
-        isLoading: false 
+      set({
+        error: error.error || error.message || "Signup failed",
+        isLoading: false,
       });
       throw error;
     }
@@ -103,35 +122,43 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       await apiClient.logout();
     } catch (error) {
-      console.error('[AuthStore] Logout error:', error);
+      console.error("[AuthStore] Logout error:", error);
     } finally {
-      await storage.deleteItemAsync('accessToken');
-      await storage.deleteItemAsync('refreshToken');
-      set({ 
-        user: null, 
-        isAuthenticated: false, 
+      await storage.deleteItemAsync("accessToken");
+      await storage.deleteItemAsync("refreshToken");
+      set({
+        user: null,
+        isAuthenticated: false,
         isLoading: false,
-        error: null
+        error: null,
       });
     }
   },
 
-  oauthLogin: async (provider: 'github' | 'google', redirectUri?: string, intent?: 'login' | 'signup') => {
+  oauthLogin: async (
+    provider: "github" | "google",
+    redirectUri?: string,
+    intent?: "login" | "signup",
+  ) => {
     set({ isLoading: true, error: null });
     try {
-      const response = await apiClient.getOAuthUrl(provider, redirectUri, intent);
-      
+      const response = await apiClient.getOAuthUrl(
+        provider,
+        redirectUri,
+        intent,
+      );
+
       if (response.success && response.data?.url) {
         // Return the URL for the caller to handle navigation
         set({ isLoading: false });
         return response.data.url;
       } else {
-        throw new Error(response.error || 'Failed to get OAuth URL');
+        throw new Error(response.error || "Failed to get OAuth URL");
       }
     } catch (error: any) {
-      set({ 
-        error: error.error || error.message || 'OAuth failed', 
-        isLoading: false 
+      set({
+        error: error.error || error.message || "OAuth failed",
+        isLoading: false,
       });
       throw error;
     }
@@ -141,17 +168,25 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const response = await apiClient.exchangeAuthCode(code);
-      
+
       if (response.success && response.data?.accessToken) {
-        await storage.setItemAsync('accessToken', response.data.accessToken);
-        set({ isLoading: false });
+        await storage.setItemAsync("accessToken", response.data.accessToken);
+        if (response.data.user) {
+          set({
+            user: response.data.user,
+            isAuthenticated: true,
+            isLoading: false,
+          });
+        } else {
+          set({ isAuthenticated: true, isLoading: false });
+        }
       } else {
-        throw new Error(response.error || 'Failed to exchange code');
+        throw new Error(response.error || "Failed to exchange code");
       }
     } catch (error: any) {
-      set({ 
-        error: error.error || error.message || 'Code exchange failed', 
-        isLoading: false 
+      set({
+        error: error.error || error.message || "Code exchange failed",
+        isLoading: false,
       });
       throw error;
     }
@@ -161,17 +196,25 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const response = await apiClient.exchangeSupabaseToken(supabaseToken);
-      
+
       if (response.success && response.data?.accessToken) {
-        await storage.setItemAsync('accessToken', response.data.accessToken);
-        set({ isLoading: false });
+        await storage.setItemAsync("accessToken", response.data.accessToken);
+        if (response.data.user) {
+          set({
+            user: response.data.user,
+            isAuthenticated: true,
+            isLoading: false,
+          });
+        } else {
+          set({ isAuthenticated: true, isLoading: false });
+        }
       } else {
-        throw new Error(response.error || 'Failed to exchange token');
+        throw new Error(response.error || "Failed to exchange token");
       }
     } catch (error: any) {
-      set({ 
-        error: error.error || error.message || 'Token exchange failed', 
-        isLoading: false 
+      set({
+        error: error.error || error.message || "Token exchange failed",
+        isLoading: false,
       });
       throw error;
     }
@@ -181,17 +224,17 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       // Store access token
-      await storage.setItemAsync('accessToken', accessToken);
-      
-      set({ 
-        user, 
-        isAuthenticated: true, 
-        isLoading: false 
+      await storage.setItemAsync("accessToken", accessToken);
+
+      set({
+        user,
+        isAuthenticated: true,
+        isLoading: false,
       });
     } catch (error: any) {
-      set({ 
-        error: error.message || 'Failed to set OAuth tokens', 
-        isLoading: false 
+      set({
+        error: error.message || "Failed to set OAuth tokens",
+        isLoading: false,
       });
       throw error;
     }
@@ -201,16 +244,18 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const response = await apiClient.getOnboardingStatus();
-      
+
       if (response.success && response.data) {
         set({ isLoading: false });
-        return { onboarding_completed: response.data.onboarding_completed || false };
+        return {
+          onboarding_completed: response.data.onboarding_completed || false,
+        };
       } else {
         set({ isLoading: false });
         return { onboarding_completed: false };
       }
     } catch (error: any) {
-      console.error('[AuthStore] Check onboarding status error:', error);
+      console.error("[AuthStore] Check onboarding status error:", error);
       set({ isLoading: false });
       return { onboarding_completed: false };
     }
@@ -219,7 +264,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   checkAuth: async () => {
     set({ isLoading: true });
     try {
-      const token = await storage.getItemAsync('accessToken');
+      const token = await storage.getItemAsync("accessToken");
       if (token) {
         // Token exists - user is considered authenticated
         // In a real app, you might want to validate the token here

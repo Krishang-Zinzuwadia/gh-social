@@ -371,7 +371,7 @@ export async function getOAuthUrl(req: Request, res: Response): Promise<void> {
           isAllowedRedirect = true;
         } else {
           // Protocol-Based Whitelist for Native App Deep Links
-          const SUPPORTED_NATIVE_SCHEMES = ['exp:', 'ghsocial:', 'weave:'];
+          const SUPPORTED_NATIVE_SCHEMES = ['exp:', 'ghsocial:'];
           
           if (SUPPORTED_NATIVE_SCHEMES.includes(parsedUrl.protocol)) {
             // Universal Path-Strictness

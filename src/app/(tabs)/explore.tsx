@@ -37,8 +37,11 @@ export default function ExploreScreen() {
         setIsForYouLoading(true);
         const token = await SecureStore.getItemAsync('access_token');
         if (!token) throw new Error('No token');
-        
-        const data = await fetchFeed(token);
+        const response = await fetch(`${API_URL}/repos?limit=10&offset=0`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const result = await response.json();
+        const data = result.success ? result.data : [];
         if (data && data.length > 0) {
           const mappedRepos: Repo[] = data.map((repo: any) => ({
             id: repo.repo_id || Math.random().toString(),
@@ -86,7 +89,14 @@ export default function ExploreScreen() {
       setIsForYouLoadingMore(true);
       const token = await SecureStore.getItemAsync('access_token');
       if (!token) return;
-      const data = await fetchFeed(token);
+      
+      const currentCount = forYouRepos.length;
+      const response = await fetch(`${API_URL}/repos?limit=10&offset=${currentCount}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const result = await response.json();
+      const data = result.success ? result.data : [];
+      
       if (data && data.length > 0) {
         const mappedRepos: Repo[] = data.map((repo: any) => ({
           id: repo.repo_id || Math.random().toString(),

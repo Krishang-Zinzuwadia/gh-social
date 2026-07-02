@@ -25,7 +25,7 @@ export function RepositoryFeedItem({
   pageWidth: number;
   pageHeight: number;
   isViewable?: boolean;
-  onQueueActivity?: (event: { repo_id: string; action: 'like' | 'save' | 'skip' | 'dwell'; dwell_seconds?: number }, flushNow?: boolean) => void;
+  onQueueActivity?: (event: { repo_id: string; action: 'like' | 'save' | 'skip' | 'dwell' | 'unlike' | 'unsave'; dwell_seconds?: number }, flushNow?: boolean) => void;
 }) {
   const [isPopupVisible, setIsPopupVisible] = useState(false);
   const [isReadmeVisible, setIsReadmeVisible] = useState(false);

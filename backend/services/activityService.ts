@@ -19,7 +19,7 @@ export async function toggleRepoSave(userId: string, repoId: string) {
 
 export interface BatchedActivityEvent {
   repo_id: string;
-  action: 'like' | 'save' | 'skip' | 'dwell';
+  action: 'like' | 'save' | 'skip' | 'dwell' | 'unlike' | 'unsave';
   dwell_seconds?: number;
 }
 
@@ -27,6 +27,7 @@ export async function processBatchedActivity(userId: string, events: BatchedActi
   try {
     for (const event of events) {
       const dwell = event.dwell_seconds ? `${event.dwell_seconds} seconds` : '0 seconds';
+      // For initial insert if it doesn't exist yet
       const isLike = event.action === 'like' ? 1 : 0;
       const isSave = event.action === 'save' ? true : false;
       
@@ -46,8 +47,16 @@ export async function processBatchedActivity(userId: string, events: BatchedActi
           ON CONFLICT (user_id, repo_id) DO UPDATE 
           SET 
             time_spent = activity.time_spent + EXCLUDED.time_spent,
-            likelihood_count = GREATEST(activity.likelihood_count, EXCLUDED.likelihood_count),
-            is_saved = EXCLUDED.is_saved OR activity.is_saved
+            likelihood_count = CASE 
+                                WHEN ${event.action} = 'like' THEN 1 
+                                WHEN ${event.action} = 'unlike' THEN 0 
+                                ELSE activity.likelihood_count 
+                               END,
+            is_saved = CASE 
+                        WHEN ${event.action} = 'save' THEN true 
+                        WHEN ${event.action} = 'unsave' THEN false 
+                        ELSE activity.is_saved 
+                       END
         `);
       } catch (err) {
         console.error(`[ActivityService] Failed to process event for repo ${event.repo_id}:`, err);

@@ -30,7 +30,7 @@ export function RepositoryScreen({
   pageHeight: number;
   repository: RepositoryData;
   onReadFullPress: () => void;
-  onQueueActivity?: (event: { repo_id: string; action: 'like' | 'save' | 'skip' | 'dwell'; dwell_seconds?: number }, flushNow?: boolean) => void;
+  onQueueActivity?: (event: { repo_id: string; action: 'like' | 'save' | 'skip' | 'dwell' | 'unlike' | 'unsave'; dwell_seconds?: number }, flushNow?: boolean) => void;
 }) {
   const insets = useSafeAreaInsets();
   const isSmallPhone = pageWidth < 380;
@@ -190,6 +190,9 @@ export function RepositoryScreen({
                     }
                   } else {
                     setHasLiked(false);
+                    if (onQueueActivity) {
+                      onQueueActivity({ repo_id: repository.id, action: 'unlike' }, true);
+                    }
                   }
                 }}
                 style={[

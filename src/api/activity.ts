@@ -36,7 +36,7 @@ export async function toggleSaveRepo(userId: string, repoId: string, token: stri
   return json.data;
 }
 
-export async function sendBatchedActivity(events: { repo_id: string; action: 'like' | 'save' | 'skip' | 'dwell'; dwell_seconds?: number }[], token: string) {
+export async function sendBatchedActivity(events: { repo_id: string; action: 'like' | 'save' | 'skip' | 'dwell' | 'unlike' | 'unsave'; dwell_seconds?: number }[], token: string) {
   if (events.length === 0) return;
   
   const response = await fetch(`${API_URL}/activity/batch`, {

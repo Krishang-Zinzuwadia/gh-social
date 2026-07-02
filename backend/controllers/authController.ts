@@ -458,12 +458,28 @@ export async function exchangeAuthCode(
       const userId = authData.user.id;
       const email = authData.user.email;
 
-      // Mint custom JWT
+      // Mint custom JWT (short-lived, 15m to match other routes)
       const token = jwt.sign({ userId, email }, JWT_SECRET, {
-        expiresIn: "7d",
+        expiresIn: "15m",
       });
 
-      return sendSuccess(res, 200, { accessToken: token, user: authData.user });
+      // Generate and store Refresh Token securely using Drizzle
+      const refreshToken = await createAndStoreRefreshToken(userId);
+
+      // Set refresh token in HTTP-only cookie
+      res.cookie("refresh_token", refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        path: "/api/auth",
+        maxAge: 30 * 24 * 60 * 60 * 1000,
+      });
+
+      return sendSuccess(res, 200, { 
+        accessToken: token, 
+        token: token, // Alias for backward compatibility
+        user: authData.user 
+      });
     } catch (error) {
       return sendControllerError(res, error as Error);
     }
@@ -513,7 +529,7 @@ export async function exchangeAuthCode(
     const email = authData.user.email;
 
     // 5. Mint tokens
-    const token = jwt.sign({ userId, email }, JWT_SECRET, { expiresIn: "7d" });
+    const token = jwt.sign({ userId, email }, JWT_SECRET, { expiresIn: "15m" });
 
     const refreshToken = crypto.randomBytes(40).toString("hex");
     const tokenHash = hashToken(refreshToken);

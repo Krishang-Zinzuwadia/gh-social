@@ -359,11 +359,17 @@ export async function getOAuthUrl(req: Request, res: Response): Promise<void> {
         const parsedClient = new URL(CLIENT_URL);
         const parsedBackend = new URL(BACKEND_URL);
         
-        // Strictly compare origins, or allow native mobile schemes
+        // Strictly compare origins, or allow native mobile schemes with a strict host whitelist
         if (parsedUrl.origin === parsedClient.origin || parsedUrl.origin === parsedBackend.origin) {
           isAllowedRedirect = true;
         } else if (parsedUrl.protocol === "exp:" || parsedUrl.protocol === "ghsocial:") {
-          isAllowedRedirect = true;
+          const host = parsedUrl.hostname;
+          const allowedNativeHosts = ["auth", "localhost", "127.0.0.1"];
+          
+          // Verify host matches our whitelist or is a safe local development IP pattern
+          if (allowedNativeHosts.includes(host) || host.startsWith("192.168.") || host.startsWith("10.")) {
+            isAllowedRedirect = true;
+          }
         }
       } catch (e) {
         // Invalid URL format

@@ -271,9 +271,18 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         const response = await apiClient.getOnboardingStatus();
         if (response.success && response.data?.profile) {
           const profile = response.data.profile;
+          
+          const userId = profile.user_id || profile.id;
+          if (!userId) {
+            console.error("[AuthStore] Backend payload missing user ID. Clearing zombie session.");
+            await storage.deleteItemAsync("accessToken");
+            set({ user: null, isAuthenticated: false, isLoading: false });
+            return;
+          }
+
           // Populate the user object so the app knows who is logged in
           const user: User = {
-            id: profile.user_id || profile.id,
+            id: userId,
             email: profile.email || "", // Email might not be in public.users, but satisfies interface
             user_metadata: {
               user_name: profile.username,

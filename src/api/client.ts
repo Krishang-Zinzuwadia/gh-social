@@ -35,16 +35,79 @@ class ApiClient {
       },
     );
 
+    let isRefreshing = false;
+    let failedQueue: any[] = [];
+
+    const processQueue = (error: any, token: string | null = null) => {
+      failedQueue.forEach((prom) => {
+        if (error) {
+          prom.reject(error);
+        } else {
+          prom.resolve(token);
+        }
+      });
+      failedQueue = [];
+    };
+
     // Response interceptor for error handling
     this.client.interceptors.response.use(
       (response) => {
         return response.data;
       },
       async (error) => {
-        if (error.response?.status === 401) {
-          // Token expired or invalid, clear storage
-          await storage.deleteItemAsync("accessToken");
-          await storage.deleteItemAsync("refreshToken");
+        const originalRequest = error.config;
+        
+        if (error.response?.status === 401 && !originalRequest._retry) {
+          if (isRefreshing) {
+            return new Promise((resolve, reject) => {
+              failedQueue.push({ resolve, reject });
+            })
+              .then((token) => {
+                originalRequest.headers.Authorization = `Bearer ${token}`;
+                return this.client(originalRequest);
+              })
+              .catch((err) => {
+                return Promise.reject(err);
+              });
+          }
+
+          originalRequest._retry = true;
+          isRefreshing = true;
+
+          try {
+            // Note: Use axios directly without interceptors to avoid infinite loops
+            const res = await axios.post(
+              `${API_URL}/auth/refresh`,
+              {},
+              { withCredentials: true },
+            );
+            
+            if (res.data && res.data.data && res.data.data.accessToken) {
+              const { accessToken } = res.data.data;
+              await storage.setItemAsync("accessToken", accessToken);
+              
+              this.client.defaults.headers.common["Authorization"] = `Bearer ${accessToken}`;
+              originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+              
+              processQueue(null, accessToken);
+              return this.client(originalRequest);
+            } else {
+              throw new Error("Invalid token refresh response");
+            }
+          } catch (refreshError) {
+            processQueue(refreshError, null);
+            
+            // Token expired or invalid, clear storage
+            await storage.deleteItemAsync("accessToken");
+            await storage.deleteItemAsync("refreshToken");
+            
+            return Promise.reject({
+              success: false,
+              error: "Session expired. Please log in again.",
+            });
+          } finally {
+            isRefreshing = false;
+          }
         }
 
         // Return standardized error format

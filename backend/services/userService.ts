@@ -219,25 +219,25 @@ export async function getUserById(userId: string) {
 
 export async function updateUserProfile(userId: string, updates: UserUpdate) {
   try {
-    // 1. Perform standard update for profile fields
-    await db.update(users).set(updates).where(eq(users.user_id, userId));
+    // 1. Perform standard update for profile fields using your original structure
+    const [updatedRow] = await db
+      .update(users)
+      .set(updates)
+      .where(eq(users.user_id, userId))
+      .returning(USER_PROFILE_COLUMNS);
 
-    // 2. Force the boolean update using raw SQL to bypass DB triggers
+    // 2. Force the boolean update using raw SQL to bypass any DB triggers
+    // This addresses the persistence failure reported in the dev branch
     await db.execute(sql`
       UPDATE users 
       SET onboarding_completed = true 
       WHERE user_id = ${userId}
     `);
 
-    // 3. Return the updated row
-    const [updatedRow] = await db
-      .select(USER_PROFILE_COLUMNS)
-      .from(users)
-      .where(eq(users.user_id, userId));
-
-    if (!updatedRow) throw { code: "PGRST116", message: "Not found" };
-    return { data: updatedRow as unknown as UserProfile, error: null };
-  } catch (error) {
-    return { data: null as any, error: error as any };
+    if (!updatedRow) throw { code: 'PGRST116', message: 'Not found' };
+    
+    return { data: updatedRow, error: null };
+  } catch (error) { 
+    return { data: null as any, error: error as any }; 
   }
 }

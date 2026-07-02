@@ -266,9 +266,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       const token = await storage.getItemAsync("accessToken");
       if (token) {
-        // Token exists - user is considered authenticated
-        // In a real app, you might want to validate the token here
-        set({ isAuthenticated: true, isLoading: false });
+        // Validate the token by hitting a secure endpoint
+        // This will trigger the interceptor to refresh if needed
+        const response = await apiClient.getOnboardingStatus();
+        if (response.success) {
+          set({ isAuthenticated: true, isLoading: false });
+        } else {
+          // If it failed even with interceptor retry, we are unauthenticated
+          set({ isAuthenticated: false, isLoading: false });
+        }
       } else {
         set({ isAuthenticated: false, isLoading: false });
       }

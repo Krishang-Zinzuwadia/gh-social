@@ -12,8 +12,12 @@ import PrimaryButton from "@/components/Auth/PrimaryButton";
 import RememberMe from "@/components/Auth/RememberMe";
 import SocialButton from "@/components/Auth/SocialButton";
 
-import { GithubIcon, GoogleIcon } from "@/components/Auth/icons";
-import { useAuthStore } from "@/store/authStore";
+import {
+    GithubIcon,
+    GoogleIcon,
+} from "@/components/Auth/icons";
+import { useAuthStore } from '@/store/authStore';
+import { getAuthCallbackUrl } from '@/utils/urlHelper';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -68,13 +72,11 @@ export default function LoginScreen() {
 
   const handleGitHubLogin = async () => {
     try {
-      const redirectUrl =
-        Platform.OS === "web"
-          ? "http://localhost:3000/auth/callback"
-          : Linking.createURL("auth/callback");
-      const url = await oauthLogin("github", redirectUrl, "login");
-
-      if (Platform.OS === "web") {
+      const redirectUrl = getAuthCallbackUrl();
+      const url = await oauthLogin('github', redirectUrl, 'login');
+      
+      // On web, use direct redirect to avoid COOP policy issues
+      if (Platform.OS === 'web') {
         window.location.href = url;
         return;
       }
@@ -102,13 +104,11 @@ export default function LoginScreen() {
 
   const handleGoogleLogin = async () => {
     try {
-      const redirectUrl =
-        Platform.OS === "web"
-          ? "http://localhost:3000/auth/callback"
-          : Linking.createURL("auth/callback");
-      const url = await oauthLogin("google", redirectUrl, "login");
-
-      if (Platform.OS === "web") {
+      const redirectUrl = getAuthCallbackUrl();
+      const url = await oauthLogin('google', redirectUrl, 'login');
+      
+      // On web, use direct redirect to avoid COOP policy issues
+      if (Platform.OS === 'web') {
         window.location.href = url;
         return;
       }

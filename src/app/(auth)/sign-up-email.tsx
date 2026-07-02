@@ -15,6 +15,7 @@ import PrimaryButton from "@/components/Auth/PrimaryButton";
 import SectionLabel from "@/components/Auth/SectionLabel";
 import SocialButton from "@/components/Auth/SocialButton";
 import { useAuthStore } from "@/store/authStore";
+import { getAuthCallbackUrl } from "@/utils/urlHelper";
 
 export default function SignUpEmail() {
   const router = useRouter();
@@ -72,10 +73,7 @@ export default function SignUpEmail() {
   const handleGitHubLogin = async () => {
     Alert.alert("Button Clicked", "GitHub OAuth button was pressed");
     try {
-      const redirectUrl =
-        Platform.OS === "web"
-          ? "http://localhost:3000/auth/callback"
-          : Linking.createURL("auth/callback");
+      const redirectUrl = getAuthCallbackUrl();
       const url = await oauthLogin("github", redirectUrl, "signup");
 
       if (Platform.OS === "web") {
@@ -107,10 +105,7 @@ export default function SignUpEmail() {
   const handleGoogleLogin = async () => {
     Alert.alert("Button Clicked", "Google OAuth button was pressed");
     try {
-      const redirectUrl =
-        Platform.OS === "web"
-          ? "http://localhost:3000/auth/callback"
-          : Linking.createURL("auth/callback");
+      const redirectUrl = getAuthCallbackUrl();
       const url = await oauthLogin("google", redirectUrl, "signup");
 
       if (Platform.OS === "web") {

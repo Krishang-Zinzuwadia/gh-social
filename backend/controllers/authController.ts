@@ -354,6 +354,18 @@ export async function getOAuthUrl(req: Request, res: Response): Promise<void> {
       ? (redirectUri as string)
       : `${BACKEND_URL}/api/auth/callback`;
 
+    // Security: Validate redirectTo against allowed origins/schemes
+    const isAllowedRedirect = 
+      redirectTo.startsWith(CLIENT_URL) || 
+      redirectTo.startsWith(BACKEND_URL) || 
+      redirectTo.startsWith("exp://") || 
+      redirectTo.startsWith("ghsocial://") ||
+      redirectTo.startsWith("/"); // Allow relative paths
+
+    if (!isAllowedRedirect) {
+      return sendError(res, 400, "Invalid redirect URI. Domain not allowed.");
+    }
+
     // Append intent to the redirect URL if provided
     if (intent) {
       const separator = redirectTo.includes("?") ? "&" : "?";

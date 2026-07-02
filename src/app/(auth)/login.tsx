@@ -18,6 +18,7 @@ import {
     GoogleIcon,
 } from "@/components/Auth/icons";
 import { useAuthStore } from '@/store/authStore';
+import { getAuthCallbackUrl } from '@/utils/urlHelper';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -59,9 +60,7 @@ export default function LoginScreen() {
 
   const handleGitHubLogin = async () => {
     try {
-      const redirectUrl = Platform.OS === 'web' 
-        ? 'http://localhost:3000/auth/callback'
-        : Linking.createURL('auth/callback');
+      const redirectUrl = getAuthCallbackUrl();
       const url = await oauthLogin('github', redirectUrl, 'login');
       
       // On web, use direct redirect to avoid COOP policy issues
@@ -91,9 +90,7 @@ export default function LoginScreen() {
 
   const handleGoogleLogin = async () => {
     try {
-      const redirectUrl = Platform.OS === 'web' 
-        ? 'http://localhost:3000/auth/callback'
-        : Linking.createURL('auth/callback');
+      const redirectUrl = getAuthCallbackUrl();
       const url = await oauthLogin('google', redirectUrl, 'login');
       
       // On web, use direct redirect to avoid COOP policy issues

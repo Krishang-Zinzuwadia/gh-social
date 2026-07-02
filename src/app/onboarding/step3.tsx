@@ -30,6 +30,18 @@ export default function Step3() {
   };
 
   const completeOnboarding = async () => {
+    setErrorMessage("");
+
+    if (selectedCategoryIds.length === 0) {
+      setErrorMessage("Missing skills. Please go back and select at least one skill.");
+      return;
+    }
+
+    if (techStackArray.length === 0) {
+      setErrorMessage("Missing tech stack. Please go back and select at least one technology.");
+      return;
+    }
+
     if (selectedInterests.length >= 5) {
       setIsLoading(true);
       try {

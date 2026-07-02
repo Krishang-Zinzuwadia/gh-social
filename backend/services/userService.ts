@@ -206,42 +206,14 @@ export async function getUserById(userId: string) {
 
 export async function updateUserProfile(userId: string, updates: UserUpdate) {
   try {
-    const existing = await db
-      .select()
-      .from(users)
-      .where(eq(users.user_id, userId));
-    console.log("DEBUG: Pre-update record found:", JSON.stringify(existing));
-    console.log("DEBUG: Final update payload:", JSON.stringify(updates));
-    console.log("DEBUG: Targeting UserID:", userId);
-
-    // 1. Perform standard update for profile fields (this will trigger the DB trigger)
-    await db
+    const [data] = await db
       .update(users)
       .set({ ...updates })
-      .where(eq(users.user_id, userId));
+      .where(eq(users.user_id, userId))
+      .returning(USER_PROFILE_COLUMNS);
 
-    // 2. Force the boolean update using a raw SQL fragment to bypass ORM mapping/constraints & Triggers
-    await db.execute(sql`
-      UPDATE users 
-      SET onboarding_completed = true 
-      WHERE user_id = ${userId}
-    `);
-
-    // 3. Final Verification: Query the DB directly to see if the bit actually flipped
-    const [finalState] = await db
-      .select()
-      .from(users)
-      .where(eq(users.user_id, userId));
-    console.log(
-      "DEBUG: Final Database State after SQL Force:",
-      finalState.onboarding_completed,
-    );
-
-    if (!finalState) throw { code: "PGRST116", message: "Not found" };
-    return {
-      data: finalState as unknown as typeof USER_PROFILE_COLUMNS,
-      error: null,
-    };
+    if (!data) throw { code: "PGRST116", message: "Not found" };
+    return { data, error: null };
   } catch (error) {
     return { data: null as any, error: error as any };
   }

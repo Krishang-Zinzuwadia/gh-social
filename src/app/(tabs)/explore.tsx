@@ -21,6 +21,7 @@ export default function ExploreScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [forYouRepos, setForYouRepos] = useState<Repo[]>([]);
   const [isForYouLoading, setIsForYouLoading] = useState(true);
+  const [isForYouLoadingMore, setIsForYouLoadingMore] = useState(false);
   const [isForYouError, setIsForYouError] = useState(false);
   const [trendingRepos, setTrendingRepos] = useState<Repo[]>([]);
   const [isTrendingLoading, setIsTrendingLoading] = useState(true);
@@ -54,9 +55,19 @@ export default function ExploreScreen() {
             trendingPeriod: 'Recommended',
           }));
           
-          // Only update if we actually got items
-          setForYouRepos(prev => prev.length === 0 ? mappedRepos : prev);
+          // Update state by appending new items and ensuring no duplicates by ID
+          setForYouRepos(prev => {
+            const existingIds = new Set(prev.map(r => r.id));
+            const uniqueNewRepos = mappedRepos.filter(r => !existingIds.has(r.id));
+            return [...prev, ...uniqueNewRepos];
+          });
           setIsForYouError(false);
+
+          // The backend only returns 5 repos per request. 
+          // Automatically fetch the next batch so the screen is full enough to scroll!
+          setTimeout(() => {
+            loadMoreForYou();
+          }, 500);
         }
       } catch (error) {
         console.error('Failed to fetch for you repos', error);
@@ -68,6 +79,41 @@ export default function ExploreScreen() {
     
     fetchForYou();
   }, [activeTab, retryCount]);
+
+  const loadMoreForYou = async () => {
+    if (isForYouLoading || isForYouLoadingMore) return;
+    try {
+      setIsForYouLoadingMore(true);
+      const token = await SecureStore.getItemAsync('access_token');
+      if (!token) return;
+      const data = await fetchFeed(token);
+      if (data && data.length > 0) {
+        const mappedRepos: Repo[] = data.map((repo: any) => ({
+          id: repo.repo_id || Math.random().toString(),
+          name: repo.repo_name || repo.full_name?.split('/')[1] || 'Unknown',
+          stars: (repo.star_count || 0).toString(),
+          forks: (repo.forks_count || repo.fork_count || 0).toString(),
+          author: repo.full_name ? repo.full_name.split('/')[0] : 'Unknown',
+          url: repo.github_repo_url || `https://github.com/${repo.full_name}`,
+          avatarColor: '#10B981',
+          avatarInitial: (repo.repo_name || repo.full_name || 'R').charAt(0).toUpperCase(),
+          hasIcon: true,
+          language: repo.primary_language || repo.language_used?.[0] || repo.languages?.[0] || 'Unknown',
+          description: repo.description || repo.readme_summary || 'No description available',
+          trendingPeriod: 'Recommended',
+        }));
+        setForYouRepos(prev => {
+          const existingIds = new Set(prev.map(r => r.id));
+          const uniqueNewRepos = mappedRepos.filter(r => !existingIds.has(r.id));
+          return [...prev, ...uniqueNewRepos];
+        });
+      }
+    } catch (error) {
+      console.error('Failed to load more for you repos', error);
+    } finally {
+      setIsForYouLoadingMore(false);
+    }
+  };
 
   useEffect(() => {
     const fetchTrending = async () => {
@@ -213,6 +259,14 @@ export default function ExploreScreen() {
             style={{ flex: 1 }}
             showsVerticalScrollIndicator={false}
             contentContainerStyle={{ paddingBottom: 24, paddingTop: 12 }}
+            onScroll={({ nativeEvent }) => {
+              // Trigger load more when close to bottom
+              const isCloseToBottom = nativeEvent.layoutMeasurement.height + nativeEvent.contentOffset.y >= nativeEvent.contentSize.height - 200;
+              if (isCloseToBottom && !isForYouLoadingMore && forYouRepos.length > 0) {
+                loadMoreForYou();
+              }
+            }}
+            scrollEventThrottle={400}
           >
             {renderEmptyState(dataForYou.length > 0)}
 
@@ -241,6 +295,12 @@ export default function ExploreScreen() {
                     </View>
                   ))}
                 </View>
+              </View>
+            )}
+
+            {isForYouLoadingMore && (
+              <View className="py-6 items-center">
+                <Text className="text-[#10B981] font-semibold">Loading more...</Text>
               </View>
             )}
           </ScrollView>

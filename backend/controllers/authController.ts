@@ -118,7 +118,7 @@ export async function signUp(req: Request, res: Response): Promise<void> {
       await supabaseAdmin.auth.admin.updateUserById(userId, {
         email_confirm: true,
       });
-      console.log("Development bypass: auto-confirmed email for", email);
+      console.log("Development Bypass: Setting email_confirmed_at for user:", userId);
     } else if (!data.session) {
       return sendSuccess(res, 202, {
         message:

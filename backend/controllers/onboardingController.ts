@@ -142,10 +142,15 @@ export async function setupOnboarding(
     }
   }
 
+  console.log("Received PUT request. User ID:", userId);
+  console.log("Updating onboarding_completed to true...");
+
   const { data, error } = await onboardingService.setupOnboardingProfile(
     userId,
     body,
   );
+
+  console.log("Updated User object from DB:", data);
 
   if (error) {
     return sendDatabaseError(res, error as any, {

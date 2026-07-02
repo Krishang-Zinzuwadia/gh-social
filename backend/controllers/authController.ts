@@ -349,22 +349,25 @@ export async function getOAuthUrl(req: Request, res: Response): Promise<void> {
     // Security: Validate redirectTo against allowed origins/schemes
     let isAllowedRedirect = false;
 
-    if (redirectTo.startsWith("/")) {
-      isAllowedRedirect = true; // Allow relative paths
-    } else if (redirectTo.startsWith("exp://") || redirectTo.startsWith("ghsocial://")) {
-      isAllowedRedirect = true; // Allow specific native schemes
+    // Reject protocol-relative URLs (e.g. //evil.com) to prevent phishing
+    if (redirectTo[0] === "/" && redirectTo[1] === "/") {
+      isAllowedRedirect = false;
     } else {
       try {
-        const parsedUrl = new URL(redirectTo);
+        // Parse the URL. If it's a relative path, BACKEND_URL acts as the base.
+        const parsedUrl = new URL(redirectTo, BACKEND_URL);
         const parsedClient = new URL(CLIENT_URL);
         const parsedBackend = new URL(BACKEND_URL);
         
-        // Strictly compare origins to prevent sub-domain or lookalike phishing (e.g. app.example.com.evil.com)
+        // Strictly compare origins, or allow native mobile schemes
         if (parsedUrl.origin === parsedClient.origin || parsedUrl.origin === parsedBackend.origin) {
+          isAllowedRedirect = true;
+        } else if (parsedUrl.protocol === "exp:" || parsedUrl.protocol === "ghsocial:") {
           isAllowedRedirect = true;
         }
       } catch (e) {
-        // Invalid URL format (fails URL constructor)
+        // Invalid URL format
+        isAllowedRedirect = false;
       }
     }
 

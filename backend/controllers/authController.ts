@@ -357,11 +357,17 @@ export async function getOAuthUrl(req: Request, res: Response): Promise<void> {
         const parsedClient = new URL(CLIENT_URL!);
         const parsedBackend = new URL(BACKEND_URL!);
         
-        // Strictly compare origins, or allow native mobile schemes with a strict host whitelist
+        // Strictly compare origins for web redirects
         if (parsedUrl.origin === parsedClient.origin || parsedUrl.origin === parsedBackend.origin) {
           isAllowedRedirect = true;
-        } else if (parsedUrl.protocol === "exp:" || parsedUrl.protocol === "ghsocial:") {
-          isAllowedRedirect = parsedUrl.pathname === '/auth/callback' || parsedUrl.pathname.endsWith('/--/auth/callback');
+        } else {
+          // Protocol-Based Whitelist for Native App Deep Links
+          const SUPPORTED_NATIVE_SCHEMES = ['exp:', 'ghsocial:', 'weave:'];
+          
+          if (SUPPORTED_NATIVE_SCHEMES.includes(parsedUrl.protocol)) {
+            // Universal Path-Strictness
+            isAllowedRedirect = parsedUrl.pathname === '/auth/callback' || parsedUrl.pathname.endsWith('/--/auth/callback');
+          }
         }
       } catch (e) {
         // Invalid URL format

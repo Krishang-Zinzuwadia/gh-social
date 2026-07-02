@@ -13,10 +13,15 @@ import userRoutes from './routes/userRoutes.js';
 
 const app = express();
 
+const allowedOrigins = ['http://localhost:3000', 'http://localhost:8081'];
+if (process.env.CLIENT_URL) {
+  allowedOrigins.push(process.env.CLIENT_URL);
+}
+
 // Global middleware used by every route.
 app.use(
   cors({
-    origin: ['http://localhost:3000', 'http://localhost:8081'],
+    origin: allowedOrigins,
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization']

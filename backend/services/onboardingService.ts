@@ -9,9 +9,9 @@ import * as userService from "./userService.js";
 
 export function buildSetupUpdates(body: OnboardingSetupBody): UserUpdate {
   const updates: UserUpdate = {
-    username: body.username.trim(),
-    full_name: body.full_name.trim(),
-    onboarding_completed: true,
+    username: body.username?.trim() || "",
+    full_name: body.full_name?.trim() || "",
+    onboarding_completed: false, // Default to false
   };
 
   if (body.date_of_birth !== undefined) {
@@ -36,6 +36,17 @@ export function buildSetupUpdates(body: OnboardingSetupBody): UserUpdate {
 
   if (body.avatar_url !== undefined) {
     updates.avatar_url = body.avatar_url;
+  }
+
+  // Explicit payload check for completion before setting flag
+  if (
+    updates.username &&
+    updates.full_name &&
+    Array.isArray(updates.interests) && updates.interests.length > 0 &&
+    Array.isArray(updates.skills) && updates.skills.length > 0 &&
+    Array.isArray(updates.tech_stack) && updates.tech_stack.length > 0
+  ) {
+    updates.onboarding_completed = true;
   }
 
   return updates;

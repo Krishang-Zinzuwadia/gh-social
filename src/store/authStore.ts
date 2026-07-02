@@ -248,7 +248,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       if (response.success && response.data) {
         set({ isLoading: false });
         return {
-          onboarding_completed: response.data.onboarding_completed || false,
+          onboarding_completed: response.data.isComplete || false,
         };
       } else {
         set({ isLoading: false });

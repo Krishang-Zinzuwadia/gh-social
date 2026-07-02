@@ -77,35 +77,20 @@ export default function OAuthCallback() {
           );
         }
 
-        // Intent-based routing
-        if (intent === "signup") {
-          // Always force new user flow for signup intent
-          console.log(
-            "[OAuth Callback] Signup intent - routing to create-profile",
-          );
-          router.replace("/(auth)/create-profile");
-        } else {
-          // Validate existing user status for login intent
-          console.log(
-            "[OAuth Callback] Login intent - checking onboarding status",
-          );
-          const response = await checkOnboardingStatus();
-          console.log("Onboarding Status Response:", response);
-          const { onboarding_completed } = response;
+        // Always check onboarding status regardless of intent
+        console.log("[OAuth Callback] Checking onboarding status for intent:", intent);
+        const response = await checkOnboardingStatus();
+        console.log("Onboarding Status Response:", response);
+        console.log("ROUTING DECISION: Is onboarding completed?", response.onboarding_completed);
 
-          if (onboarding_completed) {
-            // User has completed onboarding, route to main app
-            console.log(
-              "[OAuth Callback] Onboarding completed - routing to home",
-            );
-            router.replace("/(tabs)/home");
-          } else {
-            // User needs to complete onboarding
-            console.log(
-              "[OAuth Callback] Onboarding not completed - routing to create-profile",
-            );
-            router.replace("/(auth)/create-profile");
-          }
+        if (response.onboarding_completed) {
+          // User has completed onboarding, route to main app
+          console.log("[OAuth Callback] Onboarding completed - routing to home");
+          router.replace("/(tabs)/home");
+        } else {
+          // User needs to complete onboarding
+          console.log("[OAuth Callback] Onboarding not completed - routing to create-profile");
+          router.replace("/(auth)/create-profile");
         }
       } catch (error) {
         console.error("[OAuth Callback] Error:", error);

@@ -121,8 +121,9 @@ class ApiClient {
     interests?: string[];
     skills?: string[];
     tech_stack?: string[];
-  }): Promise<ApiResponse<any>> {
-    return this.client.put("/onboarding/setup", data);
+  }, token?: string): Promise<ApiResponse<any>> {
+    const config = token ? { headers: { Authorization: `Bearer ${token}` } } : undefined;
+    return this.client.put("/onboarding/setup", data, config);
   }
 
   // Generic get/post/put/delete methods

@@ -1,5 +1,5 @@
 import crypto from "crypto";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import type { Request, Response } from "express";
 import jwt from "jsonwebtoken";
 import supabase, { supabaseAdmin } from "../config/supabase.js";
@@ -70,32 +70,51 @@ export async function signUp(req: Request, res: Response): Promise<void> {
         .from(users)
         .where(eq(users.username, username));
       if (existingUser.length > 0) {
-        return sendError(res, 409, "Username is already taken");
+        return sendError(res, 409, "username_taken");
       }
     }
 
-    // Use the updated 'options' structure for Supabase Admin
-    const { data, error } = await supabaseAdmin.auth.admin.createUser({
+    // 0.5. Pre-emptively check if email is linked to Google
+    try {
+      const identityCheck = await db.execute(sql`
+        SELECT provider FROM auth.identities 
+        JOIN auth.users ON auth.identities.user_id = auth.users.id
+        WHERE auth.users.email = ${email}
+      `);
+      
+      const providers = identityCheck.map((row: any) => row.provider);
+      if (providers.includes("google")) {
+        return sendError(res, 409, "email_linked_to_google");
+      }
+    } catch (err) {
+      console.error("Failed to check auth.identities directly:", err);
+    }
+
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      email_confirm: true,
-      user_metadata: {
-        user_name: username,
-        full_name: full_name,
+      options: {
+        data: {
+          user_name: username,
+          full_name: full_name,
+        },
+        emailRedirectTo: `${CLIENT_URL}/auth/callback`,
       },
     });
+
+    console.log("[Supabase Auth] SignUp Result:", { data, error });
 
     if (error) {
       if (
         error.message.toLowerCase().includes("already registered") ||
         error.message.toLowerCase().includes("already exists")
       ) {
-        return sendError(res, 409, "User already exists. Please login.");
+        return sendError(res, 409, "email_exists");
       }
       return sendError(res, error.status || 400, error.message);
     }
 
-    // Keep your mlService integration here
+    // --- YOUR CRITICAL ML SERVICE ONBOARDING ---
     if (data.user) {
       void mlService.onboardUserBestEffort({
         user_id: data.user.id,
@@ -108,29 +127,37 @@ export async function signUp(req: Request, res: Response): Promise<void> {
       });
     }
 
-    const userId = data.user.id;
+    // Development bypass: auto-confirm email
+    if (process.env.NODE_ENV === "development") {
+      await supabaseAdmin.auth.admin.updateUserById(data.user!.id, {
+        email_confirm: true,
+      });
+      console.log("Development bypass: auto-confirmed email for", email);
+    } else if (!data.session) {
+      // Standard flow: require verification
+      return sendSuccess(res, 202, {
+        message: "Signup successful! Please check your email to verify your account.",
+        user: data.user,
+      });
+    }
 
-    // 1. Generate Custom JWT Access Token
-    const accessToken = jwt.sign({ userId, email }, JWT_SECRET, {
-      expiresIn: "15m",
-    });
-
-    // 2. Generate and store Refresh Token securely using Drizzle
+    // --- TOKEN GENERATION FLOW ---
+    const userId = data.user!.id;
+    const accessToken = jwt.sign({ userId, email }, JWT_SECRET, { expiresIn: "15m" });
     const refreshToken = await createAndStoreRefreshToken(userId);
 
-    // 3. Set refresh token in HTTP-only cookie
     res.cookie("refresh_token", refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
-      path: "/api/auth", // Restrict cookie to refresh endpoint
+      path: "/api/auth",
       maxAge: 30 * 24 * 60 * 60 * 1000,
     });
 
     return sendSuccess(res, 201, {
       message: "Signup successful",
       accessToken,
-      token: accessToken, // Alias for backward compatibility
+      token: accessToken,
       user: data.user,
     });
   } catch (error) {

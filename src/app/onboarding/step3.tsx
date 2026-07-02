@@ -59,8 +59,8 @@ export default function Step3() {
         }
 
         const payload = {
-          username: username as string || "",
-          full_name: username as string || "", // Using username as full_name for now since it's required
+          username: (username as string) || "",
+          full_name: (username as string) || "", // Using username as full_name for now since it's required
           date_of_birth: formattedDateOfBirth,
           bio: (bio as string) || "", // Convert undefined to empty string
           interests: selectedInterests,
@@ -68,17 +68,19 @@ export default function Step3() {
           tech_stack: techStackArray,
         };
         
-        console.log("Submitting Onboarding Payload:", payload);
+        console.log("Attempting setup with token:", token);
+        console.log("Request payload:", JSON.stringify(payload));
         
-        const response = await apiClient.setupOnboarding(payload, token);
-
-        if (response.success) {
-          router.replace("/(tabs)/home");
-        } else {
-          setErrorMessage(response.error || 'Failed to complete onboarding');
+        try {
+          const response = await apiClient.setupOnboarding(payload, token);
+          if (!response.success) {
+            setErrorMessage(response.error || "Failed to save profile. Please verify your email.");
+          } else {
+            router.replace("/(tabs)/home");
+          }
+        } catch (e) {
+          setErrorMessage("Error connecting to server. Please check your network.");
         }
-      } catch (error: any) {
-        setErrorMessage(error.error || error.message || 'Failed to complete onboarding');
       } finally {
         setIsLoading(false);
       }

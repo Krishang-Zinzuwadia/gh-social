@@ -62,7 +62,7 @@ export class FeedService {
           languages,
           topics: dbRepo.topics || r.topics,
           star_count: dbRepo.star_count || r.star_count,
-          fork_count: dbRepo.fork_count || r.fork_count,
+          fork_count: dbRepo.forks_count || r.fork_count,
         };
       });
     } catch (err) {

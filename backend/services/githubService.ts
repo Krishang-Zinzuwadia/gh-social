@@ -293,6 +293,8 @@ export async function fetchGitHubUserProfile(githubHandle: string): Promise<GitH
     html_url: profile.html_url,
     bio: profile.bio ?? null,
     name: profile.name ?? null,
+    followers: profile.followers ?? 0,
+    following: profile.following ?? 0,
   };
 }
 

@@ -104,6 +104,8 @@ export async function syncGitHubProfile(userId: string) {
     github_handle: githubProfile.login,
     github_url: githubProfile.html_url,
     avatar_url: githubProfile.avatar_url,
+    followers_count: githubProfile.followers,
+    following_count: githubProfile.following,
   };
 
   // Only safely update bio/name if they exist

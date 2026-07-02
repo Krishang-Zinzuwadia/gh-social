@@ -108,4 +108,6 @@ export interface GitHubUserProfile {
   html_url: string;
   bio: string | null;
   name: string | null;
+  followers: number;
+  following: number;
 }

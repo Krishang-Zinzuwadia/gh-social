@@ -25,6 +25,8 @@ export default function SignUpEmail() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [username, setUsername] = useState("");
+  const [usernameError, setUsernameError] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
 
   const hasMinLength = password.length >= 8;
   const hasNumber = /\d/.test(password);
@@ -49,10 +51,14 @@ export default function SignUpEmail() {
 
   useEffect(() => {
     if (error) {
-      if (error.includes("User already exists")) {
-        Alert.alert("Error", "User already exists. Please login instead.");
+      if (error === "email_exists") {
+        setErrorMessage("This email is already registered. Please log in instead.");
+      } else if (error === "email_linked_to_google") {
+        setErrorMessage("This email is linked to a Google account. Please login with Google.");
+      } else if (error === "username_taken") {
+        setUsernameError("Username already taken, please choose another.");
       } else {
-        Alert.alert("Error", error);
+        setErrorMessage(error);
       }
       clearError();
     }
@@ -207,9 +213,17 @@ export default function SignUpEmail() {
             placeholder="Choose a username"
             icon="user"
             value={username}
-            onChangeText={setUsername}
+            onChangeText={(text) => {
+              setUsername(text);
+              setUsernameError("");
+            }}
             autoCapitalize="none"
           />
+          {usernameError ? (
+            <Text className="text-[#E57373] text-[13px] font-nata mt-1 ml-1">
+              {usernameError}
+            </Text>
+          ) : null}
 
           <SectionLabel title="Email Address" />
           <AuthInput
@@ -237,7 +251,13 @@ export default function SignUpEmail() {
 
           <PasswordRules password={password} />
 
-          <View className="mt-10">
+          {errorMessage ? (
+            <Text className="text-[#E57373] text-[14px] text-center mt-4 font-nata">
+              {errorMessage}
+            </Text>
+          ) : null}
+
+          <View className="mt-6">
             <PrimaryButton
               label="Create Account"
               onPress={handleEmailSignup}

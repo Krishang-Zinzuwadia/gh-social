@@ -10,6 +10,8 @@ import StepHeader from "@/components/onboarding/StepHeader";
 import TechChip from "@/components/onboarding/TechChip";
 import { INTEREST_CATEGORIES } from "@/constants/onboarding";
 
+import { storage } from "@/utils/storage";
+
 export default function Step3() {
   const { categories, techStack, username, dob, bio } = useLocalSearchParams();
   const selectedCategoryIds = typeof categories === "string" ? categories.split(",") : [];
@@ -17,6 +19,7 @@ export default function Step3() {
 
   const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
   const toggleInterest = (keyword: string) => {
     setSelectedInterests((prev) =>
@@ -30,6 +33,16 @@ export default function Step3() {
     if (selectedInterests.length >= 5) {
       setIsLoading(true);
       try {
+        const token = await storage.getItemAsync("accessToken");
+        if (!token) {
+          Alert.alert(
+            "Email Not Confirmed",
+            "Please verify your email before finishing setup. A verification link has been sent."
+          );
+          setIsLoading(false);
+          return;
+        }
+
         // Format date_of_birth from MM/DD/YYYY to YYYY-MM-DD
         let formattedDateOfBirth = undefined;
         if (dob) {
@@ -57,15 +70,15 @@ export default function Step3() {
         
         console.log("Submitting Onboarding Payload:", payload);
         
-        const response = await apiClient.setupOnboarding(payload);
+        const response = await apiClient.setupOnboarding(payload, token);
 
         if (response.success) {
           router.replace("/(tabs)/home");
         } else {
-          Alert.alert('Error', response.error || 'Failed to complete onboarding');
+          setErrorMessage(response.error || 'Failed to complete onboarding');
         }
       } catch (error: any) {
-        Alert.alert('Error', error.error || error.message || 'Failed to complete onboarding');
+        setErrorMessage(error.error || error.message || 'Failed to complete onboarding');
       } finally {
         setIsLoading(false);
       }
@@ -160,7 +173,13 @@ export default function Step3() {
         </Text>
       )}
 
-      <View style={{ marginTop: selectedInterests.length < 5 ? 8 : 20 }}>
+      {errorMessage ? (
+        <Text style={{ color: "#E57373", fontSize: 14, marginTop: 10, textAlign: "center", fontWeight: "600" }}>
+          {errorMessage}
+        </Text>
+      ) : null}
+
+      <View style={{ marginTop: selectedInterests.length < 5 ? 8 : (errorMessage ? 12 : 20) }}>
         <PrimaryButton
           title={isLoading ? "Completing..." : "Finish"}
           onPress={completeOnboarding}

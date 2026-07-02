@@ -371,9 +371,7 @@ export async function getOAuthUrl(req: Request, res: Response): Promise<void> {
         if (parsedUrl.origin === parsedClient.origin || parsedUrl.origin === parsedBackend.origin) {
           isAllowedRedirect = true;
         } else if (parsedUrl.protocol === "exp:" || parsedUrl.protocol === "ghsocial:") {
-          const ALLOWED_NATIVE_HOSTS = ["app.weave.com", "localhost", "127.0.0.1", "auth"];
-          
-          isAllowedRedirect = ALLOWED_NATIVE_HOSTS.includes(parsedUrl.hostname) && (parsedUrl.pathname === '/auth/callback' || parsedUrl.pathname.endsWith('/--/auth/callback'));
+          isAllowedRedirect = parsedUrl.pathname === '/auth/callback' || parsedUrl.pathname.endsWith('/--/auth/callback');
         }
       } catch (e) {
         // Invalid URL format

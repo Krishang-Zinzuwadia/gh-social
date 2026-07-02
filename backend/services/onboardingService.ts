@@ -9,9 +9,9 @@ import * as userService from "./userService.js";
 
 export function buildSetupUpdates(body: OnboardingSetupBody): UserUpdate {
   const updates: UserUpdate = {
-    username: body.username.trim(),
-    full_name: body.full_name.trim(),
-    onboarding_completed: true,
+    username: body.username?.trim() || "",
+    full_name: body.full_name?.trim() || "",
+    onboarding_completed: false, // Default to false
   };
 
   if (body.date_of_birth !== undefined) {
@@ -38,12 +38,13 @@ export function buildSetupUpdates(body: OnboardingSetupBody): UserUpdate {
     updates.avatar_url = body.avatar_url;
   }
 
-  // If the essential fields from the final step are present, officially mark it complete in the DB!
+  // Explicit payload check for completion before setting flag
   if (
-    body.username &&
-    body.full_name &&
-    body.interests && body.interests.length > 0 &&
-    body.tech_stack && body.tech_stack.length > 0
+    updates.username &&
+    updates.full_name &&
+    Array.isArray(updates.interests) && updates.interests.length > 0 &&
+    Array.isArray(updates.skills) && updates.skills.length > 0 &&
+    Array.isArray(updates.tech_stack) && updates.tech_stack.length > 0
   ) {
     updates.onboarding_completed = true;
   }

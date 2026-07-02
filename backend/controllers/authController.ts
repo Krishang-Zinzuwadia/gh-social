@@ -355,12 +355,26 @@ export async function getOAuthUrl(req: Request, res: Response): Promise<void> {
       : `${BACKEND_URL}/api/auth/callback`;
 
     // Security: Validate redirectTo against allowed origins/schemes
-    const isAllowedRedirect = 
-      redirectTo.startsWith(CLIENT_URL) || 
-      redirectTo.startsWith(BACKEND_URL) || 
-      redirectTo.startsWith("exp://") || 
-      redirectTo.startsWith("ghsocial://") ||
-      redirectTo.startsWith("/"); // Allow relative paths
+    let isAllowedRedirect = false;
+
+    if (redirectTo.startsWith("/")) {
+      isAllowedRedirect = true; // Allow relative paths
+    } else if (redirectTo.startsWith("exp://") || redirectTo.startsWith("ghsocial://")) {
+      isAllowedRedirect = true; // Allow specific native schemes
+    } else {
+      try {
+        const parsedUrl = new URL(redirectTo);
+        const parsedClient = new URL(CLIENT_URL);
+        const parsedBackend = new URL(BACKEND_URL);
+        
+        // Strictly compare origins to prevent sub-domain or lookalike phishing (e.g. app.example.com.evil.com)
+        if (parsedUrl.origin === parsedClient.origin || parsedUrl.origin === parsedBackend.origin) {
+          isAllowedRedirect = true;
+        }
+      } catch (e) {
+        // Invalid URL format (fails URL constructor)
+      }
+    }
 
     if (!isAllowedRedirect) {
       return sendError(res, 400, "Invalid redirect URI. Domain not allowed.");

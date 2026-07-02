@@ -371,11 +371,9 @@ export async function getOAuthUrl(req: Request, res: Response): Promise<void> {
         if (parsedUrl.origin === parsedClient.origin || parsedUrl.origin === parsedBackend.origin) {
           isAllowedRedirect = true;
         } else if (parsedUrl.protocol === "exp:" || parsedUrl.protocol === "ghsocial:") {
-          const host = parsedUrl.hostname;
-          const allowedNativeHosts = ["auth", "localhost", "127.0.0.1"];
+          const ALLOWED_NATIVE_HOSTS = ["app.weave.com", "localhost", "127.0.0.1", "auth"];
           
-          // Verify host matches our whitelist or is a safe local development IP pattern
-          if (allowedNativeHosts.includes(host) || host.startsWith("192.168.") || host.startsWith("10.")) {
+          if (ALLOWED_NATIVE_HOSTS.includes(parsedUrl.hostname)) {
             isAllowedRedirect = true;
           }
         }

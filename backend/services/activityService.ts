@@ -30,24 +30,29 @@ export async function processBatchedActivity(userId: string, events: BatchedActi
       const isLike = event.action === 'like' ? 1 : 0;
       const isSave = event.action === 'save' ? true : false;
       
-      // We use raw SQL for UPSERT because interval math is simpler
-      // We resolve the repo_id UUID using a SELECT to handle string IDs (full_name) from the ML service, or fallback to UUID directly
-      await db.execute(sql`
-        INSERT INTO activity (user_id, repo_id, time_spent, likelihood_count, is_saved)
-        SELECT 
-          ${userId}::uuid,
-          repo.repo_id,
-          ${dwell}::interval,
-          ${isLike},
-          ${isSave}
-        FROM repo
-        WHERE repo.full_name = ${event.repo_id} OR repo.repo_id::text = ${event.repo_id}
-        ON CONFLICT (user_id, repo_id) DO UPDATE 
-        SET 
-          time_spent = activity.time_spent + EXCLUDED.time_spent,
-          likelihood_count = GREATEST(activity.likelihood_count, EXCLUDED.likelihood_count),
-          is_saved = EXCLUDED.is_saved OR activity.is_saved
-      `);
+      try {
+        // We use raw SQL for UPSERT because interval math is simpler
+        // We resolve the repo_id UUID using a SELECT to handle string IDs (full_name) from the ML service, or fallback to UUID directly
+        await db.execute(sql`
+          INSERT INTO activity (user_id, repo_id, time_spent, likelihood_count, is_saved)
+          SELECT 
+            ${userId}::uuid,
+            repo.repo_id,
+            ${dwell}::interval,
+            ${isLike},
+            ${isSave}
+          FROM repo
+          WHERE repo.full_name = ${event.repo_id} OR repo.repo_id::text = ${event.repo_id}
+          ON CONFLICT (user_id, repo_id) DO UPDATE 
+          SET 
+            time_spent = activity.time_spent + EXCLUDED.time_spent,
+            likelihood_count = GREATEST(activity.likelihood_count, EXCLUDED.likelihood_count),
+            is_saved = EXCLUDED.is_saved OR activity.is_saved
+        `);
+      } catch (err) {
+        console.error(`[ActivityService] Failed to process event for repo ${event.repo_id}:`, err);
+        // Continue processing other events in the batch
+      }
     }
     return { error: null };
   } catch (error) {

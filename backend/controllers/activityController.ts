@@ -175,6 +175,7 @@ export async function likeRepo(req: Request, res: Response): Promise<void> {
     return sendDatabaseError(res, error);
   }
 
+  void mlService.sendBatchedActivityFeedback([{ user_id: userId, repo_id: repoId, action: 'like' }]);
   void feedService.invalidateUserFeed(userId);
 
   return sendSuccess(res, 200, data);
@@ -194,6 +195,7 @@ export async function saveRepo(req: Request, res: Response): Promise<void> {
     return sendDatabaseError(res, error);
   }
 
+  void mlService.sendBatchedActivityFeedback([{ user_id: userId, repo_id: repoId, action: 'save' }]);
   void feedService.invalidateUserFeed(userId);
 
   return sendSuccess(res, 200, data);

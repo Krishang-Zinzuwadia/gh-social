@@ -16,6 +16,7 @@ const USER_PROFILE_COLUMNS = {
   followers_count: users.followers_count,
   following_count: users.following_count,
   saved_repos_count: users.saved_repos_count,
+  likes_given_count: users.likes_given_count,
   interests: users.interests,
   skills: users.skills,
   tech_stack: users.tech_stack,

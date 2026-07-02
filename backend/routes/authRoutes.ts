@@ -1,4 +1,5 @@
 import { Router } from "express";
+import rateLimit from "express-rate-limit";
 import {
   signUp,
   login,
@@ -9,8 +10,17 @@ import {
   exchangeAuthCode,
 } from "../controllers/authController.js";
 
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 50, // limit each IP to 50 requests per windowMs
+  message: { error: "Too many requests from this IP, please try again after 15 minutes" },
+});
 
 const router: Router = Router();
+
+// Apply rate limiter to all auth routes
+router.use(authLimiter);
+
 // Public routes
 router.post("/signup", signUp);
 router.post("/login", login);

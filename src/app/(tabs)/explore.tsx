@@ -37,7 +37,7 @@ export default function ExploreScreen() {
         setIsForYouLoading(true);
         const token = await SecureStore.getItemAsync('access_token');
         if (!token) throw new Error('No token');
-        const response = await fetch(`${API_URL}/repos?limit=10&offset=0`, {
+        const response = await fetch(`${API_URL}/repos?limit=20&offset=0`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         const result = await response.json();
@@ -65,12 +65,6 @@ export default function ExploreScreen() {
             return [...prev, ...uniqueNewRepos];
           });
           setIsForYouError(false);
-
-          // The backend only returns 5 repos per request. 
-          // Automatically fetch the next batch so the screen is full enough to scroll!
-          setTimeout(() => {
-            loadMoreForYou();
-          }, 500);
         }
       } catch (error) {
         console.error('Failed to fetch for you repos', error);

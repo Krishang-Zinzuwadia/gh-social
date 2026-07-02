@@ -8,6 +8,7 @@ import type {
 } from "../types/onboarding.js";
 
 const USER_PROFILE_COLUMNS = {
+  user_id: users.user_id,
   username: users.username,
   full_name: users.full_name,
   date_of_birth: users.date_of_birth,

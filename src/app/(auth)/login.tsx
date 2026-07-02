@@ -1,6 +1,8 @@
 import { useRouter } from "expo-router";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ScrollView, Text, View } from "react-native";
+import { useAuth } from "../../store/AuthContext";
+import { login } from "../../api/auth";
 
 import AuthFooter from "@/components/Auth/AuthFooter";
 import LogoCircle from "@/components/Auth/LogoCircle";
@@ -19,12 +21,35 @@ import {
 export default function LoginScreen() {
   const router = useRouter();
   const scrollViewRef = useRef<ScrollView>(null);
+  const { setSession } = useAuth();
+
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
+
+  const isFormValid = email.trim().length > 0 && password.length > 0 && !isLoading;
 
   useEffect(() => {
     setTimeout(() => {
       scrollViewRef.current?.scrollToEnd({ animated: true });
     }, 500);
   }, []);
+
+  const handleLogin = async () => {
+    if (!isFormValid) return;
+    setIsLoading(true);
+    setErrorMsg("");
+    try {
+      const data = await login(email, password);
+      await setSession(data.accessToken, data.user);
+      // _layout.tsx will handle redirection
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Login failed');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <ScrollView
@@ -82,11 +107,15 @@ export default function LoginScreen() {
           
           className="text-white text-[15px] mt-8 mb-3 font-nata"
         >
-          Email or username
+          Email Address
         </Text>
 
         <LoginInput
-          placeholder="Enter your email or username"
+          placeholder="Enter your email"
+          value={email}
+          onChangeText={setEmail}
+          autoCapitalize="none"
+          keyboardType="email-address"
         />
 
         {/* Password */}
@@ -100,16 +129,26 @@ export default function LoginScreen() {
         <LoginInput
           placeholder="Enter your password"
           secureTextEntry
+          value={password}
+          onChangeText={setPassword}
         />
 
         {/* Remember me */}
         <RememberMe />
 
+        {errorMsg ? (
+          <Text className="text-[#E57373] text-[13px] font-nata mt-4 text-center">
+            {errorMsg}
+          </Text>
+        ) : null}
+
         {/* Button */}
         <View className="mt-8">
           <PrimaryButton
-            label="Log In"
-            onPress={() => router.replace("/(tabs)/home")}
+            label={isLoading ? "Logging In..." : "Log In"}
+            onPress={handleLogin}
+            style={{ opacity: isFormValid ? 1 : 0.5 }}
+            disabled={!isFormValid}
           />
         </View>
 

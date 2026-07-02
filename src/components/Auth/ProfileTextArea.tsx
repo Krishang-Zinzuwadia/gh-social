@@ -1,6 +1,11 @@
-import { View, Text, TextInput } from "react-native";
+import { View, Text, TextInput, TextInputProps } from "react-native";
 
-export default function ProfileTextArea() {
+interface Props extends TextInputProps {
+  value?: string;
+  onChangeText?: (text: string) => void;
+}
+
+export default function ProfileTextArea({ value, onChangeText, ...rest }: Props) {
   return (
     <View>
       <Text
@@ -16,6 +21,8 @@ export default function ProfileTextArea() {
         textAlignVertical="top"
         placeholder="Tell us about yourself!"
         placeholderTextColor="#666"
+        value={value}
+        onChangeText={onChangeText}
         className="bg-[#191F18]
  border border-[#8EFF7A]
  rounded-xl
@@ -25,6 +32,7 @@ export default function ProfileTextArea() {
  text-white
  text-[15px]
  font-nata outline-none"
+        {...rest}
       />
     </View>
   );

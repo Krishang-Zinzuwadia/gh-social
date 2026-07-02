@@ -5,6 +5,8 @@ import {
     Text,
     View,
 } from "react-native";
+import { useAuth } from "../../store/AuthContext";
+import { register } from "../../api/auth";
 
 import AuthFooter from "@/components/Auth/AuthFooter";
 import AuthInput from "@/components/Auth/AuthInput";
@@ -25,6 +27,10 @@ export default function SignUpEmail() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
+  const { setSession } = useAuth();
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
+
   const hasMinLength = password.length >= 8;
   const hasNumber = /\d/.test(password);
   const hasUppercase = /[A-Z]/.test(password);
@@ -33,7 +39,7 @@ export default function SignUpEmail() {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   const isEmailValid = emailRegex.test(email);
   
-  const isFormValid = fullName.trim().length > 0 && isEmailValid && isPasswordValid;
+  const isFormValid = fullName.trim().length > 0 && isEmailValid && isPasswordValid && !isLoading;
 
   useEffect(() => {
     // Auto-scroll to bottom slowly on mount
@@ -41,6 +47,21 @@ export default function SignUpEmail() {
       scrollViewRef.current?.scrollToEnd({ animated: true });
     }, 500);
   }, []);
+
+  const handleRegister = async () => {
+    if (!isFormValid) return;
+    setIsLoading(true);
+    setErrorMsg("");
+    try {
+      const data = await register(email, password, fullName);
+      await setSession(data.accessToken, data.user);
+      // _layout.tsx will automatically redirect to onboarding
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Registration failed');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <ScrollView
@@ -128,10 +149,16 @@ export default function SignUpEmail() {
 
           <PasswordRules password={password} />
 
+          {errorMsg ? (
+            <Text className="text-[#E57373] text-[13px] font-nata mt-2 text-center">
+              {errorMsg}
+            </Text>
+          ) : null}
+
           <View className="mt-10">
             <PrimaryButton
-                label="Create Account"
-                onPress={() => isFormValid && router.push("/(auth)/create-profile")}
+                label={isLoading ? "Creating..." : "Create Account"}
+                onPress={handleRegister}
                 style={{ opacity: isFormValid ? 1 : 0.5 }}
                 disabled={!isFormValid}
             />

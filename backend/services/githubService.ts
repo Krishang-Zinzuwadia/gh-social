@@ -252,7 +252,6 @@ function formatRepositoryMetadata(repository: GitHubRepositoryNode): RepoMetadat
     forks_count: repository.forkCount || 0,
     stars_count: repository.stargazerCount || 0,
     pr_count: repository.pullRequests?.totalCount || 0,
-    open_issues_count: repository.issues?.totalCount || 0,
     default_branch: repository.defaultBranchRef?.name || null,
     authors: getUniqueAuthors(historyNodes),
   };
@@ -294,6 +293,8 @@ export async function fetchGitHubUserProfile(githubHandle: string): Promise<GitH
     html_url: profile.html_url,
     bio: profile.bio ?? null,
     name: profile.name ?? null,
+    followers: profile.followers ?? 0,
+    following: profile.following ?? 0,
   };
 }
 

@@ -3,6 +3,7 @@ import * as activityService from '../services/activityService.js';
 import { FeedService } from '../services/feedService.js';
 import { sendError, sendSuccess, sendDatabaseError } from '../utils/response.js';
 import { isValidUuid } from '../utils/validators.js';
+import { mlService } from '../services/mlService.js';
 
 const feedService = new FeedService();
 
@@ -17,6 +18,35 @@ export async function getAllActivity(_req: Request, res: Response): Promise<void
   return sendSuccess(res, 200, data);
 }
 
+// Process a batch of activity events (likes, saves, skips, dwells)
+export async function processBatchedActivity(req: Request, res: Response): Promise<void> {
+  const userId = req.user?.userId;
+  const events = req.body.events;
+
+  if (!userId) {
+    return sendError(res, 401, 'Unauthorized');
+  }
+  
+  if (!Array.isArray(events)) {
+    return sendError(res, 400, 'events must be an array');
+  }
+
+  const { error } = await activityService.processBatchedActivity(userId, events);
+  if (error) {
+    return sendDatabaseError(res, error);
+  }
+
+  // Also asynchronously send to ML service
+  void mlService.sendBatchedActivityFeedback(events.map((e: any) => ({
+    user_id: userId,
+    repo_id: e.repo_id,
+    action: e.action,
+    dwell_seconds: e.dwell_seconds
+  })));
+
+  return sendSuccess(res, 202, { message: 'Batched activity processed' });
+}
+
 // Return activity rows for a specific user.
 export async function getUserActivity(req: Request, res: Response): Promise<void> {
   const userId = req.params.userId as string;
@@ -29,10 +59,13 @@ export async function getUserActivity(req: Request, res: Response): Promise<void
   return sendSuccess(res, 200, data);
 }
 
-// Return saved activity rows for a specific user.
 export async function getSavedActivity(req: Request, res: Response): Promise<void> {
   const userId = req.params.userId as string;
-  const { data, error } = await activityService.getSavedActivity(userId);
+  
+  const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 20;
+  const offset = req.query.offset ? parseInt(req.query.offset as string, 10) : 0;
+
+  const { data, error } = await activityService.getSavedActivity(userId, limit, offset);
 
   if (error) {
     return sendDatabaseError(res, error);
@@ -142,6 +175,7 @@ export async function likeRepo(req: Request, res: Response): Promise<void> {
     return sendDatabaseError(res, error);
   }
 
+  void mlService.sendBatchedActivityFeedback([{ user_id: userId, repo_id: repoId, action: 'like' }]);
   void feedService.invalidateUserFeed(userId);
 
   return sendSuccess(res, 200, data);
@@ -161,6 +195,7 @@ export async function saveRepo(req: Request, res: Response): Promise<void> {
     return sendDatabaseError(res, error);
   }
 
+  void mlService.sendBatchedActivityFeedback([{ user_id: userId, repo_id: repoId, action: 'save' }]);
   void feedService.invalidateUserFeed(userId);
 
   return sendSuccess(res, 200, data);

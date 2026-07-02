@@ -6,23 +6,19 @@
     "orientation": "portrait",
     "scheme": "ghsocial",
     "userInterfaceStyle": "automatic",
-
     "ios": {},
-
     "android": {
       "predictiveBackGestureEnabled": false
     },
-
     "web": {
       "output": "static"
     },
-
     "plugins": [
       "expo-router",
       "expo-font",
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      "expo-secure-store"
     ],
-
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true

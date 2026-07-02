@@ -1,6 +1,10 @@
 import { useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
 import { ScrollView, View, Text, Pressable } from "react-native";
+import { useAuth } from "../../store/AuthContext";
+import { useOnboarding } from "../../store/OnboardingContext";
+import * as SecureStore from 'expo-secure-store';
+import { setupOnboarding } from "../../api/onboarding";
 
 import ProgressBar from "@/components/onboarding/ProgressBar";
 import PrimaryButton from "@/components/onboarding/PrimaryButton";
@@ -15,6 +19,11 @@ export default function Step3() {
 
   const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
 
+  const { data: onboardingData } = useOnboarding();
+  const { checkOnboardingStatus } = useAuth();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
+
   const toggleInterest = (keyword: string) => {
     setSelectedInterests((prev) =>
       prev.includes(keyword)
@@ -23,9 +32,29 @@ export default function Step3() {
     );
   };
 
-  const completeOnboarding = () => {
+  const completeOnboarding = async () => {
     if (selectedInterests.length >= 5) {
-      router.replace("/(tabs)/home");
+      setIsSubmitting(true);
+      setErrorMsg("");
+      try {
+        const token = await SecureStore.getItemAsync('access_token');
+        if (!token) throw new Error("No access token found");
+        
+        await setupOnboarding(token, {
+          ...onboardingData,
+          username: onboardingData.username || "",
+          full_name: onboardingData.full_name || "",
+          interests: selectedInterests,
+          skills: selectedCategoryIds // Just putting the categories as skills for now as a placeholder for the multi-step flow
+        });
+        
+        await checkOnboardingStatus();
+        // The _layout.tsx will now automatically redirect to (tabs)
+      } catch (err: any) {
+        setErrorMsg(err.message || 'Failed to save profile');
+      } finally {
+        setIsSubmitting(false);
+      }
     }
   };
 
@@ -117,11 +146,17 @@ export default function Step3() {
         </Text>
       )}
 
+      {errorMsg ? (
+        <Text style={{ color: "#E57373", fontSize: 14, marginTop: 4, textAlign: "center" }}>
+          {errorMsg}
+        </Text>
+      ) : null}
+
       <View style={{ marginTop: selectedInterests.length < 5 ? 8 : 20 }}>
         <PrimaryButton
-          title="Finish"
+          title={isSubmitting ? "Saving..." : "Finish"}
           onPress={completeOnboarding}
-          disabled={selectedInterests.length < 5}
+          disabled={selectedInterests.length < 5 || isSubmitting}
         />
       </View>
 

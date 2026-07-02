@@ -17,6 +17,59 @@ export async function toggleRepoSave(userId: string, repoId: string) {
   } catch (error) { return { data: null as any, error: error as any }; }
 }
 
+export interface BatchedActivityEvent {
+  repo_id: string;
+  action: 'like' | 'save' | 'skip' | 'dwell' | 'unlike' | 'unsave';
+  dwell_seconds?: number;
+}
+
+export async function processBatchedActivity(userId: string, events: BatchedActivityEvent[]) {
+  try {
+    for (const event of events) {
+      const dwell = event.dwell_seconds ? `${event.dwell_seconds} seconds` : '0 seconds';
+      // For initial insert if it doesn't exist yet
+      const isLike = event.action === 'like' ? 1 : 0;
+      const isSave = event.action === 'save' ? true : false;
+      
+      try {
+        // We use raw SQL for UPSERT because interval math is simpler
+        // We resolve the repo_id UUID using a SELECT to handle string IDs (full_name) from the ML service, or fallback to UUID directly
+        await db.execute(sql`
+          INSERT INTO activity (user_id, repo_id, time_spent, likelihood_count, is_saved)
+          SELECT 
+            ${userId}::uuid,
+            repo.repo_id,
+            ${dwell}::interval,
+            ${isLike},
+            ${isSave}
+          FROM repo
+          WHERE repo.full_name = ${event.repo_id} OR repo.repo_id::text = ${event.repo_id}
+          ON CONFLICT (user_id, repo_id) DO UPDATE 
+          SET 
+            time_spent = activity.time_spent + EXCLUDED.time_spent,
+            likelihood_count = CASE 
+                                WHEN ${event.action} = 'like' THEN 1 
+                                WHEN ${event.action} = 'unlike' THEN 0 
+                                ELSE activity.likelihood_count 
+                               END,
+            is_saved = CASE 
+                        WHEN ${event.action} = 'save' THEN true 
+                        WHEN ${event.action} = 'unsave' THEN false 
+                        ELSE activity.is_saved 
+                       END
+        `);
+      } catch (err) {
+        console.error(`[ActivityService] Failed to process event for repo ${event.repo_id}:`, err);
+        // Continue processing other events in the batch
+      }
+    }
+    return { error: null };
+  } catch (error) {
+    console.error('[ActivityService] Batched activity failed:', error);
+    return { error };
+  }
+}
+
 export async function getAllActivity() {
   try {
     const data = await db.select().from(activities).orderBy(desc(activities.time_spent));
@@ -31,9 +84,24 @@ export async function getUserActivity(userId: string) {
   } catch (error) { return { data: null as any, error: error as any }; }
 }
 
-export async function getSavedActivity(userId: string) {
+import { repos } from '../db/schema.js';
+
+export async function getSavedActivity(userId: string, limit: number = 20, offset: number = 0) {
   try {
-    const data = await db.select().from(activities).where(and(eq(activities.user_id, userId), eq(activities.is_saved, true))).orderBy(desc(activities.time_spent));
+    const data = await db.select({
+      activity_id: activities.activity_id,
+      user_id: activities.user_id,
+      repo_id: activities.repo_id,
+      is_saved: activities.is_saved,
+      time_spent: activities.time_spent,
+      repo: repos
+    })
+      .from(activities)
+      .leftJoin(repos, eq(activities.repo_id, repos.repo_id))
+      .where(and(eq(activities.user_id, userId), eq(activities.is_saved, true)))
+      .orderBy(desc(activities.time_spent))
+      .limit(limit)
+      .offset(offset);
     return { data, error: null };
   } catch (error) { return { data: null as any, error: error as any }; }
 }

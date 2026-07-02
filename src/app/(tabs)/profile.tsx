@@ -1,9 +1,10 @@
-import React, { useState } from "react"
+import React, { useState, useEffect } from "react"
 import { View, Pressable, Text, Modal, TextInput, ScrollView, useWindowDimensions } from "react-native"
 import Svg, { Path } from "react-native-svg"
 import { SafeAreaView } from "react-native-safe-area-context"
 import Repositories from "@/components/home/repositories"
 import Lists from "@/components/lists"
+import { useAuth } from "@/store/AuthContext"
 import {
   HeartIcon,
   FollowerUserIcon,
@@ -18,6 +19,7 @@ type TabName = (typeof TABS)[number]
 
 export default function ProfileScreen() {
   const { width } = useWindowDimensions()
+  const { user } = useAuth();
 
   // Responsive breakpoints
   const isTablet = width >= 768
@@ -26,16 +28,24 @@ export default function ProfileScreen() {
   const contentMaxWidth = isTablet ? 680 : width
 
   const [modal, setModal] = useState(false)
-  const [name, setName] = useState("Navyaa Batra")
-  const [job, setJob] = useState("Full Stack Developer")
-  const [username, setUsername] = useState("navyaabatra")
+  const [name, setName] = useState(user?.full_name || "New User")
+  const [job, setJob] = useState(user?.bio || "No bio available")
+  const [username, setUsername] = useState(user?.username || "newuser")
   const [activetab, setActivetab] = useState<TabName>("Lists")
 
+  useEffect(() => {
+    if (user) {
+      setName(user.full_name || "New User");
+      setJob(user.bio || "No bio available");
+      setUsername(user.username || "newuser");
+    }
+  }, [user]);
+
   const stats = [
-    { id: "likes", value: "1.2K", label: "Likes given" },
-    { id: "followers", value: "300", label: "Followers" },
-    { id: "saved", value: "156", label: "Saved" },
-    { id: "following", value: "289", label: "Following" },
+    { id: "likes", value: user?.likes_given_count?.toString() || "0", label: "Likes given" },
+    { id: "followers", value: user?.followers_count?.toString() || "0", label: "Followers" },
+    { id: "saved", value: user?.saved_repos_count?.toString() || "0", label: "Saved" },
+    { id: "following", value: user?.following_count?.toString() || "0", label: "Following" },
   ]
 
   const getStatIcon = (id: string) => {
@@ -269,8 +279,8 @@ export default function ProfileScreen() {
 
               {/* Tab Content */}
               <View style={{ width: "100%" }}>
-                {activetab === "Lists" && <Lists />}
-                {activetab === "Repositories" && <Repositories />}
+                {activetab === "Lists" && <Lists userId={user?.user_id} />}
+                {activetab === "Repositories" && <Repositories userId={user?.user_id} />}
               </View>
             </View>
           </View>

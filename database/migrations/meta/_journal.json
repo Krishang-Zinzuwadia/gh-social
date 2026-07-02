@@ -42,6 +42,13 @@
       "when": 1782760223570,
       "tag": "0005_wise_skrulls",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1782915521894,
+      "tag": "0006_sad_cobalt_man",
+      "breakpoints": true
     }
   ]
 }

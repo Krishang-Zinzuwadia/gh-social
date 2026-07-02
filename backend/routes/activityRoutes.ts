@@ -11,11 +11,17 @@ import {
   deleteActivityById,
   likeRepo,
   saveRepo,
+  processBatchedActivity,
 } from '../controllers/activityController.js';
+
+import { requireAuth } from '../middlewares/authMiddleware.js';
 
 const router: Router = Router();
 
 // Routes only connect URLs to controller functions.
+
+// Process batched activity events
+router.post('/batch', requireAuth, processBatchedActivity);
 
 // Get all activity records.
 router.get('/', getAllActivity);

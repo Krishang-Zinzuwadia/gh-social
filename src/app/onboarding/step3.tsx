@@ -76,7 +76,10 @@ export default function Step3() {
           if (!response.success) {
             setErrorMessage(response.error || "Failed to save profile. Please verify your email.");
           } else {
-            router.replace("/(tabs)/home");
+            // Wait 500ms to ensure backend commit finishes before hard redirect
+            setTimeout(() => {
+              router.replace("/(tabs)/home");
+            }, 500);
           }
         } catch (e) {
           setErrorMessage("Error connecting to server. Please check your network.");

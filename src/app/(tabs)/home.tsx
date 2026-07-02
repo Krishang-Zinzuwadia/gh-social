@@ -28,11 +28,13 @@ function mapBackendToFrontend(backendItem: any): RepositoryData {
     stats: {
       stars: (backendItem.star_count || 0).toString(),
       views: (backendItem.views_count || 0).toString(),
-      bugs: '0',
+      bugs: (backendItem.open_issues_count || backendItem.pr_count || 0).toString(),
       forks: (backendItem.fork_count || 0).toString(),
-      likes: (backendItem.likes_count || 0).toString(),
+      likes: (backendItem.likes_count || backendItem.saves_count || 0).toString(),
     },
-    updatedText: 'updated recently',
+    updatedText: backendItem.updated_at 
+      ? `updated ${new Date(backendItem.updated_at).toLocaleDateString()}` 
+      : 'updated recently',
     techStack: backendItem.languages || [],
   };
 }

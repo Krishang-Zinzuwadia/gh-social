@@ -269,17 +269,27 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         // Validate the token by hitting a secure endpoint
         // This will trigger the interceptor to refresh if needed
         const response = await apiClient.getOnboardingStatus();
-        if (response.success) {
-          set({ isAuthenticated: true, isLoading: false });
+        if (response.success && response.data?.profile) {
+          const profile = response.data.profile;
+          // Populate the user object so the app knows who is logged in
+          const user: User = {
+            id: profile.user_id || profile.id,
+            email: profile.email || "", // Email might not be in public.users, but satisfies interface
+            user_metadata: {
+              user_name: profile.username,
+              full_name: profile.full_name,
+            },
+          };
+          set({ user, isAuthenticated: true, isLoading: false });
         } else {
           // If it failed even with interceptor retry, we are unauthenticated
-          set({ isAuthenticated: false, isLoading: false });
+          set({ user: null, isAuthenticated: false, isLoading: false });
         }
       } else {
-        set({ isAuthenticated: false, isLoading: false });
+        set({ user: null, isAuthenticated: false, isLoading: false });
       }
     } catch (error) {
-      set({ isAuthenticated: false, isLoading: false });
+      set({ user: null, isAuthenticated: false, isLoading: false });
     }
   },
 

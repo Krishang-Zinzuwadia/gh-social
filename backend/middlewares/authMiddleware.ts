@@ -28,7 +28,7 @@ export async function requireAuth(req: AuthRequest, res: Response, next: NextFun
 
     // Validate the Custom JWT locally (No Supabase network call needed)
     // This will automatically throw an error to the catch block if tampered/expired
-    const decodedPayload = jwt.verify(token, JWT_SECRET) as { userId: string; email: string };
+    const decodedPayload = jwt.verify(token, JWT_SECRET, { algorithms: ['HS256'] }) as { userId: string; email: string };
 
     // Attach the decoded user data to the request object
     req.user = decodedPayload;

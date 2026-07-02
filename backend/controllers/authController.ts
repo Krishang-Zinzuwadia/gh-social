@@ -29,6 +29,25 @@ if (!JWT_SECRET) {
   );
 }
 
+const REFRESH_TOKEN_DURATION_MS = 30 * 24 * 60 * 60 * 1000;
+
+// Helper: standard cookie options for refresh tokens
+import type { CookieOptions } from "express";
+
+const getRefreshCookieOptions = (): CookieOptions => {
+  const isProduction = process.env.NODE_ENV === "production";
+  // In production, the backend is behind HTTPS, allowing SameSite=None for cross-origin
+  // auth flows (standard for mobile/web apps). In local dev (HTTP), SameSite=None is 
+  // rejected by browsers, so we must fallback to Lax.
+  return {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: isProduction ? "none" : "lax",
+    path: "/api/auth",
+    maxAge: REFRESH_TOKEN_DURATION_MS,
+  };
+};
+
 // Helper: Hash the refresh token before storing it
 const hashToken = (token: string) => {
   return crypto.createHash("sha256").update(token).digest("hex");
@@ -40,7 +59,7 @@ const createAndStoreRefreshToken = async (userId: string, tx: any = db) => {
   const tokenHash = hashToken(refreshToken);
 
   // Expiration set to 30 days
-  const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+  const expiresAt = new Date(Date.now() + REFRESH_TOKEN_DURATION_MS);
 
   await tx.insert(refreshTokens).values({
     user_id: userId,
@@ -146,13 +165,8 @@ export async function signUp(req: Request, res: Response): Promise<void> {
     const accessToken = jwt.sign({ userId, email }, JWT_SECRET, { expiresIn: "15m" });
     const refreshToken = await createAndStoreRefreshToken(userId);
 
-    res.cookie("refresh_token", refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      path: "/api/auth",
-      maxAge: 30 * 24 * 60 * 60 * 1000,
-    });
+    // 3. Set refresh token in HTTP-only cookie
+    res.cookie("refresh_token", refreshToken, getRefreshCookieOptions());
 
     return sendSuccess(res, 201, {
       message: "Signup successful",
@@ -185,13 +199,7 @@ export async function login(req: Request, res: Response): Promise<void> {
 
     const refreshToken = await createAndStoreRefreshToken(userId);
 
-    res.cookie("refresh_token", refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      path: "/api/auth",
-      maxAge: 30 * 24 * 60 * 60 * 1000,
-    });
+    res.cookie("refresh_token", refreshToken, getRefreshCookieOptions());
 
     return sendSuccess(res, 200, {
       message: "Login successful",
@@ -225,12 +233,8 @@ export async function logout(req: Request, res: Response): Promise<void> {
     }
 
     // Only clear the cookie AFTER the server-side token is successfully revoked!
-    res.clearCookie("refresh_token", {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      path: "/api/auth",
-    });
+    const { maxAge, ...clearOptions } = getRefreshCookieOptions();
+    res.clearCookie("refresh_token", clearOptions);
 
     res
       .status(200)
@@ -304,13 +308,7 @@ export async function refreshToken(req: Request, res: Response): Promise<void> {
     });
 
     // 5. Send new refresh token in cookie
-    res.cookie("refresh_token", newRefreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      path: "/api/auth",
-      maxAge: 30 * 24 * 60 * 60 * 1000,
-    });
+    res.cookie("refresh_token", newRefreshToken, getRefreshCookieOptions());
 
     return sendSuccess(res, 200, {
       accessToken: newAccessToken,
@@ -319,7 +317,8 @@ export async function refreshToken(req: Request, res: Response): Promise<void> {
     });
   } catch (error: any) {
     if (error.message === "InvalidToken" || error.message === "ExpiredToken") {
-      res.clearCookie("refresh_token", { path: "/api/auth" });
+      const { maxAge, ...clearOptions } = getRefreshCookieOptions();
+      res.clearCookie("refresh_token", clearOptions);
       return sendError(
         res,
         401,
@@ -364,8 +363,8 @@ export async function getOAuthUrl(req: Request, res: Response): Promise<void> {
       try {
         // Parse the URL. If it's a relative path, BACKEND_URL acts as the base.
         const parsedUrl = new URL(redirectTo, BACKEND_URL);
-        const parsedClient = new URL(CLIENT_URL);
-        const parsedBackend = new URL(BACKEND_URL);
+        const parsedClient = new URL(CLIENT_URL!);
+        const parsedBackend = new URL(BACKEND_URL!);
         
         // Strictly compare origins, or allow native mobile schemes with a strict host whitelist
         if (parsedUrl.origin === parsedClient.origin || parsedUrl.origin === parsedBackend.origin) {
@@ -478,13 +477,7 @@ export async function exchangeAuthCode(
       const refreshToken = await createAndStoreRefreshToken(userId);
 
       // Set refresh token in HTTP-only cookie
-      res.cookie("refresh_token", refreshToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
-        path: "/api/auth",
-        maxAge: 30 * 24 * 60 * 60 * 1000,
-      });
+      res.cookie("refresh_token", refreshToken, getRefreshCookieOptions());
 
       return sendSuccess(res, 200, { 
         accessToken: token, 
@@ -545,20 +538,14 @@ export async function exchangeAuthCode(
     const refreshToken = crypto.randomBytes(40).toString("hex");
     const tokenHash = hashToken(refreshToken);
 
-    const newExpiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+    const newExpiresAt = new Date(Date.now() + REFRESH_TOKEN_DURATION_MS);
     await db.insert(refreshTokens).values({
       user_id: userId,
       refresh_token_hash: tokenHash,
       expires_at: newExpiresAt.toISOString(),
     });
 
-    res.cookie("refresh_token", refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      path: "/api/auth",
-      maxAge: 30 * 24 * 60 * 60 * 1000,
-    });
+    res.cookie("refresh_token", refreshToken, getRefreshCookieOptions());
 
     return sendSuccess(res, 200, {
       accessToken: token,

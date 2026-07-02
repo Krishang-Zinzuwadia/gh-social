@@ -373,9 +373,7 @@ export async function getOAuthUrl(req: Request, res: Response): Promise<void> {
         } else if (parsedUrl.protocol === "exp:" || parsedUrl.protocol === "ghsocial:") {
           const ALLOWED_NATIVE_HOSTS = ["app.weave.com", "localhost", "127.0.0.1", "auth"];
           
-          if (ALLOWED_NATIVE_HOSTS.includes(parsedUrl.hostname)) {
-            isAllowedRedirect = true;
-          }
+          isAllowedRedirect = ALLOWED_NATIVE_HOSTS.includes(parsedUrl.hostname) && parsedUrl.pathname === '/auth/callback';
         }
       } catch (e) {
         // Invalid URL format

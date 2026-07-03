@@ -15,7 +15,7 @@ export default function Lists({ userId }: ListsProps) {
 
   const fetchBoards = async ({ pageParam = 0 }) => {
     if (!userId) return [];
-    const token = await SecureStore.getItemAsync("accessToken");
+    const token = await SecureStore.getItemAsync("access_token");
     if (!token) throw new Error("No token");
     return getUserBoards(userId, token, 10, pageParam);
   };

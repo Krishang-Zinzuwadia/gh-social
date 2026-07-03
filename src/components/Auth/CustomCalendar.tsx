@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from "react";
-import { View, Text, TouchableOpacity, Modal, ScrollView } from "react-native";
+import { View, Text, TouchableOpacity, Modal } from "react-native";
 import { ChevronRightIcon } from "./icons";
-import { ChevronLeft, ChevronDown } from "lucide-react-native";
+import { ChevronLeft } from "lucide-react-native";
 
 type CustomCalendarProps = {
   visible: boolean;
@@ -27,15 +27,11 @@ export default function CustomCalendar({
 }: CustomCalendarProps) {
   const [currentMonth, setCurrentMonth] = useState(selectedDate.getMonth());
   const [currentYear, setCurrentYear] = useState(selectedDate.getFullYear());
-  const [showYearPicker, setShowYearPicker] = useState(false);
-  const [showMonthPicker, setShowMonthPicker] = useState(false);
 
   useEffect(() => {
     if (visible) {
       setCurrentMonth(selectedDate.getMonth());
       setCurrentYear(selectedDate.getFullYear());
-      setShowYearPicker(false);
-      setShowMonthPicker(false);
     }
   }, [visible, selectedDate]);
 
@@ -119,167 +115,69 @@ export default function CustomCalendar({
               <ChevronLeft size={24} color="#6DA963" />
             </TouchableOpacity>
             
-            <View style={{ flexDirection: 'row', gap: 8 }}>
-              {/* Month Dropdown Button */}
-              <TouchableOpacity 
-                onPress={() => { setShowMonthPicker(!showMonthPicker); setShowYearPicker(false); }}
-                style={{
-                  flexDirection: 'row', alignItems: 'center',
-                  borderWidth: 1, borderColor: '#303030', borderRadius: 8,
-                  paddingHorizontal: 10, paddingVertical: 6, gap: 4,
-                  backgroundColor: showMonthPicker ? '#303030' : 'transparent'
-                }}
-              >
-                <Text style={{ color: '#F0F6EB', fontSize: 14, fontWeight: '600' }}>
-                  {MONTHS[currentMonth].substring(0, 3)}
-                </Text>
-                <ChevronDown size={14} color="#F0F6EB" />
-              </TouchableOpacity>
-
-              {/* Year Dropdown Button */}
-              <TouchableOpacity 
-                onPress={() => { setShowYearPicker(!showYearPicker); setShowMonthPicker(false); }}
-                style={{
-                  flexDirection: 'row', alignItems: 'center',
-                  borderWidth: 1, borderColor: '#303030', borderRadius: 8,
-                  paddingHorizontal: 10, paddingVertical: 6, gap: 4,
-                  backgroundColor: showYearPicker ? '#303030' : 'transparent'
-                }}
-              >
-                <Text style={{ color: '#F0F6EB', fontSize: 14, fontWeight: '600' }}>
-                  {currentYear}
-                </Text>
-                <ChevronDown size={14} color="#F0F6EB" />
-              </TouchableOpacity>
-            </View>
+            <Text style={{ color: '#F0F6EB', fontSize: 16, fontWeight: '600' }}>
+              {MONTHS[currentMonth]} {currentYear}
+            </Text>
             
             <TouchableOpacity onPress={handleNextMonth} style={{ padding: 5 }}>
               <ChevronRightIcon size={24} color="#6DA963" />
             </TouchableOpacity>
           </View>
 
-          {showMonthPicker ? (
-            <View style={{ height: 260 }}>
-              <ScrollView showsVerticalScrollIndicator={false}>
-                <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center' }}>
-                  {MONTHS.map((month, index) => (
-                    <TouchableOpacity
-                      key={month}
-                      onPress={() => {
-                        setCurrentMonth(index);
-                        setShowMonthPicker(false);
-                      }}
-                      style={{
-                        width: '30%',
-                        paddingVertical: 12,
-                        alignItems: 'center',
-                        backgroundColor: currentMonth === index ? '#6DA963' : 'transparent',
-                        borderRadius: 8,
-                        margin: '1.5%'
-                      }}
-                    >
-                      <Text style={{ 
-                        color: currentMonth === index ? '#000' : '#F0F6EB', 
-                        fontWeight: currentMonth === index ? '700' : '500',
-                        fontSize: 15
-                      }}>
-                        {month.substring(0, 3)}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </ScrollView>
-            </View>
-          ) : showYearPicker ? (
-            <View style={{ height: 260 }}>
-              <ScrollView showsVerticalScrollIndicator={false}>
-                <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center' }}>
-                  {Array.from({ length: 100 }, (_, i) => new Date().getFullYear() - i).map((year) => (
-                    <TouchableOpacity
-                      key={year}
-                      onPress={() => {
-                        setCurrentYear(year);
-                        setShowYearPicker(false);
-                      }}
-                      style={{
-                        width: '30%',
-                        paddingVertical: 12,
-                        alignItems: 'center',
-                        backgroundColor: currentYear === year ? '#6DA963' : 'transparent',
-                        borderRadius: 8,
-                        margin: '1.5%'
-                      }}
-                    >
-                      <Text style={{ 
-                        color: currentYear === year ? '#000' : '#F0F6EB', 
-                        fontWeight: currentYear === year ? '700' : '500',
-                        fontSize: 15
-                      }}>
-                        {year}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </ScrollView>
-            </View>
-          ) : (
-            <>
-              {/* Days of Week */}
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 }}>
-                {DAYS.map((day, index) => (
-                  <Text key={`day-${index}`} style={{ color: '#8A8A8A', width: 32, textAlign: 'center', fontWeight: '500' }}>
-                    {day}
-                  </Text>
-                ))}
-              </View>
+          {/* Days of Week */}
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 }}>
+            {DAYS.map((day, index) => (
+              <Text key={`day-${index}`} style={{ color: '#8A8A8A', width: 32, textAlign: 'center', fontWeight: '500' }}>
+                {day}
+              </Text>
+            ))}
+          </View>
 
-              {/* Grid */}
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
-                {calendarDays.map((dateObj, index) => {
-                  if (!dateObj) {
-                    return <View key={`empty-${index}`} style={{ width: `${100/7}%`, height: 40 }} />;
-                  }
+          {/* Grid */}
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
+            {calendarDays.map((dateObj, index) => {
+              if (!dateObj) {
+                return <View key={`empty-${index}`} style={{ width: `${100/7}%`, height: 40 }} />;
+              }
 
-                  const isSelected = 
-                    selectedDate.getDate() === dateObj.getDate() &&
-                    selectedDate.getMonth() === dateObj.getMonth() &&
-                    selectedDate.getFullYear() === dateObj.getFullYear();
-                  
-                  const isFuture = maxDate && dateObj > maxDate;
+              const isSelected = 
+                selectedDate.getDate() === dateObj.getDate() &&
+                selectedDate.getMonth() === dateObj.getMonth() &&
+                selectedDate.getFullYear() === dateObj.getFullYear();
+              
+              const isFuture = maxDate && dateObj > maxDate;
 
-                  return (
-                    <TouchableOpacity
-                      key={`date-${index}`}
-                      disabled={isFuture}
-                      onPress={() => handleSelect(dateObj)}
-                      style={{
-                        width: `${100/7}%`,
-                        height: 40,
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                      }}
-                    >
-                      <View style={{
-                        width: 32,
-                        height: 32,
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                        backgroundColor: isSelected ? '#6DA963' : 'transparent',
-                        borderRadius: 16,
-                      }}>
-                        <Text style={{ 
-                          color: isFuture ? '#444' : (isSelected ? '#000' : '#F0F6EB'), 
-                          fontWeight: isSelected ? '700' : '400' 
-                        }}>
-                          {dateObj.getDate()}
-                        </Text>
-                      </View>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-            </>
-          )}
+              return (
+                <TouchableOpacity
+                  key={`date-${index}`}
+                  disabled={isFuture}
+                  onPress={() => handleSelect(dateObj)}
+                  style={{
+                    width: `${100/7}%`,
+                    height: 40,
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                  }}
+                >
+                  <View style={{
+                    width: 32,
+                    height: 32,
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    backgroundColor: isSelected ? '#6DA963' : 'transparent',
+                    borderRadius: 16,
+                  }}>
+                    <Text style={{ 
+                      color: isFuture ? '#444' : (isSelected ? '#000' : '#F0F6EB'), 
+                      fontWeight: isSelected ? '700' : '400' 
+                    }}>
+                      {dateObj.getDate()}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
         </TouchableOpacity>
       </TouchableOpacity>
     </Modal>

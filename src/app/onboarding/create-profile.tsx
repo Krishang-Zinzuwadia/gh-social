@@ -13,97 +13,112 @@ import TermsFooter from "@/components/Auth/TermsFooter";
 import UsernameStatus from "@/components/Auth/UsernameStatus";
 
 export default function CreateProfile() {
- const router = useRouter();
- const { updateData } = useOnboarding();
- const { user } = useAuth();
- const [username, setUsername] = useState(user?.username || "");
- const [dob, setDob] = useState("");
- const [bio, setBio] = useState("");
+  const router = useRouter();
+  const { updateData } = useOnboarding();
+  const { user } = useAuth();
+  
+  const [username, setUsername] = useState(user?.username || "");
+  const [dob, setDob] = useState("");
+  const [bio, setBio] = useState("");
 
- // Regex for MM/DD/YYYY format
- const dobRegex = /^(0[1-9]|1[0-2])\/(0[1-9]|[12][0-9]|3[01])\/\d{4}$/;
- // Validation logic
- const isDobValid = dob.trim().length === 0 || dobRegex.test(dob.trim());
- const isFormValid = username.trim().length > 0 && dob.trim().length > 0 && isDobValid;
+  const isValidDate = (dateString: string) => {
+    // Regex for YYYY-MM-DD format
+    const regex = /^\d{4}-\d{2}-\d{2}$/;
+    if (!regex.test(dateString)) return false;
+    // Check if it's an actual calendar date
+    const d = new Date(dateString);
+    const dNum = d.getTime();
+    if (!dNum && dNum !== 0) return false; 
+    return d.toISOString().slice(0, 10) === dateString;
+  };
 
- const handleCreateAccount = () => {
-   if (isFormValid) {
-     router.push({
-       pathname: "/onboarding/step1",
-       params: {
-         username: username.trim(),
-         dob: dob.trim(),
-         bio: bio.trim(),
-       },
-     });
-   }
- };
+  const isDobValid = dob.trim().length === 0 || isValidDate(dob.trim());
+  const isFormValid = username.trim().length > 0 && dob.trim().length > 0 && isDobValid;
 
- return (
-   <ScrollView
-     className="flex-1 bg-[#0A0C09]"
-     showsVerticalScrollIndicator={false}
-     contentContainerStyle={{ paddingBottom: 50 }}
-   >
-     <View
-       className="px-8 pt-14 w-full"
-       style={{ maxWidth: 450, alignSelf: "center" }}
-     >
-       {/* Avatar */}
-       <ProfileAvatar />
+  const handleCreateAccount = () => {
+    if (isFormValid) {
+      updateData({ 
+        username, 
+        date_of_birth: dob,
+        bio,
+        full_name: user?.full_name || "New User" // We can grab this from auth or prompt
+      });
+      router.push("/onboarding/step1");
+    }
+  };
 
-       {/* Heading */}
-       <View className="items-center mt-4">
-         <Text className="text-white text-[32px] text-center font-nataBold">
-           Create{" "}
-           <Text className="text-[#8EFF7A] font-nataBold">your account</Text>
-         </Text>
+  return (
+    <ScrollView
+      className="flex-1 bg-[#0A0C09]"
+      showsVerticalScrollIndicator={false}
+      contentContainerStyle={{ paddingBottom: 50 }}
+    >
+      <View className="px-8 pt-14 w-full" style={{ maxWidth: 450, alignSelf: 'center' }}>
 
-         <Text className="text-[#8A8A8A] text-[14px] text-center mt-3 font-nata">
-           Let&apos;s set up your profile.
-         </Text>
-       </View>
+        {/* Avatar */}
+        <ProfileAvatar />
 
-       {/* Username */}
-       <View className="mt-8">
-         <ProfileInput
-           title="Username"
-           placeholder="Choose a username"
-           value={username}
-           onChangeText={setUsername}
-         />
+        {/* Heading */}
+        <View className="items-center mt-4">
+          <Text
+            
+            className="text-white text-[32px] text-center font-nataBold"
+          >
+            Create{" "}
+            <Text className="text-[#8EFF7A] font-nataBold">
+              your account
+            </Text>
+          </Text>
 
-         {username.trim().length > 0 && <UsernameStatus />}
-       </View>
+          <Text
+            
+            className="text-[#8A8A8A] text-[14px] text-center mt-3 font-nata"
+          >
+            Let&apos;s set up your profile.
+          </Text>
+        </View>
 
-       {/* Date of birth */}
-       <View className="mt-4">
-         <ProfileDateInput value={dob} onChangeText={setDob} />
-         {dob.trim().length > 0 && !isDobValid && (
-           <Text className="text-[#E57373] text-[13px] font-nata mt-1 ml-1">
-             Please enter a valid date (mm/dd/yyyy)
-           </Text>
-         )}
-       </View>
+        {/* Username */}
+        <View className="mt-8">
+          <ProfileInput
+            title="Username"
+            placeholder="Choose a username"
+            value={username}
+            onChangeText={setUsername}
+          />
 
-       {/* Bio */}
-       <View className="mt-4">
-           <ProfileTextArea value={bio} onChangeText={setBio} />
-       </View>
+          {username.trim().length > 0 && <UsernameStatus />}
+        </View>
 
-       {/* Create Account */}
-       <View className="mt-8">
-         <PrimaryButton
-           label="Create Account"
-           onPress={handleCreateAccount}
-           style={{ opacity: isFormValid ? 1 : 0.5 }}
-           disabled={!isFormValid}
-         />
-       </View>
+        {/* Date of birth */}
+        <View className="mt-4">
+          <ProfileDateInput value={dob} onChangeText={setDob} />
+          {dob.trim().length > 0 && !isDobValid && (
+            <Text className="text-[#E57373] text-[13px] font-nata mt-1 ml-1">
+              Please enter a valid date in YYYY-MM-DD format.
+            </Text>
+          )}
+        </View>
 
-       {/* Terms */}
-       <TermsFooter />
-     </View>
-   </ScrollView>
- );
+        {/* Bio */}
+        <View className="mt-4">
+            <ProfileTextArea value={bio} onChangeText={setBio} />
+        </View>
+
+        {/* Create Account */}
+        <View className="mt-8">
+          <PrimaryButton
+            label="Create Account"
+            onPress={handleCreateAccount}
+            style={{ opacity: isFormValid ? 1 : 0.5 }}
+            disabled={!isFormValid}
+          />
+        </View>
+
+        {/* Terms */}
+        <TermsFooter />
+
+      </View>
+    </ScrollView>
+  );
 }

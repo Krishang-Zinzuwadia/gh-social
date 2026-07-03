@@ -15,7 +15,7 @@ export default function Repositories({ userId }: RepositoriesProps) {
 
   const fetchSavedRepos = async ({ pageParam = 0 }) => {
     if (!userId) return [];
-    const token = await SecureStore.getItemAsync("accessToken");
+    const token = await SecureStore.getItemAsync("access_token");
     if (!token) throw new Error("No token");
     return getSavedRepos(userId, token, 15, pageParam);
   };

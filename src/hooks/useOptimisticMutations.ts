@@ -9,7 +9,7 @@ export function useOptimisticMutations(userId?: string) {
   const createBoardMutation = useMutation({
     mutationFn: async (boardName: string) => {
       if (!userId) throw new Error("No user id");
-      const token = await SecureStore.getItemAsync("accessToken");
+      const token = await SecureStore.getItemAsync("access_token");
       if (!token) throw new Error("No token");
       return createBoard(userId, boardName, token);
     },
@@ -62,7 +62,7 @@ export function useOptimisticMutations(userId?: string) {
   const toggleSaveMutation = useMutation({
     mutationFn: async ({ repoId, repoName }: { repoId: string, repoName: string }) => {
       if (!userId) throw new Error("No user id");
-      const token = await SecureStore.getItemAsync("accessToken");
+      const token = await SecureStore.getItemAsync("access_token");
       if (!token) throw new Error("No token");
       return toggleSaveRepo(userId, repoId, token);
     },
@@ -118,7 +118,7 @@ export function useOptimisticMutations(userId?: string) {
   const addRepoToBoardMutation = useMutation({
     mutationFn: async ({ boardId, repoId, repoName }: { boardId: string, repoId: string, repoName: string }) => {
       if (!userId) throw new Error("No user id");
-      const token = await SecureStore.getItemAsync("accessToken");
+      const token = await SecureStore.getItemAsync("access_token");
       if (!token) throw new Error("No token");
       
       // Since this is atomic and also saves the repo, we use the new board API method

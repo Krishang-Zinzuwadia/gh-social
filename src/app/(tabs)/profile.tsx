@@ -19,7 +19,7 @@ type TabName = (typeof TABS)[number]
 
 export default function ProfileScreen() {
   const { width } = useWindowDimensions()
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
 
   // Responsive breakpoints
   const isTablet = width >= 768
@@ -93,13 +93,32 @@ export default function ProfileScreen() {
               flex: 1,
             }}
           >
-            {/* ── Left Column (Header & Stats) ── */}
             <View
               style={{
                 width: "100%",
                 paddingTop: topMargin,
               }}
             >
+              {/* Top Action Bar */}
+              <View style={{ width: "100%", flexDirection: "row", justifyContent: "flex-end", marginBottom: 16 }}>
+                <Pressable
+                  onPress={signOut}
+                  hitSlop={12}
+                  style={{
+                    paddingVertical: 6,
+                    paddingHorizontal: 12,
+                    borderRadius: 8,
+                    backgroundColor: "rgba(255, 59, 48, 0.15)",
+                    borderWidth: 1,
+                    borderColor: "rgba(255, 59, 48, 0.3)",
+                  }}
+                >
+                  <Text style={{ color: "#FF3B30", fontSize: 13, fontWeight: "600", fontFamily: "NotoSans_400Regular" }}>
+                    Log Out
+                  </Text>
+                </Pressable>
+              </View>
+
               {/* Header: Avatar + Name/Job/Username */}
               <View
                 style={{

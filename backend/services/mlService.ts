@@ -103,10 +103,11 @@ class MLService {
     }
   }
 
-  async generateRecommendations(userId: string): Promise<MlRecommendationBatches> {
+  async generateRecommendations(userId: string, isColdStart: boolean = false): Promise<MlRecommendationBatches> {
     try {
       const response = await this.post<{ data?: MlRecommendationBatches } & MlRecommendationBatches>('/api/v1/recommendations/generate', {
         user_id: userId,
+        is_cold_start: isColdStart,
       });
       return response.data ?? response;
     } catch (error) {

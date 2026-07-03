@@ -26,13 +26,15 @@ function mapBackendToFrontend(backendItem: any): RepositoryData {
     readmeSummary: backendItem.readme_summary || 'No summary available.',
     readmeFull: backendItem.readme_md || backendItem.readme || 'No readme available.',
     stats: {
-      stars: (backendItem.star_count || 0).toString(),
-      views: (backendItem.views_count || 0).toString(),
-      bugs: '0',
-      forks: (backendItem.fork_count || 0).toString(),
-      likes: (backendItem.likes_count || 0).toString(),
+      stars: (backendItem.star_count ?? 0).toString(),
+      views: (backendItem.views_count ?? 0).toString(),
+      bugs: (backendItem.open_issues_count ?? backendItem.pr_count ?? 0).toString(),
+      forks: (backendItem.fork_count ?? 0).toString(),
+      likes: (backendItem.likes_count ?? backendItem.saves_count ?? 0).toString(),
     },
-    updatedText: 'updated recently',
+    updatedText: backendItem.updated_at 
+      ? `updated ${new Date(backendItem.updated_at).toLocaleDateString()}` 
+      : 'updated recently',
     techStack: backendItem.languages || [],
   };
 }
@@ -47,15 +49,24 @@ export default function HomeScreen() {
 
   const flushActivityBatch = useCallback(async () => {
     if (pendingActivityBatch.current.length > 0) {
-      try {
-        const token = await SecureStore.getItemAsync('access_token');
-        if (token) {
-          const events = [...pendingActivityBatch.current];
-          pendingActivityBatch.current = [];
+      const token = await SecureStore.getItemAsync('access_token');
+      if (token) {
+        const events = [...pendingActivityBatch.current];
+        pendingActivityBatch.current = [];
+        try {
           await sendBatchedActivity(events, token);
+        } catch (err: any) {
+          const errorMessage = err?.message?.toLowerCase() || '';
+          const isAuthError = errorMessage.includes('token') || errorMessage.includes('unauthorized');
+          
+          if (!isAuthError) {
+            // It's likely a network error, put the events back in the queue to retry later
+            pendingActivityBatch.current = [...events, ...pendingActivityBatch.current];
+            console.log('Network issue: restored batched activity to queue');
+          } else {
+            console.log('Auth issue: discarding batched activity');
+          }
         }
-      } catch (err) {
-        console.error('Failed to flush batched activity', err);
       }
     }
   }, []);

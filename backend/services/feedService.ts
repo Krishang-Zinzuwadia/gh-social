@@ -2,8 +2,8 @@ import crypto from 'crypto';
 import redisClient from '../config/redis.js';
 import { mlService, type MlRecommendationBatches } from './mlService.js';
 import { db } from '../db/index.js';
-import { repos } from '../db/schema.js';
-import { inArray } from 'drizzle-orm';
+import { repos, users } from '../db/schema.js';
+import { inArray, eq } from 'drizzle-orm';
 export class FeedService {
   private SESSION_TTL = 600; // 10 minutes cache lifetime
   /** How long the in-flight lock is held before auto-expiring (ms). */
@@ -122,6 +122,22 @@ export class FeedService {
     }
   }
 
+  private async isColdStartUser(userId: string): Promise<boolean> {
+    try {
+      const result = await db
+        .select({ likes: users.likes_given_count, saves: users.saved_repos_count })
+        .from(users)
+        .where(eq(users.user_id, userId))
+        .limit(1);
+
+      if (result.length === 0) return true; // unknown user = cold start
+      return (result[0].likes ?? 0) === 0 && (result[0].saves ?? 0) === 0;
+    } catch (err) {
+      console.error('[FeedService] Cold-start check failed:', err);
+      return false; // fail open → use standard pipeline
+    }
+  }
+
   private async replenishFeedBackground(userId: string): Promise<void> {
     const lockKey = this.getLockKey(userId);
     const lockToken = crypto.randomUUID();
@@ -131,7 +147,8 @@ export class FeedService {
     
     if (acquired === 'OK') {
       try {
-        const batches = await mlService.generateRecommendations(userId);
+        const coldStart = await this.isColdStartUser(userId);
+        const batches = await mlService.generateRecommendations(userId, coldStart);
         const recommendations = this.flattenRecommendationBatches(batches);
         await this.appendBatch(userId, recommendations);
       } catch (error) {
@@ -212,7 +229,8 @@ export class FeedService {
 
       if (acquired === 'OK') {
         try {
-          const batches = await mlService.generateRecommendations(userId);
+          const coldStart = await this.isColdStartUser(userId);
+          const batches = await mlService.generateRecommendations(userId, coldStart);
           const recommendations = this.flattenRecommendationBatches(batches);
           await this.processAndCacheBatch(userId, recommendations);
           

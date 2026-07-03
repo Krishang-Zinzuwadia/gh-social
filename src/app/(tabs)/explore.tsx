@@ -8,7 +8,8 @@ import TabBar from '../../components/explore/TabBar';
 import TrendingRepoCard from '../../components/explore/TrendingRepoCard';
 import SkeletonCard from '../../components/explore/SkeletonCard';
 import { getResponsiveContainerStyle } from '../../components/responsive-layout';
-import { FOR_YOU_REPOS, TRENDING_REPOS } from '../../data/repos';
+import { fetchFeed } from '../../api/feed';
+import * as SecureStore from 'expo-secure-store';
 import { Repo, TabName } from '../../types';
 import { APP_THEME } from '../../constants/theme';
 
@@ -18,7 +19,10 @@ export default function ExploreScreen() {
   const { width } = useWindowDimensions();
   const [activeTab, setActiveTab] = useState<TabName>('For you');
   const [searchQuery, setSearchQuery] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
+  const [forYouRepos, setForYouRepos] = useState<Repo[]>([]);
+  const [isForYouLoading, setIsForYouLoading] = useState(true);
+  const [isForYouLoadingMore, setIsForYouLoadingMore] = useState(false);
+  const [isForYouError, setIsForYouError] = useState(false);
   const [trendingRepos, setTrendingRepos] = useState<Repo[]>([]);
   const [isTrendingLoading, setIsTrendingLoading] = useState(true);
   const [isTrendingError, setIsTrendingError] = useState(false);
@@ -27,11 +31,93 @@ export default function ExploreScreen() {
   const responsiveContainerStyle = getResponsiveContainerStyle(width);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 1000);
-    return () => clearTimeout(timer);
-  }, [activeTab]);
+    const fetchForYou = async () => {
+      if (activeTab !== 'For you') return;
+      try {
+        setIsForYouLoading(true);
+        const token = await SecureStore.getItemAsync('access_token');
+        if (!token) throw new Error('No token');
+        const response = await fetch(`${API_URL}/repos?limit=20&offset=0`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const result = await response.json();
+        const data = result.success ? result.data : [];
+        if (data && data.length > 0) {
+          const mappedRepos: Repo[] = data.map((repo: any) => ({
+            id: repo.repo_id || Math.random().toString(),
+            name: repo.repo_name || repo.full_name?.split('/')[1] || 'Unknown',
+            stars: (repo.star_count || 0).toString(),
+            forks: (repo.forks_count || repo.fork_count || 0).toString(),
+            author: repo.full_name ? repo.full_name.split('/')[0] : 'Unknown',
+            url: repo.github_repo_url || `https://github.com/${repo.full_name}`,
+            avatarColor: '#10B981',
+            avatarInitial: (repo.repo_name || repo.full_name || 'R').charAt(0).toUpperCase(),
+            hasIcon: true,
+            language: repo.primary_language || repo.language_used?.[0] || repo.languages?.[0] || 'Unknown',
+            description: repo.description || repo.readme_summary || 'No description available',
+            trendingPeriod: 'Recommended',
+          }));
+          
+          // Update state by appending new items and ensuring no duplicates by ID
+          setForYouRepos(prev => {
+            const existingIds = new Set(prev.map(r => r.id));
+            const uniqueNewRepos = mappedRepos.filter(r => !existingIds.has(r.id));
+            return [...prev, ...uniqueNewRepos];
+          });
+          setIsForYouError(false);
+        }
+      } catch (error) {
+        console.error('Failed to fetch for you repos', error);
+        setIsForYouError(true);
+      } finally {
+        setIsForYouLoading(false);
+      }
+    };
+    
+    fetchForYou();
+  }, [activeTab, retryCount]);
+
+  const loadMoreForYou = async () => {
+    if (isForYouLoading || isForYouLoadingMore) return;
+    try {
+      setIsForYouLoadingMore(true);
+      const token = await SecureStore.getItemAsync('access_token');
+      if (!token) return;
+      
+      const currentCount = forYouRepos.length;
+      const response = await fetch(`${API_URL}/repos?limit=10&offset=${currentCount}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const result = await response.json();
+      const data = result.success ? result.data : [];
+      
+      if (data && data.length > 0) {
+        const mappedRepos: Repo[] = data.map((repo: any) => ({
+          id: repo.repo_id || Math.random().toString(),
+          name: repo.repo_name || repo.full_name?.split('/')[1] || 'Unknown',
+          stars: (repo.star_count || 0).toString(),
+          forks: (repo.forks_count || repo.fork_count || 0).toString(),
+          author: repo.full_name ? repo.full_name.split('/')[0] : 'Unknown',
+          url: repo.github_repo_url || `https://github.com/${repo.full_name}`,
+          avatarColor: '#10B981',
+          avatarInitial: (repo.repo_name || repo.full_name || 'R').charAt(0).toUpperCase(),
+          hasIcon: true,
+          language: repo.primary_language || repo.language_used?.[0] || repo.languages?.[0] || 'Unknown',
+          description: repo.description || repo.readme_summary || 'No description available',
+          trendingPeriod: 'Recommended',
+        }));
+        setForYouRepos(prev => {
+          const existingIds = new Set(prev.map(r => r.id));
+          const uniqueNewRepos = mappedRepos.filter(r => !existingIds.has(r.id));
+          return [...prev, ...uniqueNewRepos];
+        });
+      }
+    } catch (error) {
+      console.error('Failed to load more for you repos', error);
+    } finally {
+      setIsForYouLoadingMore(false);
+    }
+  };
 
   useEffect(() => {
     const fetchTrending = async () => {
@@ -74,7 +160,9 @@ export default function ExploreScreen() {
   const handleTabChange = (tab: TabName) => {
     setActiveTab(tab);
     setSearchQuery('');
-    setIsLoading(true);
+    if (tab === 'For you' && (isForYouError || forYouRepos.length === 0)) {
+      setRetryCount(prev => prev + 1);
+    }
     if (tab === 'Trending' && isTrendingError) {
       setRetryCount(prev => prev + 1);
     }
@@ -86,11 +174,11 @@ export default function ExploreScreen() {
     Linking.openURL(url).catch(err => console.error('Failed to open GitHub link:', err));
   };
 
-  const filteredForYou: Repo[] = FOR_YOU_REPOS.filter((r) =>
+  const filteredForYou: Repo[] = forYouRepos.filter((r) =>
     r.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
   const skeletonDataForYou = Array.from({ length: 6 }, (_, i) => ({ id: `skeleton-${i}` }));
-  const dataForYou = isLoading ? skeletonDataForYou : filteredForYou;
+  const dataForYou = isForYouLoading && forYouRepos.length === 0 ? skeletonDataForYou : filteredForYou;
   const leftColData = dataForYou.filter((_, idx) => idx % 2 === 0);
   const rightColData = dataForYou.filter((_, idx) => idx % 2 !== 0);
 
@@ -115,7 +203,7 @@ export default function ExploreScreen() {
   );
 
   const renderEmptyState = (hasData: boolean) => {
-    if (isLoading || hasData) return null;
+    if (isForYouLoading || hasData) return null;
     return (
       <View className="items-center justify-center py-16">
         <Text className="text-[#6B7280] text-sm" style={regular}>
@@ -175,6 +263,14 @@ export default function ExploreScreen() {
             style={{ flex: 1 }}
             showsVerticalScrollIndicator={false}
             contentContainerStyle={{ paddingBottom: 24, paddingTop: 12 }}
+            onScroll={({ nativeEvent }) => {
+              // Trigger load more when close to bottom
+              const isCloseToBottom = nativeEvent.layoutMeasurement.height + nativeEvent.contentOffset.y >= nativeEvent.contentSize.height - 200;
+              if (isCloseToBottom && !isForYouLoadingMore && forYouRepos.length > 0) {
+                loadMoreForYou();
+              }
+            }}
+            scrollEventThrottle={400}
           >
             {renderEmptyState(dataForYou.length > 0)}
 
@@ -183,7 +279,7 @@ export default function ExploreScreen() {
                 <View className="flex-1" style={{ gap: 16 }}>
                   {leftColData.map((item) => (
                     <View key={item.id}>
-                      {isLoading ? (
+                      {isForYouLoading && forYouRepos.length === 0 ? (
                         <SkeletonCard height={95} />
                       ) : (
                         <RepoCard repo={item as Repo} onPress={() => handleRepoPress(item as Repo)} />
@@ -195,7 +291,7 @@ export default function ExploreScreen() {
                 <View className="flex-1" style={{ gap: 16 }}>
                   {rightColData.map((item) => (
                     <View key={item.id}>
-                      {isLoading ? (
+                      {isForYouLoading && forYouRepos.length === 0 ? (
                         <SkeletonCard height={95} />
                       ) : (
                         <RepoCard repo={item as Repo} onPress={() => handleRepoPress(item as Repo)} />
@@ -203,6 +299,12 @@ export default function ExploreScreen() {
                     </View>
                   ))}
                 </View>
+              </View>
+            )}
+
+            {isForYouLoadingMore && (
+              <View className="py-6 items-center">
+                <Text className="text-[#10B981] font-semibold">Loading more...</Text>
               </View>
             )}
           </ScrollView>

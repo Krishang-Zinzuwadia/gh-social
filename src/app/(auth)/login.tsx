@@ -60,7 +60,7 @@ export default function LoginScreen() {
       if (onboarding_completed) {
         router.replace("/(tabs)/home");
       } else {
-        router.replace("/(auth)/create-profile");
+        router.replace("/onboarding/create-profile");
       }
     } catch (err) {
       // Error is handled by the store and shown in Alert

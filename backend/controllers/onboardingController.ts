@@ -3,6 +3,7 @@ import type { Response } from "express";
 import type { AuthRequest } from "../middlewares/authMiddleware.js";
 import { GitHubApiError } from "../services/githubService.js";
 import * as onboardingService from "../services/onboardingService.js";
+import * as userService from "../services/userService.js";
 import type { OnboardingSetupBody } from "../types/onboarding.js";
 import {
  sendControllerError,
@@ -139,23 +140,28 @@ export async function setupOnboarding(
    }
  }
 
- console.log("Received PUT request. User ID:", userId);
- console.log("Updating onboarding_completed to true...");
- const { data, error } = await onboardingService.setupOnboardingProfile(
-   userId,
-   body,
- );
- console.log("Updated User object from DB:", data);
+  console.log("Received PUT request. User ID:", userId);
+  console.log("Updating onboarding_completed to true...");
+  
+  const data = onboardingService.buildSetupUpdates(body);
 
- if (error) {
-   return sendDatabaseError(res, error as any, {
-     conflictMessage: "Username is already taken.",
-   });
- }
+  try {
+    const { data: updatedData, error } = await userService.updateUserProfile(userId, data);
+    
+    if (error) {
+      throw error; // Throw to be caught by the catch block below
+    }
 
- void mlService.onboardUserBestEffort(buildMlOnboardPayload(userId, data));
+    void mlService.onboardUserBestEffort(buildMlOnboardPayload(userId, updatedData)).catch(console.error);
 
- return sendSuccess(res, 200, data);
+    return res.status(200).json({ success: true, data: updatedData });
+  } catch (error: any) {
+    if (error.code === '23505') {
+      return res.status(409).json({ error: "Username already taken. Please choose another." });
+    }
+    console.error(error);
+    return res.status(500).json({ error: "Internal Server Error" });
+  }
 }
 
 export async function syncGitHub(

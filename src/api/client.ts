@@ -1,6 +1,8 @@
 import { storage } from "@/utils/storage";
 import axios from "axios";
 import { API_URL } from "./config";
+import * as SecureStore from "expo-secure-store";
+import { Platform } from "react-native";
 
 interface ApiResponse<T = any> {
   success: boolean;
@@ -22,10 +24,16 @@ class ApiClient {
   }
 
   private setupInterceptors() {
+const webStorage = {
+  getItem: (key: string) => Platform.OS === 'web' ? localStorage.getItem(key) : SecureStore.getItemAsync(key),
+  setItem: (key: string, value: string) => Platform.OS === 'web' ? localStorage.setItem(key, value) : SecureStore.setItemAsync(key, value),
+  removeItem: (key: string) => Platform.OS === 'web' ? localStorage.removeItem(key) : SecureStore.deleteItemAsync(key),
+};
+
     // Request interceptor to add auth token
     this.client.interceptors.request.use(
       async (config) => {
-        const token = await storage.getItemAsync("accessToken");
+        let token = await webStorage.getItem("accessToken");
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
         }
@@ -173,7 +181,7 @@ class ApiClient {
 
   // Onboarding endpoints
   async getOnboardingStatus(): Promise<ApiResponse<any>> {
-    return this.client.get("/users/onboarding/status");
+    return this.client.get("/onboarding/status");
   }
 
   async setupOnboarding(data: {

@@ -63,7 +63,7 @@ export default function SignUpEmail() {
   const handleEmailSignup = async () => {
     try {
       await signup(email.trim(), password, username.trim(), fullName.trim());
-      router.replace("/(auth)/create-profile");
+      router.replace("/onboarding/create-profile");
     } catch (err) {
       // Error is handled by the store and shown in Alert
     }
@@ -180,23 +180,6 @@ export default function SignUpEmail() {
         <View className="mt-2">
           <SectionLabel title="Full name" />
           <AuthInput placeholder="Enter your full name" icon="user" value={fullName} onChangeText={setFullName} />
-
-          <SectionLabel title="Username" />
-          <AuthInput
-            placeholder="Choose a username"
-            icon="user"
-            value={username}
-            onChangeText={(text) => {
-              setUsername(text);
-              setUsernameError("");
-            }}
-            autoCapitalize="none"
-          />
-          {usernameError ? (
-            <Text className="text-[#E57373] text-[13px] font-nata mt-1 ml-1">
-              {usernameError}
-            </Text>
-          ) : null}
 
           <SectionLabel title="Username" />
           <AuthInput

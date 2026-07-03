@@ -1,17 +1,8 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { storage } from '../utils/storage';
-import { API_URL } from '../api/config';
-
-interface User {
-  user_id: string;
-  username: string;
-  email?: string;
-  onboarding_completed: boolean;
-  [key: string]: any;
-}
+import { useAuthStore } from './authStore';
 
 interface AuthContextType {
-  user: User | null;
+  user: any | null;
   isLoading: boolean;
   setSession: (token: string, user: any) => Promise<void>;
   signOut: () => Promise<void>;
@@ -21,76 +12,39 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const storeUser = useAuthStore(state => state.user);
+  const isLoadingStore = useAuthStore(state => state.isLoading);
+  const checkAuth = useAuthStore(state => state.checkAuth);
+  const setOAuthTokens = useAuthStore(state => state.setOAuthTokens);
+  const logoutStore = useAuthStore(state => state.logout);
+  const storeCheckOnboardingStatus = useAuthStore(state => state.checkOnboardingStatus);
+
+  const [isHydrating, setIsHydrating] = useState(true);
 
   useEffect(() => {
-    loadSession();
+    checkAuth().finally(() => setIsHydrating(false));
   }, []);
 
-  const loadSession = async () => {
-    try {
-      const token = await storage.getItemAsync('access_token');
-      if (token) {
-        await fetchUserProfile(token);
-      }
-    } catch (e) {
-      console.error('Failed to load session', e);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const user = storeUser ? {
+    ...storeUser,
+    user_id: storeUser.id,
+    username: storeUser.user_metadata?.user_name,
+    onboarding_completed: storeUser.onboarding_completed,
+  } : null;
 
-  const fetchUserProfile = async (token: string) => {
-    try {
-      const response = await fetch(`${API_URL}/onboarding/status`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      if (response.ok) {
-        const responseData = await response.json();
-        const { isComplete, profile } = responseData.data;
-        setUser({
-          ...profile,
-          onboarding_completed: isComplete
-        }); // backend returns { success: true, data: { isComplete, profile } }
-      } else {
-        // If unauthorized, clear token
-        if (response.status === 401) {
-          await storage.deleteItemAsync('access_token');
-          setUser(null);
-        }
-      }
-    } catch (error) {
-      console.error('Failed to fetch user profile', error);
-    }
-  };
-
-  const checkOnboardingStatus = async () => {
-    const token = await storage.getItemAsync('access_token');
-    if (token) {
-      await fetchUserProfile(token);
-    }
-  };
+  const isLoading = isHydrating || isLoadingStore;
 
   const setSession = async (token: string, authUser: any) => {
-    await storage.setItemAsync('access_token', token);
-    await fetchUserProfile(token);
+    await setOAuthTokens(token, authUser);
   };
 
   const signOut = async () => {
-    try {
-      const token = await storage.getItemAsync('access_token');
-      await fetch(`${API_URL}/auth/logout`, { 
-        method: 'POST',
-        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
-      });
-    } catch (e) {
-      console.error(e);
-    }
-    await storage.deleteItemAsync('access_token');
-    setUser(null);
+    await logoutStore();
+  };
+
+  const checkOnboardingStatus = async () => {
+    await storeCheckOnboardingStatus();
+    await checkAuth(); // rehydrate to update the state
   };
 
   return (
@@ -107,3 +61,4 @@ export function useAuth() {
   }
   return context;
 }
+

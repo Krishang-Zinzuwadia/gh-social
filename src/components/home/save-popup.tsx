@@ -42,7 +42,7 @@ export function SavePopup({
     queryKey: ["boards", user?.user_id],
     queryFn: async ({ pageParam = 0 }) => {
       if (!user?.user_id) throw new Error("No user id");
-      const token = await SecureStore.getItemAsync("access_token");
+      const token = await SecureStore.getItemAsync("accessToken");
       if (!token) throw new Error("No token");
       return getUserBoards(user.user_id, token, 20, pageParam);
     },

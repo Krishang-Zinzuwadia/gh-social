@@ -48,7 +48,7 @@ export default function HomeScreen() {
   const flushActivityBatch = useCallback(async () => {
     if (pendingActivityBatch.current.length > 0) {
       try {
-        const token = await SecureStore.getItemAsync('access_token');
+        const token = await SecureStore.getItemAsync('accessToken');
         if (token) {
           const events = [...pendingActivityBatch.current];
           pendingActivityBatch.current = [];
@@ -61,7 +61,7 @@ export default function HomeScreen() {
   }, []);
 
   const fetchFeedPage = async () => {
-    const token = await SecureStore.getItemAsync('access_token');
+    const token = await SecureStore.getItemAsync('accessToken');
     if (!token) throw new Error('No token');
     
     // Flush batched activity before fetching the next page

@@ -14,6 +14,7 @@ import ProgressBar from "@/components/onboarding/ProgressBar";
 import TechChip from "@/components/onboarding/TechChip";
 
 import { SUGGESTED_TECHS, getTechIcon } from "@/constants/onboarding";
+import { useOnboarding } from "../../store/OnboardingContext";
 
 const PREDEFINED_TECHS = SUGGESTED_TECHS.map(t => t.name);
 

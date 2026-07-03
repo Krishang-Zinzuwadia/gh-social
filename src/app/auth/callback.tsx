@@ -56,18 +56,7 @@ export default function OAuthCallback() {
         }
 
         // Get the updated user state after exchange (our equivalent of supabase.auth.getUser)
-        let currentUserId = useAuthStore.getState().user?.id;
-
-        if (!currentUserId) {
-          console.warn(
-            "[OAuth Callback] User ID undefined, waiting 500ms for session to hydrate...",
-          );
-          await new Promise((resolve) => setTimeout(resolve, 500));
-
-          // Retry checking state
-          await useAuthStore.getState().checkAuth();
-          currentUserId = useAuthStore.getState().user?.id;
-        }
+        const currentUserId = useAuthStore.getState().user?.id;
 
         console.log("Current UserID:", currentUserId);
 
@@ -90,7 +79,7 @@ export default function OAuthCallback() {
         } else {
           // User needs to complete onboarding
           console.log("[OAuth Callback] Onboarding not completed - routing to create-profile");
-          router.replace("/(auth)/create-profile");
+          router.replace("/onboarding/create-profile");
         }
       } catch (error) {
         console.error("[OAuth Callback] Error:", error);

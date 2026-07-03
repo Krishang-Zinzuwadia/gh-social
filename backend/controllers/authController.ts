@@ -64,35 +64,33 @@ const createAndStoreRefreshToken = async (userId: string, tx: any = db) => {
 
 // POST /api/auth/signup
 export async function signUp(req: Request, res: Response): Promise<void> {
-  let { email, password, username, full_name } = req.body;
-  if (!username || typeof username !== "string" || username.trim() === "") {
-    return sendError(res, 400, "Username is required");
-  }
-
-  username = username.trim();
   try {
+    let { email, password, username, full_name } = req.body;
+    if (!username || typeof username !== "string" || username.trim() === "") {
+      res.status(400).json({ success: false, error: "Username is required" });
+      return;
+    }
+
+    username = username.trim();
+    
     if (username) {
-      const existingUser = await db
-        .select()
-        .from(users)
-        .where(eq(users.username, username));
-      if (existingUser.length > 0) {
-        return sendError(res, 409, "username_taken");
+      const [existingUser] = await db.select().from(users).where(eq(users.username, username)).limit(1);
+      if (existingUser) {
+        res.status(409).json({ error: "Username already taken" });
+        return;
       }
     }
 
     try {
-      const identityCheck = await db.execute(sql`
-        SELECT provider FROM auth.identities
-        JOIN auth.users ON auth.identities.user_id = auth.users.id
-        WHERE auth.users.email = ${email}
+      const emailCheck = await db.execute(sql`
+        SELECT id FROM auth.users WHERE email = ${email}
       `);
-      const providers = identityCheck.map((row: any) => row.provider);
-      if (providers.includes("google")) {
-        return sendError(res, 409, "email_linked_to_google");
+      if (emailCheck.length > 0) {
+        res.status(409).json({ success: false, error: "Email/Username already taken." });
+        return;
       }
     } catch (err) {
-      console.error("Failed to check auth.identities directly:", err);
+      console.error("Failed to check auth.users directly:", err);
     }
 
     const { data, error } = await supabase.auth.signUp({
@@ -112,9 +110,11 @@ export async function signUp(req: Request, res: Response): Promise<void> {
         error.message.toLowerCase().includes("already registered") ||
         error.message.toLowerCase().includes("already exists")
       ) {
-        return sendError(res, 409, "email_exists");
+        res.status(409).json({ success: false, error: "email_exists" });
+        return;
       }
-      return sendError(res, error.status || 400, error.message);
+      res.status(error.status || 400).json({ success: false, error: error.message });
+      return;
     }
 
     if (data.user) {
@@ -129,7 +129,7 @@ export async function signUp(req: Request, res: Response): Promise<void> {
         interests: [],
         skills: [],
         tech_stack: [],
-      });
+      }).catch(console.error);
     }
 
     if (process.env.NODE_ENV === "development") {
@@ -138,11 +138,14 @@ export async function signUp(req: Request, res: Response): Promise<void> {
         email_confirm: true,
       });
     } else if (!data.session) {
-      return sendSuccess(res, 202, {
-        message:
-          "Signup successful! Please check your email to verify your account.",
-        user: data.user,
+      res.status(202).json({
+        success: true,
+        data: {
+          message: "Signup successful! Please check your email to verify your account.",
+          user: data.user,
+        }
       });
+      return;
     }
 
     const userId = data.user!.id;
@@ -153,14 +156,18 @@ export async function signUp(req: Request, res: Response): Promise<void> {
     const refreshToken = await createAndStoreRefreshToken(userId);
     res.cookie("refresh_token", refreshToken, getRefreshCookieOptions());
 
-    return sendSuccess(res, 201, {
-      message: "Signup successful",
-      accessToken,
-      token: accessToken,
-      user: data.user,
+    res.status(201).json({
+      success: true,
+      data: {
+        message: "Signup successful",
+        accessToken,
+        token: accessToken,
+        user: data.user,
+      }
     });
-  } catch (error) {
-    sendControllerError(res, error as Error);
+  } catch (err: any) {
+    console.error('Signup Error:', err);
+    res.status(500).json({ error: 'Internal Server Error', details: err.message });
   }
 }
 
@@ -168,8 +175,25 @@ export async function signUp(req: Request, res: Response): Promise<void> {
 export async function login(req: Request, res: Response): Promise<void> {
   const { email, password } = req.body;
   try {
+    let loginEmail = email;
+    if (email && !email.includes("@")) {
+      const [userRecord] = await db
+        .select({ user_id: users.user_id })
+        .from(users)
+        .where(eq(users.username, email))
+        .limit(1);
+
+      if (userRecord) {
+        const { data: authData, error: userError } =
+          await supabaseAdmin.auth.admin.getUserById(userRecord.user_id);
+        if (!userError && authData?.user?.email) {
+          loginEmail = authData.user.email;
+        }
+      }
+    }
+
     const { data, error } = await supabase.auth.signInWithPassword({
-      email,
+      email: loginEmail,
       password,
     });
     if (error) return sendError(res, error.status || 401, error.message);
@@ -441,7 +465,7 @@ export async function exchangeAuthCode(
         interests: [],
         skills: [],
         tech_stack: [],
-      });
+      }).catch(console.error);
 
       const token = jwt.sign({ userId, email }, JWT_SECRET, {
         expiresIn: "15m",
@@ -464,13 +488,15 @@ export async function exchangeAuthCode(
     return sendError(res, 400, "Invalid authorization code format");
 
   try {
+    // Fetch code data without deleting it yet
     const [codeData] = await db
-      .delete(oauthCodes)
-      .where(eq(oauthCodes.code, code))
-      .returning({
+      .select({
         user_id: oauthCodes.user_id,
         expires_at: oauthCodes.expires_at,
-      });
+      })
+      .from(oauthCodes)
+      .where(eq(oauthCodes.code, code))
+      .limit(1);
 
     if (!codeData)
       return sendError(
@@ -506,17 +532,22 @@ export async function exchangeAuthCode(
       interests: [],
       skills: [],
       tech_stack: [],
-    });
+    }).catch(console.error);
 
     const token = jwt.sign({ userId, email }, JWT_SECRET, { expiresIn: "15m" });
-    const refreshToken = crypto.randomBytes(40).toString("hex");
-    const tokenHash = hashToken(refreshToken);
 
-    const newExpiresAt = new Date(Date.now() + REFRESH_TOKEN_DURATION_MS);
-    await db.insert(refreshTokens).values({
-      user_id: userId,
-      refresh_token_hash: tokenHash,
-      expires_at: newExpiresAt.toISOString(),
+    // Perform deletion and insertion atomically
+    const refreshToken = await db.transaction(async (tx) => {
+      const deletedCodes = await tx
+        .delete(oauthCodes)
+        .where(eq(oauthCodes.code, code))
+        .returning();
+
+      if (deletedCodes.length === 0) {
+        throw new Error("CodeConsumed");
+      }
+
+      return await createAndStoreRefreshToken(userId, tx);
     });
 
     res.cookie("refresh_token", refreshToken, getRefreshCookieOptions());
@@ -526,7 +557,10 @@ export async function exchangeAuthCode(
       token: token,
       user: authData.user,
     });
-  } catch (error) {
+  } catch (error: any) {
+    if (error.message === "CodeConsumed") {
+      return sendError(res, 400, "Authorization code was consumed concurrently");
+    }
     sendControllerError(res, error as Error);
   }
 }

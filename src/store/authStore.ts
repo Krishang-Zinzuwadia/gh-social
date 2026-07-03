@@ -9,6 +9,7 @@ interface User {
     user_name?: string;
     full_name?: string;
   };
+  onboarding_completed?: boolean;
 }
 
 interface AuthState {
@@ -246,10 +247,16 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const response = await apiClient.getOnboardingStatus();
 
       if (response.success && response.data) {
-        set({ isLoading: false });
-        return {
-          onboarding_completed: response.data.isComplete || false,
-        };
+        const onboarding_completed = response.data.isComplete || false;
+        
+        const currentUser = get().user;
+        if (currentUser) {
+          set({ user: { ...currentUser, onboarding_completed }, isLoading: false });
+        } else {
+          set({ isLoading: false });
+        }
+        
+        return { onboarding_completed };
       } else {
         set({ isLoading: false });
         return { onboarding_completed: false };
@@ -288,6 +295,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
               user_name: profile.username,
               full_name: profile.full_name,
             },
+            onboarding_completed: response.data.isComplete || false,
           };
           set({ user, isAuthenticated: true, isLoading: false });
         } else {

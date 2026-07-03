@@ -22,7 +22,7 @@ export function HomeUserFooter({
         <Text style={[styles.username, isSmallPhone && { fontSize: 14, lineHeight: 18 }]}>{repository.owner}</Text>
         <View style={[styles.stats, isSmallPhone && { gap: 12, marginTop: 6 }]}>
           <View style={styles.statItem}>
-            <Star size={isSmallPhone ? 14 : 16} color="#8EFF7A" strokeWidth={1.8} />
+            <Star size={isSmallPhone ? 14 : 16} color="#4ADE80" strokeWidth={1.8} />
             <Text style={[styles.statText, isSmallPhone && { fontSize: 10 }]}>{repository.stats.stars}</Text>
           </View>
           <View style={styles.statItem}>
@@ -49,7 +49,7 @@ export function UserFooter({ repository, isSmallPhone }: { repository: Repositor
         <Text style={[styles.username, isSmallPhone && { fontSize: 14, lineHeight: 18 }]}>{repository.owner}</Text>
         <View style={[styles.stats, isSmallPhone && { gap: 10, marginTop: 4 }]}>
           <View style={styles.statItem}>
-            <Star size={isSmallPhone ? 14 : 16} color="#8EFF7A" strokeWidth={1.8} />
+            <Star size={isSmallPhone ? 14 : 16} color="#4ADE80" strokeWidth={1.8} />
             <Text style={[styles.statText, isSmallPhone && { fontSize: 10 }]}>{repository.stats.stars}</Text>
           </View>
           <View style={styles.statItem}>
@@ -57,7 +57,7 @@ export function UserFooter({ repository, isSmallPhone }: { repository: Repositor
             <Text style={[styles.statText, isSmallPhone && { fontSize: 10 }]}>{repository.stats.views}</Text>
           </View>
           <View style={styles.statItem}>
-            <Bug size={isSmallPhone ? 13 : 15} color="#8EFF7A" strokeWidth={2} />
+            <Bug size={isSmallPhone ? 13 : 15} color="#4ADE80" strokeWidth={2} />
             <Text style={[styles.statText, isSmallPhone && { fontSize: 10 }]}>{repository.stats.bugs}</Text>
           </View>
         </View>

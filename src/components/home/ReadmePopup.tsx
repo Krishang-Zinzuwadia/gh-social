@@ -79,7 +79,7 @@ export function ReadmePopup({ isVisible, onClose, title, readmeText }: ReadmePop
             <Text style={styles.popupTitle}>README Summary</Text>
           </View>
           <Pressable onPress={closeAnimated} style={styles.popupCloseButton}>
-            <X size={24} color="#A49898" strokeWidth={1.5} />
+            <X size={24} color="#D1D5DB" strokeWidth={1} />
           </Pressable>
         </View>
 
@@ -113,18 +113,18 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.4)',
   },
   popupCard: {
-    backgroundColor: '#0A0A0A',
+    backgroundColor: '#0B130B',
     borderRadius: 20,
     borderWidth: 1.5,
-    borderColor: '#8EFF7A',
+    borderColor: '#4ADE80',
     padding: 20,
     width: '90%',
     height: '75%',
-    shadowColor: '#8EFF7A',
+    shadowColor: '#4ADE80',
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.15,
-    shadowRadius: 6,
-    elevation: 4,
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 2,
   },
   popupHeader: {
     flexDirection: 'row',
@@ -133,7 +133,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   popupTitle: {
-    color: '#8EFF7A',
+    color: '#4ADE80',
     fontFamily: 'NataSans-Bold',
     fontSize: 15,
   },

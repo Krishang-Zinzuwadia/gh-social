@@ -1,218 +1,201 @@
-<<<<<<< HEAD
-import type { Response } from 'express';
-import type { AuthRequest } from '../middlewares/authMiddleware.js';
-import { GitHubApiError } from "../services/githubService.js";
-import type { OnboardingSetupBody } from "../types/onboarding.js";
 import { buildMlOnboardPayload, mlService } from '../services/mlService.js';
-
-import * as onboardingService from '../services/onboardingService.js';
-=======
 import type { Response } from "express";
 import type { AuthRequest } from "../middlewares/authMiddleware.js";
 import { GitHubApiError } from "../services/githubService.js";
 import * as onboardingService from "../services/onboardingService.js";
 import type { OnboardingSetupBody } from "../types/onboarding.js";
->>>>>>> b00059593453532204c829d68f38b2c7519ada21
 import {
-  sendControllerError,
-  sendDatabaseError,
-  sendError,
-  sendSuccess,
+ sendControllerError,
+ sendDatabaseError,
+ sendError,
+ sendSuccess,
 } from "../utils/response.js";
-
 import { eq } from "drizzle-orm";
 import { db } from "../db/index.js";
 import { users } from "../db/schema.js";
 
 function getAuthenticatedUserId(
-  req: AuthRequest,
-  res: Response,
+ req: AuthRequest,
+ res: Response,
 ): string | null {
-  const userId = req.user?.userId;
+ const userId = req.user?.userId;
+ if (!userId) {
+   sendError(res, 401, "Unauthorized request. Please log in.");
+   return null;
+ }
 
-  if (!userId) {
-    sendError(res, 401, "Unauthorized request. Please log in.");
-    return null;
-  }
-
-  return userId;
+ return userId;
 }
 
 export async function getOnboardingStatus(
-  req: AuthRequest,
-  res: Response,
+ req: AuthRequest,
+ res: Response,
 ): Promise<void> {
-  const userId = getAuthenticatedUserId(req, res);
-  if (!userId) return;
+ const userId = getAuthenticatedUserId(req, res);
+ if (!userId) return;
 
-  // Diagnostic fetch using Drizzle to bypass REST API permission issues
-  const [rawData] = await db
-    .select()
-    .from(users)
-    .where(eq(users.user_id, userId))
-    .limit(1);
+ // Diagnostic fetch using Drizzle to bypass REST API permission issues
+ const [rawData] = await db
+   .select()
+   .from(users)
+   .where(eq(users.user_id, userId))
+   .limit(1);
+ console.log("Diagnostic User Fetch Data (Drizzle):", rawData);
 
-  console.log("Diagnostic User Fetch Data (Drizzle):", rawData);
+ const { data, error } = await onboardingService.getOnboardingStatus(userId);
+ if (error) {
+   return sendDatabaseError(res, error, {
+     notFoundMessage: "User profile not found",
+   });
+ }
 
-  const { data, error } = await onboardingService.getOnboardingStatus(userId);
-
-  if (error) {
-    return sendDatabaseError(res, error, {
-      notFoundMessage: "User profile not found",
-    });
-  }
-
-  return sendSuccess(res, 200, data);
+ return sendSuccess(res, 200, data);
 }
 
 export async function setupOnboarding(
-  req: AuthRequest,
-  res: Response,
+ req: AuthRequest,
+ res: Response,
 ): Promise<void> {
-  const userId = getAuthenticatedUserId(req, res);
-  if (!userId) return;
+ const userId = getAuthenticatedUserId(req, res);
+ if (!userId) return;
 
-  const body = req.body as OnboardingSetupBody;
+ const body = req.body as OnboardingSetupBody;
 
-  if (!body.username?.trim()) {
-    return sendError(res, 400, "username is required.");
-  }
+ if (!body.username?.trim()) {
+   return sendError(res, 400, "username is required.");
+ }
 
-  if (!body.full_name?.trim()) {
-    return sendError(res, 400, "full_name is required.");
-  }
+ if (!body.full_name?.trim()) {
+   return sendError(res, 400, "full_name is required.");
+ }
 
-  if (body.interests !== undefined && !Array.isArray(body.interests)) {
-    return sendError(res, 400, "interests must be an array of strings.");
-  }
+ if (body.interests !== undefined && !Array.isArray(body.interests)) {
+   return sendError(res, 400, "interests must be an array of strings.");
+ }
 
-  if (
-    body.interests?.some(
-      (interest) => typeof interest !== "string" || !interest.trim(),
-    )
-  ) {
-    return sendError(res, 400, "Each interest must be a non-empty string.");
-  }
+ if (
+   body.interests?.some(
+     (interest) => typeof interest !== "string" || !interest.trim(),
+   )
+ ) {
+   return sendError(res, 400, "Each interest must be a non-empty string.");
+ }
 
-  if (body.skills !== undefined && !Array.isArray(body.skills)) {
-    return sendError(res, 400, "skills must be an array of strings.");
-  }
+ if (body.skills !== undefined && !Array.isArray(body.skills)) {
+   return sendError(res, 400, "skills must be an array of strings.");
+ }
 
-  if (
-    body.skills?.some((skill) => typeof skill !== "string" || !skill.trim())
-  ) {
-    return sendError(res, 400, "Each skill must be a non-empty string.");
-  }
+ if (
+   body.skills?.some((skill) => typeof skill !== "string" || !skill.trim())
+ ) {
+   return sendError(res, 400, "Each skill must be a non-empty string.");
+ }
 
-  if (body.tech_stack !== undefined && !Array.isArray(body.tech_stack)) {
-    return sendError(res, 400, "tech_stack must be an array of strings.");
-  }
+ if (body.tech_stack !== undefined && !Array.isArray(body.tech_stack)) {
+   return sendError(res, 400, "tech_stack must be an array of strings.");
+ }
 
-  if (
-    body.tech_stack?.some((item) => typeof item !== "string" || !item.trim())
-  ) {
-    return sendError(
-      res,
-      400,
-      "Each tech_stack item must be a non-empty string.",
-    );
-  }
+ if (
+   body.tech_stack?.some((item) => typeof item !== "string" || !item.trim())
+ ) {
+   return sendError(
+     res,
+     400,
+     "Each tech_stack item must be a non-empty string.",
+   );
+ }
 
-  if (body.avatar_url !== undefined && body.avatar_url !== null) {
-    if (
-      typeof body.avatar_url !== "string" ||
-      !body.avatar_url.startsWith("http")
-    ) {
-      return sendError(
-        res,
-        400,
-        "avatar_url must be a valid URL starting with http/https.",
-      );
-    }
-  }
+ if (body.avatar_url !== undefined && body.avatar_url !== null) {
+   if (
+     typeof body.avatar_url !== "string" ||
+     !body.avatar_url.startsWith("http")
+   ) {
+     return sendError(
+       res,
+       400,
+       "avatar_url must be a valid URL starting with http/https.",
+     );
+   }
+ }
 
-  if (body.date_of_birth !== undefined && body.date_of_birth !== null) {
-    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-    if (
-      typeof body.date_of_birth !== "string" ||
-      !dateRegex.test(body.date_of_birth)
-    ) {
-      return sendError(
-        res,
-        400,
-        "date_of_birth must be a valid date string in YYYY-MM-DD format.",
-      );
-    }
-    if (isNaN(Date.parse(body.date_of_birth))) {
-      return sendError(
-        res,
-        400,
-        "date_of_birth must be a valid calendar date.",
-      );
-    }
-  }
+ if (body.date_of_birth !== undefined && body.date_of_birth !== null) {
+   const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+   if (
+     typeof body.date_of_birth !== "string" ||
+     !dateRegex.test(body.date_of_birth)
+   ) {
+     return sendError(
+       res,
+       400,
+       "date_of_birth must be a valid date string in YYYY-MM-DD format.",
+     );
+   }
+   if (isNaN(Date.parse(body.date_of_birth))) {
+     return sendError(
+       res,
+       400,
+       "date_of_birth must be a valid calendar date.",
+     );
+   }
+ }
 
-  console.log("Received PUT request. User ID:", userId);
-  console.log("Updating onboarding_completed to true...");
+ console.log("Received PUT request. User ID:", userId);
+ console.log("Updating onboarding_completed to true...");
+ const { data, error } = await onboardingService.setupOnboardingProfile(
+   userId,
+   body,
+ );
+ console.log("Updated User object from DB:", data);
 
-  const { data, error } = await onboardingService.setupOnboardingProfile(
-    userId,
-    body,
-  );
+ if (error) {
+   return sendDatabaseError(res, error as any, {
+     conflictMessage: "Username is already taken.",
+   });
+ }
 
-  console.log("Updated User object from DB:", data);
+ void mlService.onboardUserBestEffort(buildMlOnboardPayload(userId, data));
 
-  if (error) {
-    return sendDatabaseError(res, error as any, {
-      conflictMessage: "Username is already taken.",
-    });
-  }
-
-  void mlService.onboardUserBestEffort(buildMlOnboardPayload(userId, data));
-
-  return sendSuccess(res, 200, data);
+ return sendSuccess(res, 200, data);
 }
 
 export async function syncGitHub(
-  req: AuthRequest,
-  res: Response,
+ req: AuthRequest,
+ res: Response,
 ): Promise<void> {
-  const userId = getAuthenticatedUserId(req, res);
-  if (!userId) return;
+ const userId = getAuthenticatedUserId(req, res);
+ if (!userId) return;
 
-  try {
-    // Pass ONLY the userId. The service will extract the safe handle from Auth.
-    const { data, error, profile } =
-      await onboardingService.syncGitHubProfile(userId);
+ try {
+   const { data, error, profile } =
+     await onboardingService.syncGitHubProfile(userId);
+   if (error) {
+     if (error.code === "GITHUB_NOT_LINKED") {
+       return sendError(res, 400, error.message);
+     }
 
-    if (error) {
-      if (error.code === "GITHUB_NOT_LINKED") {
-        return sendError(res, 400, error.message);
-      }
+     return sendDatabaseError(res, error as any, {
+       notFoundMessage: "User profile not found",
+       conflictMessage:
+         "This GitHub account is already linked to another user.",
+     });
+   }
 
-      return sendDatabaseError(res, error as any, {
-        notFoundMessage: "User profile not found",
-        conflictMessage:
-          "This GitHub account is already linked to another user.",
-      });
-    }
+   if (profile) {
+     void mlService.onboardUserBestEffort(buildMlOnboardPayload(userId, profile));
+   }
 
-    if (profile) {
-      void mlService.onboardUserBestEffort(buildMlOnboardPayload(userId, profile));
-    }
+   return sendSuccess(res, 200, { synced: data, profile });
+ } catch (err) {
+   if (err instanceof GitHubApiError) {
+     const statusCode =
+       err.statusCode === 404
+         ? 404
+         : err.statusCode >= 400 && err.statusCode < 500
+           ? err.statusCode
+           : 502;
+     return sendError(res, statusCode, err.message);
+   }
 
-    return sendSuccess(res, 200, { synced: data, profile });
-  } catch (err) {
-    if (err instanceof GitHubApiError) {
-      const statusCode =
-        err.statusCode === 404
-          ? 404
-          : err.statusCode >= 400 && err.statusCode < 500
-            ? err.statusCode
-            : 502;
-      return sendError(res, statusCode, err.message);
-    }
-
-    return sendControllerError(res, err);
-  }
+   return sendControllerError(res, err);
+ }
 }

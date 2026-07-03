@@ -1,9 +1,5 @@
 import { useState } from "react";
-<<<<<<< HEAD
 import { TextInput, View, TouchableOpacity, TextInputProps } from "react-native";
-=======
-import { TextInput, View, TouchableOpacity } from "react-native";
->>>>>>> b00059593453532204c829d68f38b2c7519ada21
 import { Ionicons } from '@expo/vector-icons';
 
 
@@ -23,10 +19,7 @@ export default function LoginInput({
   onChangeText,
   autoCapitalize,
   keyboardType,
-<<<<<<< HEAD
   ...rest // This keeps the team's ability to pass extra props automatically
-=======
->>>>>>> b00059593453532204c829d68f38b2c7519ada21
 }: Props) {
   const [isSecure, setIsSecure] = useState(secureTextEntry);
 
@@ -40,12 +33,8 @@ export default function LoginInput({
         onChangeText={onChangeText}
         autoCapitalize={autoCapitalize}
         keyboardType={keyboardType}
-<<<<<<< HEAD
         className="text-white text-[14px] font-nata outline-none w-full h-full"
         {...rest} // This passes the extra props down
-=======
-        className="text-white text-[14px] font-nata outline-none flex-1 h-full"
->>>>>>> b00059593453532204c829d68f38b2c7519ada21
       />
       {secureTextEntry !== undefined && (
         <TouchableOpacity onPress={() => setIsSecure(!isSecure)} className="ml-2 p-1">

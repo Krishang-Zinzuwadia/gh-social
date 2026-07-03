@@ -19,11 +19,7 @@ const PREDEFINED_TECHS = SUGGESTED_TECHS.map(t => t.name);
 
 export default function Step2() {
   const { categories, username, dob, bio } = useLocalSearchParams();
-<<<<<<< HEAD
   const { updateData } = useOnboarding();
-=======
-  
->>>>>>> b00059593453532204c829d68f38b2c7519ada21
   const [selectedTechs, setSelectedTechs] = useState<string[]>([
     "React",
     "MongoDB",

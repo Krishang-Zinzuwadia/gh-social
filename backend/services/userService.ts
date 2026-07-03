@@ -3,28 +3,28 @@ import { db } from "../db/index.js";
 import { follows, users } from "../db/schema.js";
 import type { UserProfile, UserUpdate } from "../types/database.js";
 import type {
-  OnboardingStatusResponse,
-  OnboardingStepStatus,
+ OnboardingStatusResponse,
+ OnboardingStepStatus,
 } from "../types/onboarding.js";
 
 const USER_PROFILE_COLUMNS = {
-  user_id: users.user_id,
-  username: users.username,
-  full_name: users.full_name,
-  date_of_birth: users.date_of_birth,
-  bio: users.bio,
-  github_url: users.github_url,
-  github_handle: users.github_handle,
-  avatar_url: users.avatar_url,
-  followers_count: users.followers_count,
-  following_count: users.following_count,
-  saved_repos_count: users.saved_repos_count,
-  likes_given_count: users.likes_given_count,
-  interests: users.interests,
-  skills: users.skills,
-  tech_stack: users.tech_stack,
-  onboarding_completed: users.onboarding_completed,
-  created_at: users.created_at,
+ user_id: users.user_id,
+ username: users.username,
+ full_name: users.full_name,
+ date_of_birth: users.date_of_birth,
+ bio: users.bio,
+ github_url: users.github_url,
+ github_handle: users.github_handle,
+ avatar_url: users.avatar_url,
+ followers_count: users.followers_count,
+ following_count: users.following_count,
+ saved_repos_count: users.saved_repos_count,
+ likes_given_count: users.likes_given_count,
+ interests: users.interests,
+ skills: users.skills,
+ tech_stack: users.tech_stack,
+ onboarding_completed: users.onboarding_completed,
+ created_at: users.created_at,
 };
 
 const ONBOARDING_EVALUATION_COLUMNS = { ...USER_PROFILE_COLUMNS };
@@ -32,230 +32,202 @@ const ONBOARDING_EVALUATION_COLUMNS = { ...USER_PROFILE_COLUMNS };
 const DEFAULT_USERNAME_PREFIX = "user_";
 
 type OnboardingProfileState = Pick<
-  UserProfile,
-  | "username"
-  | "full_name"
-  | "bio"
-  | "avatar_url"
-  | "github_url"
-  | "github_handle"
-  | "interests"
-  | "skills"
-  | "tech_stack"
-  | "onboarding_completed"
+ UserProfile,
+ | "username"
+ | "full_name"
+ | "bio"
+ | "avatar_url"
+ | "github_url"
+ | "github_handle"
+ | "interests"
+ | "skills"
+ | "tech_stack"
+ | "onboarding_completed"
 >;
 
 function isDefaultUsername(username: string): boolean {
-  return /^user_[0-9a-f]{8}$/.test(username);
+ return /^user_[0-9a-f]{8}$/.test(username);
 }
 
 function hasNonEmptyJsonArray(value: unknown): boolean {
-  return Array.isArray(value) && value.length > 0;
+ return Array.isArray(value) && value.length > 0;
 }
 
 function evaluateOnboardingSteps(
-  profile: OnboardingProfileState,
+ profile: OnboardingProfileState,
 ): OnboardingStepStatus {
-  const profileComplete =
-    profile.username.trim().length > 0 &&
-    !isDefaultUsername(profile.username) &&
-    Boolean(profile.full_name?.trim());
+ const profileComplete =
+   profile.username.trim().length > 0 &&
+   !isDefaultUsername(profile.username) &&
+   Boolean(profile.full_name?.trim());
 
-  const githubComplete = Boolean(profile.github_handle?.trim());
+ const githubComplete = Boolean(profile.github_handle?.trim());
 
-  return {
-    profile: profileComplete,
-    github: githubComplete,
-    interests: hasNonEmptyJsonArray(profile.interests),
-    skills: hasNonEmptyJsonArray(profile.skills),
-    tech_stack: hasNonEmptyJsonArray(profile.tech_stack),
-  };
+ return {
+   profile: profileComplete,
+   github: githubComplete,
+   interests: hasNonEmptyJsonArray(profile.interests),
+   skills: hasNonEmptyJsonArray(profile.skills),
+   tech_stack: hasNonEmptyJsonArray(profile.tech_stack),
+ };
 }
 
 function buildMissingFields(
-  steps: OnboardingStepStatus,
-  profile: OnboardingProfileState,
+ steps: OnboardingStepStatus,
+ profile: OnboardingProfileState,
 ): string[] {
-  const missing: string[] = [];
-  if (!steps.profile) {
-    if (!profile.username.trim() || isDefaultUsername(profile.username))
-      missing.push("username");
-    if (!profile.full_name?.trim()) missing.push("full_name");
-  }
-<<<<<<< HEAD
-
-=======
->>>>>>> b00059593453532204c829d68f38b2c7519ada21
-  if (!steps.github) missing.push("github");
-  if (!steps.interests) missing.push("interests");
-  if (!steps.skills) missing.push("skills");
-  if (!steps.tech_stack) missing.push("tech_stack");
-  return missing;
+ const missing: string[] = [];
+ if (!steps.profile) {
+   if (!profile.username.trim() || isDefaultUsername(profile.username))
+     missing.push("username");
+   if (!profile.full_name?.trim()) missing.push("full_name");
+ }
+ if (!steps.github) missing.push("github");
+ if (!steps.interests) missing.push("interests");
+ if (!steps.skills) missing.push("skills");
+ if (!steps.tech_stack) missing.push("tech_stack");
+ return missing;
 }
 
 function isOnboardingComplete(profile: OnboardingProfileState): boolean {
-  const steps = evaluateOnboardingSteps(profile);
-  return buildMissingFields(steps, profile).length === 0;
+ const steps = evaluateOnboardingSteps(profile);
+ return buildMissingFields(steps, profile).length === 0;
 }
 
 function buildOnboardingStatus(profile: UserProfile): OnboardingStatusResponse {
-  const steps = evaluateOnboardingSteps(profile);
-  const missingFields = buildMissingFields(steps, profile);
+ const steps = evaluateOnboardingSteps(profile);
+ const missingFields = buildMissingFields(steps, profile);
 
-  return {
-    isComplete: profile.onboarding_completed || missingFields.length === 0,
-    steps,
-    missingFields,
-    profile,
-  };
+ return {
+   isComplete: profile.onboarding_completed || missingFields.length === 0,
+   steps,
+   missingFields,
+   profile,
+ };
 }
 
 export async function getUserProfile(userId: string) {
-  try {
-    const [data] = await db
-      .select(ONBOARDING_EVALUATION_COLUMNS)
-      .from(users)
-      .where(eq(users.user_id, userId))
-      .limit(1);
-<<<<<<< HEAD
+ try {
+   const [data] = await db
+     .select(ONBOARDING_EVALUATION_COLUMNS)
+     .from(users)
+     .where(eq(users.user_id, userId))
+     .limit(1);
 
-    // Keep your graceful handling for new OAuth users
-    if (!data) {
-      return { 
-        data: {
-          isComplete: false,
-          steps: { profile: false, github: false, interests: false, skills: false, tech_stack: false },
-          missingFields: ['username', 'full_name', 'interests', 'skills', 'tech_stack'],
-          profile: null
-        }, 
-        error: null 
-      };
-    }
-    
-    return { data: buildOnboardingStatus(data as unknown as UserProfile), error: null };
-  } catch (error) { 
-    return { data: null as any, error: error as any }; 
-=======
-    if (!data) throw { code: "PGRST116", message: "Not found" };
-    return {
-      data: buildOnboardingStatus(data as unknown as UserProfile),
-      error: null,
-    };
-  } catch (error) {
-    return { data: null as any, error: error as any };
->>>>>>> b00059593453532204c829d68f38b2c7519ada21
-  }
+   // Keep your graceful handling for new OAuth users
+   if (!data) {
+     return {
+       data: {
+         isComplete: false,
+         steps: { profile: false, github: false, interests: false, skills: false, tech_stack: false },
+         missingFields: ['username', 'full_name', 'interests', 'skills', 'tech_stack'],
+         profile: null
+       },
+       error: null
+     };
+   }
+  
+   return { data: buildOnboardingStatus(data as unknown as UserProfile), error: null };
+ } catch (error) {
+   return { data: null as any, error: error as any };
+ }
 }
 
 export async function getUserProfileByUsername(username: string) {
-  try {
-    const [data] = await db
-      .select(USER_PROFILE_COLUMNS)
-      .from(users)
-      .where(eq(users.username, username))
-      .limit(1);
-    if (!data) throw { code: "PGRST116", message: "Not found" };
-    return { data, error: null };
-  } catch (error) {
-    return { data: null as any, error: error as any };
-  }
+ try {
+   const [data] = await db
+     .select(USER_PROFILE_COLUMNS)
+     .from(users)
+     .where(eq(users.username, username))
+     .limit(1);
+   if (!data) throw { code: "PGRST116", message: "Not found" };
+   return { data, error: null };
+ } catch (error) {
+   return { data: null as any, error: error as any };
+ }
 }
 
 export async function getUserIdByUsername(username: string) {
-  try {
-    const [data] = await db
-      .select({ user_id: users.user_id })
-      .from(users)
-      .where(eq(users.username, username))
-      .limit(1);
-    if (!data) throw { code: "PGRST116", message: "Not found" };
-    return { data, error: null };
-  } catch (error) {
-    return { data: null as any, error: error as any };
-  }
+ try {
+   const [data] = await db
+     .select({ user_id: users.user_id })
+     .from(users)
+     .where(eq(users.username, username))
+     .limit(1);
+   if (!data) throw { code: "PGRST116", message: "Not found" };
+   return { data, error: null };
+ } catch (error) {
+   return { data: null as any, error: error as any };
+ }
 }
 
 export async function followUser(followerId: string, followingId: string) {
-  try {
-    const [data] = await db
-      .insert(follows)
-      .values({ follower_id: followerId, following_id: followingId })
-      .returning();
-    return { data, error: null };
-  } catch (error) {
-    return { data: null as any, error: error as any };
-  }
+ try {
+   const [data] = await db
+     .insert(follows)
+     .values({ follower_id: followerId, following_id: followingId })
+     .returning();
+   return { data, error: null };
+ } catch (error) {
+   return { data: null as any, error: error as any };
+ }
 }
 
 export async function unfollowUser(followerId: string, followingId: string) {
-  try {
-    const result = await db
-      .delete(follows)
-      .where(
-        and(
-          eq(follows.follower_id, followerId),
-          eq(follows.following_id, followingId),
-        ),
-      )
-      .returning();
-    return { data: null, error: null, count: result.length };
-  } catch (error) {
-    return { data: null, error: error as any, count: 0 };
-  }
+ try {
+   const result = await db
+     .delete(follows)
+     .where(
+       and(
+         eq(follows.follower_id, followerId),
+         eq(follows.following_id, followingId),
+       ),
+     )
+     .returning();
+   return { data: null, error: null, count: result.length };
+ } catch (error) {
+   return { data: null, error: error as any, count: 0 };
+ }
 }
 
 export async function getAllUsers() {
-  try {
-    const data = await db
-      .select(USER_PROFILE_COLUMNS)
-      .from(users)
-      .orderBy(desc(users.created_at));
-    return { data, error: null };
-  } catch (error) {
-    return { data: null as any, error: error as any };
-  }
+ try {
+   const data = await db
+     .select(USER_PROFILE_COLUMNS)
+     .from(users)
+     .orderBy(desc(users.created_at));
+   return { data, error: null };
+ } catch (error) {
+   return { data: null as any, error: error as any };
+ }
 }
 
 export async function getUserById(userId: string) {
-  try {
-    const [data] = await db
-      .select(USER_PROFILE_COLUMNS)
-      .from(users)
-      .where(eq(users.user_id, userId))
-      .limit(1);
-    if (!data) throw { code: "PGRST116", message: "Not found" };
-    return { data, error: null };
-  } catch (error) {
-    return { data: null as any, error: error as any };
-  }
+ try {
+   const [data] = await db
+     .select(USER_PROFILE_COLUMNS)
+     .from(users)
+     .where(eq(users.user_id, userId))
+     .limit(1);
+   if (!data) throw { code: "PGRST116", message: "Not found" };
+   return { data, error: null };
+ } catch (error) {
+   return { data: null as any, error: error as any };
+ }
 }
 
 export async function updateUserProfile(userId: string, updates: UserUpdate) {
-  try {
-<<<<<<< HEAD
-    // 1. Perform standard update for profile fields using your original structure
-    const [updatedRow] = await db
-      .update(users)
-      .set(updates)
-      .where(eq(users.user_id, userId))
-      .returning(USER_PROFILE_COLUMNS);
-
-    if (!updatedRow) throw { code: 'PGRST116', message: 'Not found' };
-    
-    return { data: updatedRow, error: null };
-  } catch (error) { 
-    return { data: null as any, error: error as any }; 
-=======
-    const [data] = await db
-      .update(users)
-      .set({ ...updates })
-      .where(eq(users.user_id, userId))
-      .returning(USER_PROFILE_COLUMNS);
-
-    if (!data) throw { code: "PGRST116", message: "Not found" };
-    return { data, error: null };
-  } catch (error) {
-    return { data: null as any, error: error as any };
->>>>>>> b00059593453532204c829d68f38b2c7519ada21
-  }
+ try {
+   // 1. Perform standard update for profile fields using your original structure
+   const [updatedRow] = await db
+     .update(users)
+     .set(updates)
+     .where(eq(users.user_id, userId))
+     .returning(USER_PROFILE_COLUMNS);
+   if (!updatedRow) throw { code: 'PGRST116', message: 'Not found' };
+  
+   return { data: updatedRow, error: null };
+ } catch (error) {
+   return { data: null as any, error: error as any };
+ }
 }

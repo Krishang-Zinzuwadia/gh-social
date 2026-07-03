@@ -190,15 +190,6 @@ export default function Step3() {
         </Text>
       )}
 
-<<<<<<< HEAD
-      {errorMsg ? (
-        <Text style={{ color: "#E57373", fontSize: 14, marginTop: 4, textAlign: "center" }}>
-          {errorMsg}
-        </Text>
-      ) : null}
-
-=======
->>>>>>> b00059593453532204c829d68f38b2c7519ada21
       {errorMessage ? (
         <Text style={{ color: "#E57373", fontSize: 14, marginTop: 10, textAlign: "center", fontWeight: "600" }}>
           {errorMessage}

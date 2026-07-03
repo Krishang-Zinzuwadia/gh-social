@@ -20,10 +20,6 @@ import { getAuthCallbackUrl } from "@/utils/urlHelper";
 export default function SignUpEmail() {
   const router = useRouter();
   const scrollViewRef = useRef<ScrollView>(null);
-<<<<<<< HEAD
-  
-=======
->>>>>>> b00059593453532204c829d68f38b2c7519ada21
   const { signup, oauthLogin, isLoading, error, clearError } = useAuthStore();
 
   const [fullName, setFullName] = useState("");
@@ -40,17 +36,8 @@ export default function SignUpEmail() {
 
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   const isEmailValid = emailRegex.test(email);
-<<<<<<< HEAD
   
   const isFormValid = fullName.trim().length > 0 && isEmailValid && isPasswordValid && username.trim().length > 0 && !isLoading;
-=======
-
-  const isFormValid =
-    fullName.trim().length > 0 &&
-    isEmailValid &&
-    isPasswordValid &&
-    username.trim().length > 0;
->>>>>>> b00059593453532204c829d68f38b2c7519ada21
 
   useEffect(() => {
     setTimeout(() => {
@@ -78,11 +65,7 @@ export default function SignUpEmail() {
       await signup(email.trim(), password, username.trim(), fullName.trim());
       router.replace("/(auth)/create-profile");
     } catch (err) {
-<<<<<<< HEAD
-      // Error is handled by the store
-=======
       // Error is handled by the store and shown in Alert
->>>>>>> b00059593453532204c829d68f38b2c7519ada21
     }
   };
 

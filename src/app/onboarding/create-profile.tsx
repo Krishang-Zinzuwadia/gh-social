@@ -21,12 +21,18 @@ export default function CreateProfile() {
   const [dob, setDob] = useState("");
   const [bio, setBio] = useState("");
 
+<<<<<<< HEAD:src/app/onboarding/create-profile.tsx
 // Regex for MM/DD/YYYY format
   const dobRegex = /^(0[1-9]|1[0-2])\/(0[1-9]|[12][0-9]|3[01])\/\d{4}$/;
   
   // Validation logic
   const isDobValid = dob.trim().length === 0 || dobRegex.test(dob.trim());
   const isFormValid = username.trim().length > 0 && dob.trim().length > 0 && isDobValid;
+=======
+  const dobRegex = /^(0[1-9]|[12][0-9]|3[01])\/(0[1-9]|1[0-2])\/\d{4}$/;
+  const isDobValid = dobRegex.test(dob.trim());
+  const isFormValid = username.trim().length > 0 && isDobValid;
+>>>>>>> b00059593453532204c829d68f38b2c7519ada21:src/app/(auth)/create-profile.tsx
 
 const handleCreateAccount = () => {
     if (isFormValid) {
@@ -81,16 +87,26 @@ const handleCreateAccount = () => {
         {/* Date of birth */}
         <View className="mt-4">
           <ProfileDateInput value={dob} onChangeText={setDob} />
+<<<<<<< HEAD:src/app/onboarding/create-profile.tsx
         {dob.trim().length > 0 && !isDobValid && (
             <Text className="text-[#E57373] text-[13px] font-nata mt-1 ml-1">
               Please enter a valid date (mm/dd/yyyy)
+=======
+          {!isDobValid && (
+            <Text className="text-[#E57373] text-[13px] font-nata mt-1 ml-1">
+              Please enter a valid date (dd/mm/yyyy)
+>>>>>>> b00059593453532204c829d68f38b2c7519ada21:src/app/(auth)/create-profile.tsx
             </Text>
           )}
         </View>
 
         {/* Bio */}
         <View className="mt-4">
+<<<<<<< HEAD:src/app/onboarding/create-profile.tsx
             <ProfileTextArea value={bio} onChangeText={setBio} />
+=======
+          <ProfileTextArea />
+>>>>>>> b00059593453532204c829d68f38b2c7519ada21:src/app/(auth)/create-profile.tsx
         </View>
 
         {/* Create Account */}

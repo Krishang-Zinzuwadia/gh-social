@@ -5,7 +5,10 @@ import jwt from "jsonwebtoken";
 import supabase, { supabaseAdmin } from "../config/supabase.js";
 import { db } from "../db/index.js";
 import { oauthCodes, refreshTokens, users } from "../db/schema.js";
+<<<<<<< HEAD
 import { mlService } from "../services/mlService.js";
+=======
+>>>>>>> b00059593453532204c829d68f38b2c7519ada21
 import {
   sendControllerError,
   sendError,
@@ -133,6 +136,7 @@ export async function signUp(req: Request, res: Response): Promise<void> {
       return sendError(res, error.status || 400, error.message);
     }
 
+<<<<<<< HEAD
     // --- YOUR CRITICAL ML SERVICE ONBOARDING ---
     if (data.user) {
       void mlService.onboardUserBestEffort({
@@ -143,6 +147,19 @@ export async function signUp(req: Request, res: Response): Promise<void> {
         interests: [],
         skills: [],
         tech_stack: [],
+=======
+    if (process.env.NODE_ENV === "development") {
+      const userId = data.user!.id;
+      await supabaseAdmin.auth.admin.updateUserById(userId, {
+        email_confirm: true,
+      });
+      console.log("Development Bypass: Setting email_confirmed_at for user:", userId);
+    } else if (!data.session) {
+      return sendSuccess(res, 202, {
+        message:
+          "Signup successful! Please check your email to verify your account.",
+        user: data.user,
+>>>>>>> b00059593453532204c829d68f38b2c7519ada21
       });
     }
 
@@ -162,7 +179,17 @@ export async function signUp(req: Request, res: Response): Promise<void> {
 
     // --- TOKEN GENERATION FLOW ---
     const userId = data.user!.id;
+<<<<<<< HEAD
     const accessToken = jwt.sign({ userId, email }, JWT_SECRET, { expiresIn: "15m" });
+=======
+
+    // 1. Generate Custom JWT Access Token
+    const accessToken = jwt.sign({ userId, email }, JWT_SECRET, {
+      expiresIn: "15m",
+    });
+
+    // 2. Generate and store Refresh Token securely using Drizzle
+>>>>>>> b00059593453532204c829d68f38b2c7519ada21
     const refreshToken = await createAndStoreRefreshToken(userId);
 
     // 3. Set refresh token in HTTP-only cookie
@@ -474,6 +501,7 @@ export async function exchangeAuthCode(
       const userId = authData.user.id;
       const email = authData.user.email;
 
+<<<<<<< HEAD
       // --- YOUR CRITICAL ML SERVICE ONBOARDING ---
       void mlService.onboardUserBestEffort({
         user_id: userId,
@@ -485,6 +513,8 @@ export async function exchangeAuthCode(
         tech_stack: [],
       });
 
+=======
+>>>>>>> b00059593453532204c829d68f38b2c7519ada21
       // Mint custom JWT (short-lived, 15m to match other routes)
       const token = jwt.sign({ userId, email }, JWT_SECRET, {
         expiresIn: "15m",
@@ -549,6 +579,7 @@ export async function exchangeAuthCode(
 
     const email = authData.user.email;
 
+<<<<<<< HEAD
     // --- YOUR CRITICAL ML SERVICE ONBOARDING ---
     void mlService.onboardUserBestEffort({
       user_id: userId,
@@ -563,6 +594,11 @@ export async function exchangeAuthCode(
     // 5. Mint tokens
     const token = jwt.sign({ userId, email }, JWT_SECRET, { expiresIn: "15m" });
 
+=======
+    // 5. Mint tokens
+    const token = jwt.sign({ userId, email }, JWT_SECRET, { expiresIn: "15m" });
+
+>>>>>>> b00059593453532204c829d68f38b2c7519ada21
     const refreshToken = crypto.randomBytes(40).toString("hex");
     const tokenHash = hashToken(refreshToken);
 

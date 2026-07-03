@@ -82,7 +82,10 @@ function buildMissingFields(
       missing.push("username");
     if (!profile.full_name?.trim()) missing.push("full_name");
   }
+<<<<<<< HEAD
 
+=======
+>>>>>>> b00059593453532204c829d68f38b2c7519ada21
   if (!steps.github) missing.push("github");
   if (!steps.interests) missing.push("interests");
   if (!steps.skills) missing.push("skills");
@@ -114,6 +117,7 @@ export async function getUserProfile(userId: string) {
       .from(users)
       .where(eq(users.user_id, userId))
       .limit(1);
+<<<<<<< HEAD
 
     // Keep your graceful handling for new OAuth users
     if (!data) {
@@ -131,6 +135,15 @@ export async function getUserProfile(userId: string) {
     return { data: buildOnboardingStatus(data as unknown as UserProfile), error: null };
   } catch (error) { 
     return { data: null as any, error: error as any }; 
+=======
+    if (!data) throw { code: "PGRST116", message: "Not found" };
+    return {
+      data: buildOnboardingStatus(data as unknown as UserProfile),
+      error: null,
+    };
+  } catch (error) {
+    return { data: null as any, error: error as any };
+>>>>>>> b00059593453532204c829d68f38b2c7519ada21
   }
 }
 
@@ -219,6 +232,7 @@ export async function getUserById(userId: string) {
 
 export async function updateUserProfile(userId: string, updates: UserUpdate) {
   try {
+<<<<<<< HEAD
     // 1. Perform standard update for profile fields using your original structure
     const [updatedRow] = await db
       .update(users)
@@ -231,5 +245,17 @@ export async function updateUserProfile(userId: string, updates: UserUpdate) {
     return { data: updatedRow, error: null };
   } catch (error) { 
     return { data: null as any, error: error as any }; 
+=======
+    const [data] = await db
+      .update(users)
+      .set({ ...updates })
+      .where(eq(users.user_id, userId))
+      .returning(USER_PROFILE_COLUMNS);
+
+    if (!data) throw { code: "PGRST116", message: "Not found" };
+    return { data, error: null };
+  } catch (error) {
+    return { data: null as any, error: error as any };
+>>>>>>> b00059593453532204c829d68f38b2c7519ada21
   }
 }

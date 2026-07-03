@@ -1,6 +1,12 @@
+<<<<<<< HEAD
 import * as Linking from "expo-linking";
 import { useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
+=======
+import * as Linking from 'expo-linking';
+import { useRouter } from "expo-router";
+import * as WebBrowser from 'expo-web-browser';
+>>>>>>> b00059593453532204c829d68f38b2c7519ada21
 import { useEffect, useRef, useState } from "react";
 import { Alert, Platform, ScrollView, Text, View } from "react-native";
 
@@ -22,6 +28,10 @@ import { getAuthCallbackUrl } from '@/utils/urlHelper';
 export default function LoginScreen() {
   const router = useRouter();
   const scrollViewRef = useRef<ScrollView>(null);
+  const { login, oauthLogin, isLoading, error, clearError, checkOnboardingStatus } = useAuthStore();
+  
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
   const {
     login,
@@ -53,6 +63,7 @@ export default function LoginScreen() {
   }, [error, clearError]);
 
   const handleEmailLogin = async () => {
+<<<<<<< HEAD
     if (!isFormValid) return;
     try {
       await login(email.trim(), password);
@@ -60,6 +71,14 @@ export default function LoginScreen() {
       // Check onboarding status to determine routing
       const { onboarding_completed } = await checkOnboardingStatus();
 
+=======
+    try {
+      await login(email.trim(), password);
+      
+      // Check onboarding status to determine routing
+      const { onboarding_completed } = await checkOnboardingStatus();
+      
+>>>>>>> b00059593453532204c829d68f38b2c7519ada21
       if (onboarding_completed) {
         router.replace("/(tabs)/home");
       } else {
@@ -80,6 +99,7 @@ export default function LoginScreen() {
         window.location.href = url;
         return;
       }
+<<<<<<< HEAD
 
       const result = await WebBrowser.openAuthSessionAsync(url, redirectUrl);
 
@@ -99,6 +119,25 @@ export default function LoginScreen() {
       }
     } catch (err: any) {
       Alert.alert("GitHub Login Failed", err.message || "An error occurred");
+=======
+      
+      const result = await WebBrowser.openAuthSessionAsync(url, redirectUrl);
+      
+      if (result.type === 'success' && result.url) {
+        const urlParams = new URL(result.url).searchParams;
+        const code = urlParams.get('code');
+        const error = urlParams.get('error');
+        
+        if (error) {
+          Alert.alert('OAuth Error', error);
+        } else if (code) {
+          // The callback will handle the routing
+          router.replace({ pathname: '/auth/callback', params: { code, intent: 'login' } });
+        }
+      }
+    } catch (err: any) {
+      Alert.alert('GitHub Login Failed', err.message || 'An error occurred');
+>>>>>>> b00059593453532204c829d68f38b2c7519ada21
     }
   };
 
@@ -112,6 +151,7 @@ export default function LoginScreen() {
         window.location.href = url;
         return;
       }
+<<<<<<< HEAD
 
       const result = await WebBrowser.openAuthSessionAsync(url, redirectUrl);
 
@@ -131,6 +171,25 @@ export default function LoginScreen() {
       }
     } catch (err: any) {
       Alert.alert("Google Login Failed", err.message || "An error occurred");
+=======
+      
+      const result = await WebBrowser.openAuthSessionAsync(url, redirectUrl);
+      
+      if (result.type === 'success' && result.url) {
+        const urlParams = new URL(result.url).searchParams;
+        const code = urlParams.get('code');
+        const error = urlParams.get('error');
+        
+        if (error) {
+          Alert.alert('OAuth Error', error);
+        } else if (code) {
+          // The callback will handle the routing
+          router.replace({ pathname: '/auth/callback', params: { code, intent: 'login' } });
+        }
+      }
+    } catch (err: any) {
+      Alert.alert('Google Login Failed', err.message || 'An error occurred');
+>>>>>>> b00059593453532204c829d68f38b2c7519ada21
     }
   };
 
@@ -179,7 +238,15 @@ export default function LoginScreen() {
           <OrDivider />
         </View>
 
+<<<<<<< HEAD
         <Text className="text-white text-[15px] mt-8 mb-3 font-nata">
+=======
+        {/* Email */}
+        <Text
+          
+          className="text-white text-[15px] mt-8 mb-3 font-nata"
+        >
+>>>>>>> b00059593453532204c829d68f38b2c7519ada21
           Email
         </Text>
 
@@ -206,10 +273,16 @@ export default function LoginScreen() {
 
         <View className="mt-8">
           <PrimaryButton
+<<<<<<< HEAD
             label={isLoading ? "Logging In..." : "Log In"}
             onPress={handleEmailLogin}
             style={{ opacity: isFormValid ? 1 : 0.5 }}
             disabled={!isFormValid}
+=======
+            label="Log In"
+            onPress={handleEmailLogin}
+            disabled={isLoading}
+>>>>>>> b00059593453532204c829d68f38b2c7519ada21
           />
         </View>
 

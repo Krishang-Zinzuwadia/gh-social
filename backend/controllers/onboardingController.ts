@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import type { Response } from 'express';
 import type { AuthRequest } from '../middlewares/authMiddleware.js';
 import { GitHubApiError } from "../services/githubService.js";
@@ -5,6 +6,13 @@ import type { OnboardingSetupBody } from "../types/onboarding.js";
 import { buildMlOnboardPayload, mlService } from '../services/mlService.js';
 
 import * as onboardingService from '../services/onboardingService.js';
+=======
+import type { Response } from "express";
+import type { AuthRequest } from "../middlewares/authMiddleware.js";
+import { GitHubApiError } from "../services/githubService.js";
+import * as onboardingService from "../services/onboardingService.js";
+import type { OnboardingSetupBody } from "../types/onboarding.js";
+>>>>>>> b00059593453532204c829d68f38b2c7519ada21
 import {
   sendControllerError,
   sendDatabaseError,

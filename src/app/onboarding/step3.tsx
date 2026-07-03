@@ -1,26 +1,28 @@
-import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
-import { Alert, ScrollView, Text, View } from "react-native";
+import { router, useLocalSearchParams } from "expo-router";
+import { ScrollView, View, Text, Pressable } from "react-native";
+import { useAuth } from "../../store/AuthContext";
+import { useOnboarding } from "../../store/OnboardingContext";
+import * as SecureStore from 'expo-secure-store';
+import { setupOnboarding } from "../../api/onboarding";
 
-import { apiClient } from "@/api/client";
-import LogoPlaceholder from "@/components/onboarding/LogoPlaceholder";
-import PrimaryButton from "@/components/onboarding/PrimaryButton";
 import ProgressBar from "@/components/onboarding/ProgressBar";
-import StepHeader from "@/components/onboarding/StepHeader";
+import PrimaryButton from "@/components/onboarding/PrimaryButton";
 import TechChip from "@/components/onboarding/TechChip";
+import LogoPlaceholder from "@/components/onboarding/LogoPlaceholder";
+import StepHeader from "@/components/onboarding/StepHeader";
 import { INTEREST_CATEGORIES } from "@/constants/onboarding";
 
-import { storage } from "@/utils/storage";
-import { useAuthStore } from "@/store/authStore";
-
 export default function Step3() {
-  const { categories, techStack, username, dob, bio } = useLocalSearchParams();
+  const { categories } = useLocalSearchParams();
   const selectedCategoryIds = typeof categories === "string" ? categories.split(",") : [];
-  const techStackArray = typeof techStack === "string" ? techStack.split(",") : [];
 
   const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState("");
+
+  const { data: onboardingData } = useOnboarding();
+  const { checkOnboardingStatus } = useAuth();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
 
   const toggleInterest = (keyword: string) => {
     setSelectedInterests((prev) =>
@@ -31,72 +33,27 @@ export default function Step3() {
   };
 
   const completeOnboarding = async () => {
-    setErrorMessage("");
-
-    if (selectedCategoryIds.length === 0) {
-      setErrorMessage("Missing skills. Please go back and select at least one skill.");
-      return;
-    }
-
-    if (techStackArray.length === 0) {
-      setErrorMessage("Missing tech stack. Please go back and select at least one technology.");
-      return;
-    }
-
     if (selectedInterests.length >= 5) {
-      setIsLoading(true);
+      setIsSubmitting(true);
+      setErrorMsg("");
       try {
-        const token = await storage.getItemAsync("accessToken");
-        if (!token) {
-          Alert.alert(
-            "Email Not Confirmed",
-            "Please verify your email before finishing setup. A verification link has been sent."
-          );
-          setIsLoading(false);
-          return;
-        }
-
-        // Format date_of_birth from MM/DD/YYYY to YYYY-MM-DD
-        let formattedDateOfBirth = undefined;
-        if (dob) {
-          const dateStr = dob as string;
-          // Try to parse MM/DD/YYYY format
-          const parts = dateStr.split('/');
-          if (parts.length === 3) {
-            const [month, day, year] = parts;
-            formattedDateOfBirth = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
-          } else {
-            // Try to parse other formats or use as-is if already YYYY-MM-DD
-            formattedDateOfBirth = dateStr;
-          }
-        }
-
-        const payload = {
-          username: (username as string) || "",
-          full_name: (username as string) || "", // Using username as full_name for now since it's required
-          date_of_birth: formattedDateOfBirth,
-          bio: (bio as string) || "", // Convert undefined to empty string
+        const token = await SecureStore.getItemAsync('access_token');
+        if (!token) throw new Error("No access token found");
+        
+        await setupOnboarding(token, {
+          ...onboardingData,
+          username: onboardingData.username || "",
+          full_name: onboardingData.full_name || "",
           interests: selectedInterests,
-          skills: selectedCategoryIds,
-          tech_stack: techStackArray,
-        };
+          skills: selectedCategoryIds // Just putting the categories as skills for now as a placeholder for the multi-step flow
+        });
         
-        console.log("Attempting setup with token:", token);
-        console.log("Request payload:", JSON.stringify(payload));
-        
-        try {
-          const response = await apiClient.setupOnboarding(payload, token);
-          if (!response.success) {
-            setErrorMessage(response.error || "Failed to save profile. Please verify your email.");
-          } else {
-            await useAuthStore.getState().checkOnboardingStatus();
-            router.replace("/(tabs)/explore");
-          }
-        } catch (e) {
-          setErrorMessage("Error connecting to server. Please check your network.");
-        }
+        await checkOnboardingStatus();
+        // The _layout.tsx will now automatically redirect to (tabs)
+      } catch (err: any) {
+        setErrorMsg(err.message || 'Failed to save profile');
       } finally {
-        setIsLoading(false);
+        setIsSubmitting(false);
       }
     }
   };
@@ -189,17 +146,17 @@ export default function Step3() {
         </Text>
       )}
 
-      {errorMessage ? (
-        <Text style={{ color: "#E57373", fontSize: 14, marginTop: 10, textAlign: "center", fontWeight: "600" }}>
-          {errorMessage}
+      {errorMsg ? (
+        <Text style={{ color: "#E57373", fontSize: 14, marginTop: 4, textAlign: "center" }}>
+          {errorMsg}
         </Text>
       ) : null}
 
-      <View style={{ marginTop: selectedInterests.length < 5 ? 8 : (errorMessage ? 12 : 20) }}>
+      <View style={{ marginTop: selectedInterests.length < 5 ? 8 : 20 }}>
         <PrimaryButton
-          title={isLoading ? "Completing..." : "Finish"}
+          title={isSubmitting ? "Saving..." : "Finish"}
           onPress={completeOnboarding}
-          disabled={selectedInterests.length < 5 || isLoading}
+          disabled={selectedInterests.length < 5 || isSubmitting}
         />
       </View>
 

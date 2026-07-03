@@ -1,17 +1,13 @@
-import { supabaseAdmin } from "../config/supabase.js";
-import type { UserUpdate } from "../types/database.js";
-import type {
-  OnboardingSetupBody,
-  SyncGitHubResponse,
-} from "../types/onboarding.js";
-import * as githubService from "./githubService.js";
-import * as userService from "./userService.js";
+import { supabaseAdmin } from '../config/supabase.js';
+import * as githubService from './githubService.js';
+import * as userService from './userService.js';
+import type { UserUpdate } from '../types/database.js';
+import type { OnboardingSetupBody, SyncGitHubResponse } from '../types/onboarding.js';
 
 export function buildSetupUpdates(body: OnboardingSetupBody): UserUpdate {
   const updates: UserUpdate = {
-    username: body.username?.trim() || "",
-    full_name: body.full_name?.trim() || "",
-    onboarding_completed: false, // Default to false
+    username: body.username.trim(),
+    full_name: body.full_name.trim(),
   };
 
   if (body.date_of_birth !== undefined) {
@@ -38,13 +34,12 @@ export function buildSetupUpdates(body: OnboardingSetupBody): UserUpdate {
     updates.avatar_url = body.avatar_url;
   }
 
-  // Explicit payload check for completion before setting flag
+  // If the essential fields from the final step are present, officially mark it complete in the DB!
   if (
-    updates.username &&
-    updates.full_name &&
-    Array.isArray(updates.interests) && updates.interests.length > 0 &&
-    Array.isArray(updates.skills) && updates.skills.length > 0 &&
-    Array.isArray(updates.tech_stack) && updates.tech_stack.length > 0
+    body.username &&
+    body.full_name &&
+    body.interests && body.interests.length > 0 &&
+    body.tech_stack && body.tech_stack.length > 0
   ) {
     updates.onboarding_completed = true;
   }
@@ -56,33 +51,25 @@ export async function getOnboardingStatus(userId: string) {
   return userService.getUserProfile(userId);
 }
 
-export async function setupOnboardingProfile(
-  userId: string,
-  body: OnboardingSetupBody,
-) {
+export async function setupOnboardingProfile(userId: string, body: OnboardingSetupBody) {
   const updates = buildSetupUpdates(body);
-  return userService.updateUserProfile(userId, updates);
+  return userService.upsertUserProfile(userId, updates);
 }
 
 function extractGitHubHandleFromAuthIdentity(user: {
-  identities?: Array<{
-    provider: string;
-    identity_data?: Record<string, unknown>;
-  }>;
+  identities?: Array<{ provider: string; identity_data?: Record<string, unknown> }>;
   user_metadata?: Record<string, unknown>;
 }): string | null {
-  const githubIdentity = user.identities?.find(
-    (identity) => identity.provider === "github",
-  );
+  const githubIdentity = user.identities?.find((identity) => identity.provider === 'github');
 
   if (githubIdentity?.identity_data) {
     const preferredUsername = githubIdentity.identity_data.preferred_username;
-    if (typeof preferredUsername === "string" && preferredUsername.trim()) {
+    if (typeof preferredUsername === 'string' && preferredUsername.trim()) {
       return preferredUsername.trim();
     }
 
     const userName = githubIdentity.identity_data.user_name;
-    if (typeof userName === "string" && userName.trim()) {
+    if (typeof userName === 'string' && userName.trim()) {
       return userName.trim();
     }
   }
@@ -91,14 +78,10 @@ function extractGitHubHandleFromAuthIdentity(user: {
 }
 
 export async function syncGitHubProfile(userId: string) {
-  const { data: authData, error: authError } =
-    await supabaseAdmin.auth.admin.getUserById(userId);
+  const { data: authData, error: authError } = await supabaseAdmin.auth.admin.getUserById(userId);
 
   if (authError || !authData?.user) {
-    return {
-      data: null,
-      error: authError ?? { code: "PGRST116", message: "User not found" },
-    };
+    return { data: null, error: authError ?? { code: 'PGRST116', message: 'User not found' } };
   }
 
   // FORCE the use of the securely extracted handle. No overrides allowed.
@@ -108,15 +91,13 @@ export async function syncGitHubProfile(userId: string) {
     return {
       data: null,
       error: {
-        code: "GITHUB_NOT_LINKED",
-        message:
-          "No GitHub account linked. You must sign in using the GitHub provider.",
+        code: 'GITHUB_NOT_LINKED',
+        message: 'No GitHub account linked. You must sign in using the GitHub provider.',
       },
     };
   }
 
-  const githubProfile =
-    await githubService.fetchGitHubUserProfile(githubHandle);
+  const githubProfile = await githubService.fetchGitHubUserProfile(githubHandle);
 
   const updates: UserUpdate = {
     github_id: String(githubProfile.id),

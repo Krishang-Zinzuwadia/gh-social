@@ -1,5 +1,4 @@
 import type { Request, Response } from 'express';
-import type { AuthRequest } from '../middlewares/authMiddleware.js';
 import * as activityService from '../services/activityService.js';
 import { FeedService } from '../services/feedService.js';
 import { sendError, sendSuccess, sendDatabaseError } from '../utils/response.js';
@@ -20,7 +19,7 @@ export async function getAllActivity(_req: Request, res: Response): Promise<void
 }
 
 // Process a batch of activity events (likes, saves, skips, dwells)
-export async function processBatchedActivity(req: AuthRequest, res: Response): Promise<void> {
+export async function processBatchedActivity(req: Request, res: Response): Promise<void> {
   const userId = req.user?.userId;
   const events = req.body.events;
 
@@ -34,7 +33,7 @@ export async function processBatchedActivity(req: AuthRequest, res: Response): P
 
   const { error } = await activityService.processBatchedActivity(userId, events);
   if (error) {
-    return sendDatabaseError(res, error as any);
+    return sendDatabaseError(res, error);
   }
 
   // Also asynchronously send to ML service

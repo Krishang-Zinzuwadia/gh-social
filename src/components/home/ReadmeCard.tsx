@@ -41,7 +41,7 @@ export default function ReadmeCard({
           style={styles.readFullLinkContainer}
         >
           <Text style={styles.readFullLink}>Read Full</Text>
-          <ChevronRight size={12} color="#8EFF7A" strokeWidth={2.5} />
+          <ChevronRight size={12} color="#4ADE80" strokeWidth={2.5} />
         </TouchableOpacity>
       </View>
     </View>
@@ -53,8 +53,8 @@ const styles = StyleSheet.create({
     width: '100%',
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#8EFF7A',
-    backgroundColor: '#0A0C0A',
+    borderColor: '#4ADE80',
+    backgroundColor: '#0A0A0A',
     paddingHorizontal: 16,
     paddingTop: 16,
     paddingBottom: 16,
@@ -68,7 +68,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   customCardTitle: {
-    color: '#8EFF7A',
+    color: '#4ADE80',
     fontFamily: 'NataSans-Bold',
     fontSize: 13,
     lineHeight: 18,
@@ -86,7 +86,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   readFullLink: {
-    color: '#8EFF7A',
+    color: '#4ADE80',
     fontFamily: 'NataSans-Bold',
     fontSize: 10,
     lineHeight: 14,

@@ -24,10 +24,10 @@ export function TimelineColumn({
   return (
     <View style={styles.timelineCol}>
       <Svg style={StyleSheet.absoluteFill} width={TIMELINE_COL_WIDTH} height={pageHeight}>
-        <Path d={timelinePath} stroke="#8EFF7A" strokeWidth={1.5} fill="none" />
-        <Circle cx={TIMELINE_MID} cy={y0} r={6} fill="#FFFFFF" stroke="#8EFF7A" strokeWidth={2} />
-        <Circle cx={TIMELINE_MID} cy={y1} r={6} fill="#FFFFFF" stroke="#8EFF7A" strokeWidth={2} />
-        <Circle cx={TIMELINE_MID} cy={y2} r={6} fill="#FFFFFF" stroke="#8EFF7A" strokeWidth={2} />
+        <Path d={timelinePath} stroke="#4ADE80" strokeWidth={1.5} fill="none" />
+        <Circle cx={TIMELINE_MID} cy={y0} r={5.5} fill="#FFFFFF" stroke="#4ADE80" strokeWidth={2.5} />
+        <Circle cx={TIMELINE_MID} cy={y1} r={5.5} fill="#FFFFFF" stroke="#4ADE80" strokeWidth={2.5} />
+        <Circle cx={TIMELINE_MID} cy={y2} r={5.5} fill="#FFFFFF" stroke="#4ADE80" strokeWidth={2.5} />
       </Svg>
     </View>
   );

@@ -48,16 +48,15 @@ export function RepositoryScreen({
   const TIMELINE_MID = TIMELINE_COL_WIDTH / 2;
   const ACTIONS_COL_WIDTH = isSmallPhone ? 44 : 50;
 
-  const HEADER_H = 56;
+  const HEADER_H = 88;
   const HOME_CARD_GAP = isSmallPhone ? 28 : 34;
   const HOME_FOOTER_GAP = isSmallPhone ? 24 : 34;
   const HOME_BOTTOM_PADDING = isSmallPhone ? 18 : 22;
   const HOME_FOOTER_HEIGHT = isSmallPhone ? 44 : 52;
-  
-  // Expand card height allowances to accommodate padding/larger text size
-  const HOME_BASE_DESCRIPTION_HEIGHT = isSmallPhone ? 246 : 288;
-  const HOME_BASE_README_HEIGHT = isSmallPhone ? 200 : 236;
-  
+
+  const HOME_BASE_DESCRIPTION_HEIGHT = isSmallPhone ? 190 : 220;
+  const HOME_BASE_README_HEIGHT = isSmallPhone ? 160 : 190;
+
   const homeBaseContentHeight =
     HEADER_H +
     HOME_BASE_DESCRIPTION_HEIGHT +
@@ -84,15 +83,15 @@ export function RepositoryScreen({
   const centeredTopPadding = clampNumber((pageHeight - insets.top - contentHeight) / 2, 8, 22);
 
   const y0 = HEADER_H / 2;
-  const y1 = HEADER_H + 25;
-  const y2 = HEADER_H + H1 + HOME_CARD_GAP + 25;
+  const y1 = HEADER_H + 80;
+  const y2 = HEADER_H + H1 + HOME_CARD_GAP + 80;
   const y3_bottom = HEADER_H + H1 + HOME_CARD_GAP + H2;
 
   const y2_top = HEADER_H + H1 + HOME_CARD_GAP;
   const y2_bottom = y3_bottom;
 
-  const loop_start = y2_top + 28;
-  const loop_end = y2_bottom - 28;
+  const loop_start = y2_top + 40;
+  const loop_end = y2_bottom - 40;
   const loop_x = 26;
   const radius = 10;
 
@@ -112,8 +111,8 @@ export function RepositoryScreen({
     L -2 ${loop_end}
   `;
 
-  const btnY1 = loop_start + (loop_end - loop_start) * 0.28;
-  const btnY2 = loop_start + (loop_end - loop_start) * 0.68;
+  const btnY1 = loop_start + (loop_end - loop_start) * 0.3;
+  const btnY2 = loop_start + (loop_end - loop_start) * 0.7;
 
   const ACTION_BTN_SIZE = 34;
 
@@ -174,7 +173,7 @@ export function RepositoryScreen({
             {/* Column 3: Actions */}
             <View style={[styles.actionsCol, { width: ACTIONS_COL_WIDTH }]}>
               <Svg style={StyleSheet.absoluteFill} width={ACTIONS_COL_WIDTH} height={pageHeight}>
-                <Path d={bracketPath} stroke="#8EFF7A" strokeWidth={1.5} fill="none" />
+                <Path d={bracketPath} stroke="#4ADE80" strokeWidth={1.5} fill="none" />
               </Svg>
 
               {/* Thumbs Up Button */}
@@ -203,13 +202,13 @@ export function RepositoryScreen({
                     width: ACTION_BTN_SIZE,
                     height: ACTION_BTN_SIZE,
                     borderRadius: ACTION_BTN_SIZE / 2,
-                    backgroundColor: hasLiked ? '#8EFF7A' : '#273126',
-                    borderColor: hasLiked ? '#8EFF7A' : '#8EFF7A',
+                    backgroundColor: hasLiked ? '#F5C54D' : '#111111',
+                    borderColor: hasLiked ? '#F5C54D' : '#4ADE80',
                   }
                 ]}
               >
-                <ThumbsUpHomeIcon size={14} color={hasLiked ? '#111511' : '#8EFF7A'} strokeWidth={2} />
-                <Text style={[styles.loopReactionCount, hasLiked ? { color: '#111511' } : { color: '#8EFF7A' }]}>{formatNumber(displayedLikes)}</Text>
+                <ThumbsUpHomeIcon size={14} color={hasLiked ? '#111111' : '#F5C54D'} strokeWidth={2} />
+                <Text style={[styles.loopReactionCount, hasLiked ? { color: '#111111' } : { color: '#F5C54D' }]}>{formatNumber(displayedLikes)}</Text>
               </TouchableOpacity>
 
               {/* Thumbs Down Button */}
@@ -232,13 +231,13 @@ export function RepositoryScreen({
                     width: ACTION_BTN_SIZE,
                     height: ACTION_BTN_SIZE,
                     borderRadius: ACTION_BTN_SIZE / 2,
-                    backgroundColor: hasDisliked ? '#FF5C5C' : '#273126',
-                    borderColor: hasDisliked ? '#FF5C5C' : '#8EFF7A',
+                    backgroundColor: hasDisliked ? '#F5C54D' : '#111111',
+                    borderColor: hasDisliked ? '#F5C54D' : '#4ADE80',
                   }
                 ]}
               >
-                <ThumbsDownHomeIcon size={14} color={hasDisliked ? '#111511' : '#FF5C5C'} strokeWidth={2} />
-                <Text style={[styles.loopReactionCount, hasDisliked ? { color: '#111511' } : { color: '#FF5C5C' }]}>{displayedDislikes}</Text>
+                <ThumbsDownHomeIcon size={14} color={hasDisliked ? '#111111' : '#F5C54D'} strokeWidth={2} />
+                <Text style={[styles.loopReactionCount, hasDisliked ? { color: '#111111' } : { color: '#F5C54D' }]}>{displayedDislikes}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -250,7 +249,7 @@ export function RepositoryScreen({
 
 const styles = StyleSheet.create({
   screen: {
-    backgroundColor: '#0D100D',
+    backgroundColor: '#0F0F0F',
   },
   screenInner: {
     flex: 1,
@@ -295,9 +294,9 @@ const styles = StyleSheet.create({
   },
   loopReactionBtn: {
     position: 'absolute',
-    backgroundColor: '#10150F',
+    backgroundColor: '#111111',
     borderWidth: 1.5,
-    borderColor: '#8EFF7A',
+    borderColor: '#4ADE80',
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 30,

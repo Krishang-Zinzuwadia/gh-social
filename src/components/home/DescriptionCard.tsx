@@ -81,7 +81,7 @@ export default function DescriptionCard({ repository, height, isSmallPhone }: De
                 <Icon size={iconSize} width={iconSize} height={iconSize} />
               ) : (
                 <View style={{height: 26, width: 26, backgroundColor: '#1E241E', borderRadius: 6, alignItems: 'center', justifyContent: 'center'}}>
-                  <Text style={{color: '#8EFF7A', fontSize: 12, fontFamily: 'NataSans-Bold'}}>{tech.substring(0, 1).toUpperCase()}</Text>
+                  <Text style={{color: '#4ADE80', fontSize: 12, fontFamily: 'NataSans-Bold'}}>{tech.substring(0, 1).toUpperCase()}</Text>
                 </View>
               )}
               <Text style={styles.techStackLabel} numberOfLines={1}>{tech}</Text>
@@ -98,8 +98,8 @@ const styles = StyleSheet.create({
     width: '100%',
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#8EFF7A',
-    backgroundColor: '#0A0C0A',
+    borderColor: '#4ADE80',
+    backgroundColor: '#0A0A0A',
     paddingHorizontal: 16,
     paddingTop: 16,
     paddingBottom: 16,
@@ -112,7 +112,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   customCardTitle: {
-    color: '#8EFF7A',
+    color: '#4ADE80',
     fontFamily: 'NataSans-Bold',
     fontSize: 13,
     lineHeight: 18,

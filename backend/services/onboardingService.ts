@@ -61,7 +61,7 @@ export async function setupOnboardingProfile(
   body: OnboardingSetupBody,
 ) {
   const updates = buildSetupUpdates(body);
-  return userService.upsertUserProfile(userId, updates);
+  return userService.updateUserProfile(userId, updates);
 }
 
 function extractGitHubHandleFromAuthIdentity(user: {

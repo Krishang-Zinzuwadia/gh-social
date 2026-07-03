@@ -151,7 +151,7 @@ export async function signUp(req: Request, res: Response): Promise<void> {
       await supabaseAdmin.auth.admin.updateUserById(data.user!.id, {
         email_confirm: true,
       });
-      console.log("Development Bypass: Setting email_confirmed_at for user:", userId);
+      console.log("Development Bypass: Setting email_confirmed_at for user:", data.user!.id);
     } else if (!data.session) {
       // Standard flow: require verification
       return sendSuccess(res, 202, {
@@ -474,6 +474,17 @@ export async function exchangeAuthCode(
       const userId = authData.user.id;
       const email = authData.user.email;
 
+      // --- YOUR CRITICAL ML SERVICE ONBOARDING ---
+      void mlService.onboardUserBestEffort({
+        user_id: userId,
+        username: typeof authData.user.user_metadata?.user_name === "string" ? authData.user.user_metadata.user_name : "",
+        full_name: typeof authData.user.user_metadata?.full_name === "string" ? authData.user.user_metadata.full_name : "",
+        bio: typeof authData.user.user_metadata?.bio === "string" ? authData.user.user_metadata.bio : null,
+        interests: [],
+        skills: [],
+        tech_stack: [],
+      });
+
       // Mint custom JWT (short-lived, 15m to match other routes)
       const token = jwt.sign({ userId, email }, JWT_SECRET, {
         expiresIn: "15m",
@@ -537,6 +548,17 @@ export async function exchangeAuthCode(
     }
 
     const email = authData.user.email;
+
+    // --- YOUR CRITICAL ML SERVICE ONBOARDING ---
+    void mlService.onboardUserBestEffort({
+      user_id: userId,
+      username: typeof authData.user.user_metadata?.user_name === "string" ? authData.user.user_metadata.user_name : "",
+      full_name: typeof authData.user.user_metadata?.full_name === "string" ? authData.user.user_metadata.full_name : "",
+      bio: typeof authData.user.user_metadata?.bio === "string" ? authData.user.user_metadata.bio : null,
+      interests: [],
+      skills: [],
+      tech_stack: [],
+    });
 
     // 5. Mint tokens
     const token = jwt.sign({ userId, email }, JWT_SECRET, { expiresIn: "15m" });

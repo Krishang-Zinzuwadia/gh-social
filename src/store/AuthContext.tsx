@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import * as SecureStore from 'expo-secure-store';
+import { storage } from '../utils/storage';
 import { API_URL } from '../api/config';
 
 interface User {
@@ -30,7 +30,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const loadSession = async () => {
     try {
-      const token = await SecureStore.getItemAsync('access_token');
+      const token = await storage.getItemAsync('access_token');
       if (token) {
         await fetchUserProfile(token);
       }
@@ -58,7 +58,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } else {
         // If unauthorized, clear token
         if (response.status === 401) {
-          await SecureStore.deleteItemAsync('access_token');
+          await storage.deleteItemAsync('access_token');
           setUser(null);
         }
       }
@@ -68,20 +68,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const checkOnboardingStatus = async () => {
-    const token = await SecureStore.getItemAsync('access_token');
+    const token = await storage.getItemAsync('access_token');
     if (token) {
       await fetchUserProfile(token);
     }
   };
 
   const setSession = async (token: string, authUser: any) => {
-    await SecureStore.setItemAsync('access_token', token);
+    await storage.setItemAsync('access_token', token);
     await fetchUserProfile(token);
   };
 
   const signOut = async () => {
     try {
-      const token = await SecureStore.getItemAsync('access_token');
+      const token = await storage.getItemAsync('access_token');
       await fetch(`${API_URL}/auth/logout`, { 
         method: 'POST',
         headers: token ? { 'Authorization': `Bearer ${token}` } : {}
@@ -89,7 +89,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (e) {
       console.error(e);
     }
-    await SecureStore.deleteItemAsync('access_token');
+    await storage.deleteItemAsync('access_token');
     setUser(null);
   };
 

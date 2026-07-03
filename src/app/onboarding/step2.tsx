@@ -1,5 +1,5 @@
-import { useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
+import { useState } from "react";
 import {
     ScrollView,
     Text,
@@ -8,20 +8,19 @@ import {
     View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useOnboarding } from "../../store/OnboardingContext";
 
 import PrimaryButton from "@/components/onboarding/PrimaryButton";
 import ProgressBar from "@/components/onboarding/ProgressBar";
 import TechChip from "@/components/onboarding/TechChip";
 
 import { SUGGESTED_TECHS, getTechIcon } from "@/constants/onboarding";
+import { useOnboarding } from "../../store/OnboardingContext";
 
 const PREDEFINED_TECHS = SUGGESTED_TECHS.map(t => t.name);
 
 export default function Step2() {
-  const { categories } = useLocalSearchParams();
+  const { categories, username, dob, bio } = useLocalSearchParams();
   const { updateData } = useOnboarding();
-  
   const [selectedTechs, setSelectedTechs] = useState<string[]>([
     "React",
     "MongoDB",
@@ -248,7 +247,18 @@ export default function Step2() {
         <View style={{ marginTop: 16 }}>
           <PrimaryButton
             title="Continue"
-            onPress={handleContinue}
+            onPress={() =>
+              router.push({
+                pathname: "/onboarding/step3",
+                params: { 
+                  categories,
+                  techStack: selectedTechs.join(","),
+                  username,
+                  dob,
+                  bio,
+                }
+              })
+            }
           />
         </View>
 

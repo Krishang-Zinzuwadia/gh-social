@@ -1,6 +1,6 @@
 import crypto from "crypto";
-import { eq } from "drizzle-orm";
-import type { Request, Response } from "express";
+import { eq, sql } from "drizzle-orm";
+import type { CookieOptions, Request, Response } from "express";
 import jwt from "jsonwebtoken";
 import supabase, { supabaseAdmin } from "../config/supabase.js";
 import { db } from "../db/index.js";
@@ -22,12 +22,25 @@ if (!BACKEND_URL)
   throw new Error("Missing required environment variable: BACKEND_URL");
 
 const JWT_SECRET = process.env.JWT_SECRET as string;
-
 if (!JWT_SECRET) {
   throw new Error(
     "FATAL ERROR: JWT_SECRET is not defined in environment variables.",
   );
 }
+
+const REFRESH_TOKEN_DURATION_MS = 30 * 24 * 60 * 60 * 1000;
+
+// Helper: standard cookie options for refresh tokens
+const getRefreshCookieOptions = (): CookieOptions => {
+  const isProduction = process.env.NODE_ENV === "production";
+  return {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: isProduction ? "none" : "lax",
+    path: "/api/auth",
+    maxAge: REFRESH_TOKEN_DURATION_MS,
+  };
+};
 
 // Helper: Hash the refresh token before storing it
 const hashToken = (token: string) => {
@@ -39,9 +52,7 @@ const createAndStoreRefreshToken = async (userId: string, tx: any = db) => {
   const refreshToken = crypto.randomBytes(40).toString("hex");
   const tokenHash = hashToken(refreshToken);
 
-  // Expiration set to 30 days
-  const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
-
+  const expiresAt = new Date(Date.now() + REFRESH_TOKEN_DURATION_MS);
   await tx.insert(refreshTokens).values({
     user_id: userId,
     refresh_token_hash: tokenHash,
@@ -53,38 +64,58 @@ const createAndStoreRefreshToken = async (userId: string, tx: any = db) => {
 
 // POST /api/auth/signup
 export async function signUp(req: Request, res: Response): Promise<void> {
-  let { email, password, username, full_name } = req.body;
-
-  if (!username || typeof username !== "string" || username.trim() === "") {
-    return sendError(res, 400, "Username is required");
-  }
-
-  // Normalize username to prevent whitespace bypasses (" alice " vs "alice")
-  username = username.trim();
-
   try {
-    // 0. Pre-emptively check if username is taken to avoid messy trigger constraint violations
+    let { email, password, username, full_name } = req.body;
+    if (!username || typeof username !== "string" || username.trim() === "") {
+      res.status(400).json({ success: false, error: "Username is required" });
+      return;
+    }
+
+    username = username.trim();
+    
     if (username) {
-      const existingUser = await db
-        .select()
-        .from(users)
-        .where(eq(users.username, username));
-      if (existingUser.length > 0) {
-        return sendError(res, 409, "Username is already taken");
+      const [existingUser] = await db.select().from(users).where(eq(users.username, username)).limit(1);
+      if (existingUser) {
+        res.status(409).json({ error: "Username already taken" });
+        return;
       }
     }
 
-    const { data, error } = await supabaseAdmin.auth.admin.createUser({
+    try {
+      const emailCheck = await db.execute(sql`
+        SELECT id FROM auth.users WHERE email = ${email}
+      `);
+      if (emailCheck.length > 0) {
+        res.status(409).json({ success: false, error: "Email/Username already taken." });
+        return;
+      }
+    } catch (err) {
+      console.error("Failed to check auth.users directly:", err);
+    }
+
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      email_confirm: true, // Bypass email verification so we can login immediately
-      user_metadata: {
-        user_name: username,
-        full_name: full_name,
+      options: {
+        data: {
+          user_name: username,
+          full_name: full_name,
+        },
+        emailRedirectTo: `${CLIENT_URL}/auth/callback`,
       },
     });
 
-    if (error) return sendError(res, error.status || 400, error.message);
+    if (error) {
+      if (
+        error.message.toLowerCase().includes("already registered") ||
+        error.message.toLowerCase().includes("already exists")
+      ) {
+        res.status(409).json({ success: false, error: "email_exists" });
+        return;
+      }
+      res.status(error.status || 400).json({ success: false, error: error.message });
+      return;
+    }
 
     if (data.user) {
       void mlService.onboardUserBestEffort({
@@ -98,71 +129,87 @@ export async function signUp(req: Request, res: Response): Promise<void> {
         interests: [],
         skills: [],
         tech_stack: [],
-      });
+      }).catch(console.error);
     }
 
-    const userId = data.user.id;
+    if (process.env.NODE_ENV === "development") {
+      const userId = data.user!.id;
+      await supabaseAdmin.auth.admin.updateUserById(userId, {
+        email_confirm: true,
+      });
+    } else if (!data.session) {
+      res.status(202).json({
+        success: true,
+        data: {
+          message: "Signup successful! Please check your email to verify your account.",
+          user: data.user,
+        }
+      });
+      return;
+    }
 
-    // 1. Generate Custom JWT Access Token
+    const userId = data.user!.id;
     const accessToken = jwt.sign({ userId, email }, JWT_SECRET, {
       expiresIn: "15m",
     });
 
-    // 2. Generate and store Refresh Token securely using Drizzle
     const refreshToken = await createAndStoreRefreshToken(userId);
+    res.cookie("refresh_token", refreshToken, getRefreshCookieOptions());
 
-    // 3. Set refresh token in HTTP-only cookie
-    res.cookie("refresh_token", refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      path: "/api/auth", // Restrict cookie to refresh endpoint
-      maxAge: 30 * 24 * 60 * 60 * 1000,
+    res.status(201).json({
+      success: true,
+      data: {
+        message: "Signup successful",
+        accessToken,
+        token: accessToken,
+        user: data.user,
+      }
     });
-
-    return sendSuccess(res, 201, {
-      message: "Signup successful",
-      accessToken,
-      token: accessToken, // Alias for backward compatibility
-      user: data.user,
-    });
-  } catch (error) {
-    sendControllerError(res, error as Error);
+  } catch (err: any) {
+    console.error('Signup Error:', err);
+    res.status(500).json({ error: 'Internal Server Error', details: err.message });
   }
 }
 
 // POST /api/auth/login
 export async function login(req: Request, res: Response): Promise<void> {
   const { email, password } = req.body;
-
   try {
+    let loginEmail = email;
+    if (email && !email.includes("@")) {
+      const [userRecord] = await db
+        .select({ user_id: users.user_id })
+        .from(users)
+        .where(eq(users.username, email))
+        .limit(1);
+
+      if (userRecord) {
+        const { data: authData, error: userError } =
+          await supabaseAdmin.auth.admin.getUserById(userRecord.user_id);
+        if (!userError && authData?.user?.email) {
+          loginEmail = authData.user.email;
+        }
+      }
+    }
+
     const { data, error } = await supabase.auth.signInWithPassword({
-      email,
+      email: loginEmail,
       password,
     });
-
     if (error) return sendError(res, error.status || 401, error.message);
 
     const userId = data.user.id;
-
     const accessToken = jwt.sign({ userId, email }, JWT_SECRET, {
       expiresIn: "15m",
     });
-
     const refreshToken = await createAndStoreRefreshToken(userId);
 
-    res.cookie("refresh_token", refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      path: "/api/auth",
-      maxAge: 30 * 24 * 60 * 60 * 1000,
-    });
+    res.cookie("refresh_token", refreshToken, getRefreshCookieOptions());
 
     return sendSuccess(res, 200, {
       message: "Login successful",
       accessToken,
-      token: accessToken, // Alias for backward compatibility
+      token: accessToken,
       user: data.user,
     });
   } catch (error) {
@@ -173,7 +220,6 @@ export async function login(req: Request, res: Response): Promise<void> {
 // POST /api/auth/logout
 export async function logout(req: Request, res: Response): Promise<void> {
   const incomingToken = req.cookies.refresh_token;
-
   if (!incomingToken) {
     res.status(200).json({ success: true, message: "Already logged out." });
     return;
@@ -190,13 +236,8 @@ export async function logout(req: Request, res: Response): Promise<void> {
       return sendError(res, 500, "Failed to revoke refresh token.");
     }
 
-    // Only clear the cookie AFTER the server-side token is successfully revoked!
-    res.clearCookie("refresh_token", {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      path: "/api/auth",
-    });
+    const { maxAge, ...clearOptions } = getRefreshCookieOptions();
+    res.clearCookie("refresh_token", clearOptions);
 
     res
       .status(200)
@@ -209,7 +250,6 @@ export async function logout(req: Request, res: Response): Promise<void> {
 // POST /api/auth/refresh
 export async function refreshToken(req: Request, res: Response): Promise<void> {
   const incomingToken = req.cookies.refresh_token;
-
   if (!incomingToken) {
     return sendError(res, 401, "No refresh token provided.");
   }
@@ -217,7 +257,6 @@ export async function refreshToken(req: Request, res: Response): Promise<void> {
   try {
     const tokenHash = hashToken(incomingToken);
 
-    // 1. Look up the hash in the DB without locking
     const [tokenData] = await db
       .select({
         user_id: refreshTokens.user_id,
@@ -236,56 +275,40 @@ export async function refreshToken(req: Request, res: Response): Promise<void> {
       throw new Error("ExpiredToken");
     }
 
-    // 2. Fetch user metadata from Supabase Auth via Admin Client
-    // IMPORTANT: We do this BEFORE the transaction so we don't hold database connections open across network calls!
     const { data: authData, error: userError } =
       await supabaseAdmin.auth.admin.getUserById(tokenData.user_id);
-
     if (userError || !authData?.user) {
       throw new Error("UserNotFound");
     }
 
-    // 3. Generate a fresh access token (CPU bound, fast)
     const newAccessToken = jwt.sign(
       { userId: authData.user.id, email: authData.user.email },
       JWT_SECRET,
       { expiresIn: "15m" },
     );
 
-    // 4. Run the actual DB mutation in a fast, isolated atomic transaction
     const newRefreshToken = await db.transaction(async (tx) => {
-      // Atomically attempt to delete the exact token.
-      // If another concurrent request beat us to it, this returns empty.
       const deletedTokens = await tx
         .delete(refreshTokens)
         .where(eq(refreshTokens.refresh_token_hash, tokenHash))
         .returning();
 
       if (deletedTokens.length === 0) {
-        throw new Error("InvalidToken"); // Race condition lost! Safely abort.
+        throw new Error("InvalidToken");
       }
-
-      // Generate and store the new token inside the same atomic transaction
       return await createAndStoreRefreshToken(authData.user.id, tx);
     });
 
-    // 5. Send new refresh token in cookie
-    res.cookie("refresh_token", newRefreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      path: "/api/auth",
-      maxAge: 30 * 24 * 60 * 60 * 1000,
-    });
-
+    res.cookie("refresh_token", newRefreshToken, getRefreshCookieOptions());
     return sendSuccess(res, 200, {
       accessToken: newAccessToken,
-      token: newAccessToken, // Alias for backward compatibility
+      token: newAccessToken,
       user: authData.user,
     });
   } catch (error: any) {
     if (error.message === "InvalidToken" || error.message === "ExpiredToken") {
-      res.clearCookie("refresh_token", { path: "/api/auth" });
+      const { maxAge, ...clearOptions } = getRefreshCookieOptions();
+      res.clearCookie("refresh_token", clearOptions);
       return sendError(
         res,
         401,
@@ -302,14 +325,59 @@ export async function refreshToken(req: Request, res: Response): Promise<void> {
 // GET /api/auth/:provider
 export async function getOAuthUrl(req: Request, res: Response): Promise<void> {
   const { provider } = req.params;
+  const { redirectUri, intent } = req.query;
+
   if (provider !== "github" && provider !== "google")
     return sendError(res, 400, "Invalid provider.");
 
   try {
     const url = new URL(`${process.env.SUPABASE_URL}/auth/v1/authorize`);
     url.searchParams.set("provider", provider);
-    url.searchParams.set("redirect_to", `${BACKEND_URL}/api/auth/callback`);
+    if (provider === "google") {
+      url.searchParams.set("prompt", "select_account");
+    }
 
+    let redirectTo = redirectUri
+      ? (redirectUri as string)
+      : `${BACKEND_URL}/api/auth/callback`;
+
+    let isAllowedRedirect = false;
+    if (redirectTo[0] === "/" && redirectTo[1] === "/") {
+      isAllowedRedirect = false;
+    } else {
+      try {
+        const parsedUrl = new URL(redirectTo, BACKEND_URL);
+        const parsedClient = new URL(CLIENT_URL!);
+        const parsedBackend = new URL(BACKEND_URL!);
+
+        if (
+          parsedUrl.origin === parsedClient.origin ||
+          parsedUrl.origin === parsedBackend.origin
+        ) {
+          isAllowedRedirect = true;
+        } else {
+          const SUPPORTED_NATIVE_SCHEMES = ["exp:", "ghsocial:"];
+          if (SUPPORTED_NATIVE_SCHEMES.includes(parsedUrl.protocol)) {
+            isAllowedRedirect =
+              parsedUrl.pathname === "/auth/callback" ||
+              parsedUrl.pathname.endsWith("/--/auth/callback");
+          }
+        }
+      } catch (e) {
+        isAllowedRedirect = false;
+      }
+    }
+
+    if (!isAllowedRedirect) {
+      return sendError(res, 400, "Invalid redirect URI. Domain not allowed.");
+    }
+
+    if (intent) {
+      const separator = redirectTo.includes("?") ? "&" : "?";
+      redirectTo += `${separator}intent=${intent}`;
+    }
+
+    url.searchParams.set("redirect_to", redirectTo);
     return sendSuccess(res, 200, { url: url.toString() });
   } catch (error) {
     sendControllerError(res, error as Error);
@@ -322,7 +390,6 @@ export async function handleOAuthCallback(
   res: Response,
 ): Promise<void> {
   const code = req.query.code as string;
-
   if (!code) {
     const reason = (req.query.error as string) || "no_code";
     return res.redirect(
@@ -331,10 +398,8 @@ export async function handleOAuthCallback(
   }
 
   try {
-    // 1. Exchange the provider code for a Supabase session using the Admin client
     const { data, error } =
       await supabaseAdmin.auth.exchangeCodeForSession(code);
-
     if (error || !data.user) {
       console.error("OAuth Exchange Error:", error);
       return res.redirect(
@@ -342,7 +407,6 @@ export async function handleOAuthCallback(
       );
     }
 
-    // 2. Insert a short-lived (5 minute) authorization code into the DB using Drizzle
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
     const [codeData] = await db
       .insert(oauthCodes)
@@ -359,7 +423,6 @@ export async function handleOAuthCallback(
       );
     }
 
-    // 3. Redirect to your frontend with the short-lived code
     res.redirect(`${CLIENT_URL}/auth/callback?code=${codeData.code}`);
   } catch (error) {
     console.error("OAuth Callback Caught Error:", error);
@@ -372,77 +435,132 @@ export async function exchangeAuthCode(
   req: Request,
   res: Response,
 ): Promise<void> {
-  const { code } = req.body;
+  const { code, supabaseToken } = req.body;
 
-  if (!code) {
-    return sendError(res, 400, "Authorization code is required");
+  if (supabaseToken) {
+    try {
+      const { data: authData, error } =
+        await supabaseAdmin.auth.getUser(supabaseToken);
+      if (error || !authData?.user) {
+        return sendError(res, 401, "Invalid Supabase token");
+      }
+
+      const userId = authData.user.id;
+      const email = authData.user.email;
+
+      void mlService.onboardUserBestEffort({
+        user_id: userId,
+        username:
+          typeof authData.user.user_metadata?.user_name === "string"
+            ? authData.user.user_metadata.user_name
+            : "",
+        full_name:
+          typeof authData.user.user_metadata?.full_name === "string"
+            ? authData.user.user_metadata.full_name
+            : "",
+        bio:
+          typeof authData.user.user_metadata?.bio === "string"
+            ? authData.user.user_metadata.bio
+            : null,
+        interests: [],
+        skills: [],
+        tech_stack: [],
+      }).catch(console.error);
+
+      const token = jwt.sign({ userId, email }, JWT_SECRET, {
+        expiresIn: "15m",
+      });
+      const refreshToken = await createAndStoreRefreshToken(userId);
+      res.cookie("refresh_token", refreshToken, getRefreshCookieOptions());
+
+      return sendSuccess(res, 200, {
+        accessToken: token,
+        token: token,
+        user: authData.user,
+      });
+    } catch (error) {
+      return sendControllerError(res, error as Error);
+    }
   }
 
-  if (!isValidUuid(code)) {
+  if (!code) return sendError(res, 400, "Authorization code is required");
+  if (!isValidUuid(code))
     return sendError(res, 400, "Invalid authorization code format");
-  }
 
   try {
-    // 1 & 2. Atomically look up AND consume the code (DELETE ... RETURNING)
+    // Fetch code data without deleting it yet
     const [codeData] = await db
-      .delete(oauthCodes)
-      .where(eq(oauthCodes.code, code))
-      .returning({
+      .select({
         user_id: oauthCodes.user_id,
         expires_at: oauthCodes.expires_at,
-      });
+      })
+      .from(oauthCodes)
+      .where(eq(oauthCodes.code, code))
+      .limit(1);
 
-    if (!codeData) {
+    if (!codeData)
       return sendError(
         res,
         400,
         "Invalid or already consumed authorization code",
       );
-    }
-
-    // 3. Check expiration
-    if (new Date(codeData.expires_at) < new Date()) {
+    if (new Date(codeData.expires_at) < new Date())
       return sendError(res, 400, "Authorization code expired");
-    }
 
     const userId = codeData.user_id;
-
-    // 4. Look up user email
     const { data: authData, error: userError } =
       await supabaseAdmin.auth.admin.getUserById(userId);
-    if (userError || !authData?.user) {
+    if (userError || !authData?.user)
       return sendError(res, 404, "User not found");
-    }
 
     const email = authData.user.email;
 
-    // 5. Mint tokens
+    void mlService.onboardUserBestEffort({
+      user_id: userId,
+      username:
+        typeof authData.user.user_metadata?.user_name === "string"
+          ? authData.user.user_metadata.user_name
+          : "",
+      full_name:
+        typeof authData.user.user_metadata?.full_name === "string"
+          ? authData.user.user_metadata.full_name
+          : "",
+      bio:
+        typeof authData.user.user_metadata?.bio === "string"
+          ? authData.user.user_metadata.bio
+          : null,
+      interests: [],
+      skills: [],
+      tech_stack: [],
+    }).catch(console.error);
+
     const token = jwt.sign({ userId, email }, JWT_SECRET, { expiresIn: "15m" });
 
-    const refreshToken = crypto.randomBytes(40).toString("hex");
-    const tokenHash = hashToken(refreshToken);
+    // Perform deletion and insertion atomically
+    const refreshToken = await db.transaction(async (tx) => {
+      const deletedCodes = await tx
+        .delete(oauthCodes)
+        .where(eq(oauthCodes.code, code))
+        .returning();
 
-    const newExpiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
-    await db.insert(refreshTokens).values({
-      user_id: userId,
-      refresh_token_hash: tokenHash,
-      expires_at: newExpiresAt.toISOString(),
+      if (deletedCodes.length === 0) {
+        throw new Error("CodeConsumed");
+      }
+
+      return await createAndStoreRefreshToken(userId, tx);
     });
 
-    res.cookie("refresh_token", refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      path: "/api/auth",
-      maxAge: 30 * 24 * 60 * 60 * 1000,
-    });
+    res.cookie("refresh_token", refreshToken, getRefreshCookieOptions());
 
     return sendSuccess(res, 200, {
       accessToken: token,
-      token: token, // Alias for backward compatibility
+      token: token,
       user: authData.user,
     });
-  } catch (error) {
+  } catch (error: any) {
+    if (error.message === "CodeConsumed") {
+      return sendError(res, 400, "Authorization code was consumed concurrently");
+    }
     sendControllerError(res, error as Error);
   }
 }

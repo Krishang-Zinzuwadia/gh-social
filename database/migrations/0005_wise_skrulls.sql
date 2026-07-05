@@ -1,0 +1,1 @@
+ALTER TABLE "repo" ADD COLUMN "readme_md" text;

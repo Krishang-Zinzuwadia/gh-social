@@ -1,0 +1,202 @@
+import type { Request, Response } from 'express';
+import * as activityService from '../services/activityService.js';
+import { FeedService } from '../services/feedService.js';
+import { sendError, sendSuccess, sendDatabaseError } from '../utils/response.js';
+import { isValidUuid } from '../utils/validators.js';
+import { mlService } from '../services/mlService.js';
+
+const feedService = new FeedService();
+
+// Return every activity row.
+export async function getAllActivity(_req: Request, res: Response): Promise<void> {
+  const { data, error } = await activityService.getAllActivity();
+
+  if (error) {
+    return sendDatabaseError(res, error);
+  }
+
+  return sendSuccess(res, 200, data);
+}
+
+// Process a batch of activity events (likes, saves, skips, dwells)
+export async function processBatchedActivity(req: Request, res: Response): Promise<void> {
+  const userId = req.user?.userId;
+  const events = req.body.events;
+
+  if (!userId) {
+    return sendError(res, 401, 'Unauthorized');
+  }
+  
+  if (!Array.isArray(events)) {
+    return sendError(res, 400, 'events must be an array');
+  }
+
+  const { error } = await activityService.processBatchedActivity(userId, events);
+  if (error) {
+    return sendDatabaseError(res, error);
+  }
+
+  // Also asynchronously send to ML service
+  void mlService.sendBatchedActivityFeedback(events.map((e: any) => ({
+    user_id: userId,
+    repo_id: e.repo_id,
+    action: e.action,
+    dwell_seconds: e.dwell_seconds
+  })));
+
+  return sendSuccess(res, 202, { message: 'Batched activity processed' });
+}
+
+// Return activity rows for a specific user.
+export async function getUserActivity(req: Request, res: Response): Promise<void> {
+  const userId = req.params.userId as string;
+  const { data, error } = await activityService.getUserActivity(userId);
+
+  if (error) {
+    return sendDatabaseError(res, error);
+  }
+
+  return sendSuccess(res, 200, data);
+}
+
+export async function getSavedActivity(req: Request, res: Response): Promise<void> {
+  const userId = req.params.userId as string;
+  
+  const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 20;
+  const offset = req.query.offset ? parseInt(req.query.offset as string, 10) : 0;
+
+  const { data, error } = await activityService.getSavedActivity(userId, limit, offset);
+
+  if (error) {
+    return sendDatabaseError(res, error);
+  }
+
+  return sendSuccess(res, 200, data);
+}
+
+// Return one activity row for a user and repo pair.
+export async function getActivityByUserAndRepo(req: Request, res: Response): Promise<void> {
+  const { userId, repoId } = req.params as { userId: string; repoId: string };
+  const { data, error } = await activityService.getActivityByUserAndRepo(userId, repoId);
+
+  if (error) {
+    return sendDatabaseError(res, error);
+  }
+
+  return sendSuccess(res, 200, data);
+}
+
+// Update activity when the app knows user_id and repo_id.
+export async function updateActivityByUserAndRepo(req: Request, res: Response): Promise<void> {
+  const { userId, repoId } = req.params as { userId: string; repoId: string };
+  const { data, error } = await activityService.updateActivityByUserAndRepo(
+    userId,
+    repoId,
+    req.body,
+  );
+
+  if (error) {
+    return sendDatabaseError(res, error, {
+      notFoundMessage: 'Activity not found for this user and repo.',
+    });
+  }
+
+  return sendSuccess(res, 200, data);
+}
+
+// Return one activity row by its primary key.
+export async function getActivityById(req: Request, res: Response): Promise<void> {
+  const activityId = req.params.activityId as string;
+  const { data, error } = await activityService.getActivityById(activityId);
+
+  if (error) {
+    return sendDatabaseError(res, error, {
+      notFoundMessage: 'Activity not found.',
+    });
+  }
+
+  return sendSuccess(res, 200, data);
+}
+
+// Create a new activity row.
+export async function createActivity(req: Request, res: Response): Promise<void> {
+  const { data, error } = await activityService.createActivity(req.body);
+
+  if (error) {
+    return sendDatabaseError(res, error);
+  }
+
+  return sendSuccess(res, 201, data);
+}
+
+// Update activity directly by primary key.
+export async function updateActivityById(req: Request, res: Response): Promise<void> {
+  const activityId = req.params.activityId as string;
+  const { data, error } = await activityService.updateActivityById(activityId, req.body);
+
+  if (error) {
+    return sendDatabaseError(res, error, {
+      notFoundMessage: 'Activity not found.',
+    });
+  }
+
+  return sendSuccess(res, 200, data);
+}
+
+// Delete activity directly by primary key.
+export async function deleteActivityById(req: Request, res: Response): Promise<void> {
+  const activityId = req.params.activityId as string;
+  const { error, count } = await activityService.deleteActivityById(activityId);
+
+  if (error) {
+    return sendDatabaseError(res, error, {
+      notFoundMessage: 'Activity not found.',
+    });
+  }
+
+  if (count === 0) {
+    return sendError(res, 404, 'Activity not found.');
+  }
+
+  res.status(204).send();
+}
+
+// Toggle like for a user/repo pair.
+export async function likeRepo(req: Request, res: Response): Promise<void> {
+  const { userId, repoId } = req.params as { userId: string; repoId: string };
+
+  if (!isValidUuid(userId) || !isValidUuid(repoId)) {
+    return sendError(res, 400, 'userId and repoId must be valid UUIDs.');
+  }
+
+  const { data, error } = await activityService.toggleRepoLike(userId, repoId);
+
+  if (error) {
+    return sendDatabaseError(res, error);
+  }
+
+  void mlService.sendBatchedActivityFeedback([{ user_id: userId, repo_id: repoId, action: 'like' }]);
+  void feedService.invalidateUserFeed(userId);
+
+  return sendSuccess(res, 200, data);
+}
+
+// Toggle save for a user/repo pair.
+export async function saveRepo(req: Request, res: Response): Promise<void> {
+  const { userId, repoId } = req.params as { userId: string; repoId: string };
+
+  if (!isValidUuid(userId) || !isValidUuid(repoId)) {
+    return sendError(res, 400, 'userId and repoId must be valid UUIDs.');
+  }
+
+  const { data, error } = await activityService.toggleRepoSave(userId, repoId);
+
+  if (error) {
+    return sendDatabaseError(res, error);
+  }
+
+  void mlService.sendBatchedActivityFeedback([{ user_id: userId, repo_id: repoId, action: 'save' }]);
+  void feedService.invalidateUserFeed(userId);
+
+  return sendSuccess(res, 200, data);
+}

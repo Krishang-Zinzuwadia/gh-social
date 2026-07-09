@@ -38,7 +38,7 @@ export default function ReadmeCard({
         {/* Markdown preview — clipped by overflow:hidden on the card */}
         <View style={styles.markdownWrapper}>
           <Markdown style={previewMarkdownStyles} rules={markdownRules}>
-            {repository.readmeFull || repository.readmeSummary || ''}
+            {repository.readmeSummary || repository.readmeFull || ''}
           </Markdown>
         </View>
 

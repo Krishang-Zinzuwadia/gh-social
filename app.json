@@ -6,9 +6,15 @@
     "orientation": "portrait",
     "scheme": "ghsocial",
     "userInterfaceStyle": "automatic",
-    "ios": {},
+    "ios": {
+      "bundleIdentifier": "com.weave.app",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
     "android": {
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.weave.app"
     },
     "web": {
       "output": "static"
@@ -22,6 +28,12 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "1d965755-3317-49bf-920f-9a04f972e837"
+      }
     }
   }
 }

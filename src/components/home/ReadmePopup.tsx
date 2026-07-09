@@ -1,6 +1,8 @@
+"use no memo";
 import React, { useEffect, useMemo } from 'react';
-import { Animated, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Animated, Pressable, ScrollView, StyleSheet, Text, View, Image } from 'react-native';
 import { X } from 'lucide-react-native';
+import Markdown from 'react-native-markdown-display';
 import BookSvg from '../../assets/icons/mi_book.svg';
 
 interface ReadmePopupProps {
@@ -83,11 +85,20 @@ export function ReadmePopup({ isVisible, onClose, title, readmeText }: ReadmePop
           </Pressable>
         </View>
 
-        <ScrollView showsVerticalScrollIndicator={true} style={styles.popupContentScroll}>
-          <Text style={styles.popupReadmeText}>
-            {readmeText}
-          </Text>
-        </ScrollView>
+        <View style={{ flex: 1, overflow: 'hidden' }}>
+          <ScrollView
+            style={styles.popupContentScroll}
+            contentContainerStyle={styles.popupContentContainer}
+            showsVerticalScrollIndicator={true}
+            bounces={true}
+            scrollEventThrottle={16}
+            nestedScrollEnabled={true}
+          >
+            <Markdown style={markdownStyles} rules={markdownRules}>
+              {readmeText}
+            </Markdown>
+          </ScrollView>
+        </View>
       </Animated.View>
     </Animated.View>
   );
@@ -120,11 +131,13 @@ const styles = StyleSheet.create({
     padding: 20,
     width: '90%',
     height: '75%',
+    overflow: 'hidden',
     shadowColor: '#4ADE80',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.05,
     shadowRadius: 3,
     elevation: 2,
+    flexDirection: 'column',
   },
   popupHeader: {
     flexDirection: 'row',
@@ -146,6 +159,9 @@ const styles = StyleSheet.create({
   popupContentScroll: {
     flex: 1,
   },
+  popupContentContainer: {
+    paddingBottom: 20,
+  },
   popupReadmeText: {
     color: '#FFFFFF',
     fontFamily: 'NataSans-Regular',
@@ -153,3 +169,81 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
 });
+
+const markdownStyles = {
+  body: {
+    color: '#FFFFFF',
+    fontFamily: 'NataSans-Regular',
+    fontSize: 13,
+    lineHeight: 20,
+  },
+  heading1: {
+    color: '#4ADE80',
+    fontFamily: 'NataSans-Bold',
+    fontSize: 20,
+    marginVertical: 10,
+  },
+  heading2: {
+    color: '#4ADE80',
+    fontFamily: 'NataSans-Bold',
+    fontSize: 18,
+    marginVertical: 8,
+  },
+  heading3: {
+    color: '#4ADE80',
+    fontFamily: 'NataSans-Bold',
+    fontSize: 16,
+    marginVertical: 6,
+  },
+  link: {
+    color: '#3B82F6',
+    textDecorationLine: 'underline',
+  },
+  code_inline: {
+    color: '#D1D5DB',
+    backgroundColor: '#1F2937',
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+    borderRadius: 4,
+    fontFamily: 'Menlo',
+  },
+  code_block: {
+    color: '#D1D5DB',
+    backgroundColor: '#1F2937',
+    padding: 10,
+    borderRadius: 8,
+    fontFamily: 'Menlo',
+    marginVertical: 8,
+  },
+  fence: {
+    color: '#D1D5DB',
+    backgroundColor: '#1F2937',
+    padding: 10,
+    borderRadius: 8,
+    fontFamily: 'Menlo',
+    marginVertical: 8,
+  },
+  bullet_list: {
+    marginVertical: 8,
+  },
+  ordered_list: {
+    marginVertical: 8,
+  },
+  list_item: {
+    marginBottom: 4,
+  },
+};
+
+const markdownRules = {
+  image: (node: any) => {
+    return (
+      <Image
+        key={node.key}
+        source={{ uri: node.attributes.src }}
+        style={{ width: '100%', height: 200, resizeMode: 'contain', marginVertical: 8 }}
+        accessible={!!node.attributes.alt}
+        accessibilityLabel={node.attributes.alt}
+      />
+    );
+  },
+};

@@ -28,8 +28,8 @@ export default function SignUpScreen() {
 
         <View className="mb-10 items-center">
           <Text className="text-white text-3xl leading-tight text-center font-nataBold">
-            Join the{' '}
-            <Text className="text-[#8EFF7A] font-nataBold">dev community</Text>
+            Join{' '}
+            <Text className="text-[#8EFF7A] font-nataBold">Weave</Text>
           </Text>
           <Text className="text-white/50 text-sm mt-2 text-center font-nata">
             Connect. Collaborate. Work Together.

@@ -64,9 +64,9 @@ export default function CreateProfile() {
             
             className="text-white text-[32px] text-center font-nataBold"
           >
-            Create{" "}
+            Create your{" "}
             <Text className="text-[#8EFF7A] font-nataBold">
-              your account
+              Weave account
             </Text>
           </Text>
 

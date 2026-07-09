@@ -13,6 +13,7 @@ import { useOnboarding } from "../../store/OnboardingContext";
 import PrimaryButton from "@/components/onboarding/PrimaryButton";
 import ProgressBar from "@/components/onboarding/ProgressBar";
 import TechChip from "@/components/onboarding/TechChip";
+import LogoPlaceholder from "@/components/onboarding/LogoPlaceholder";
 
 import { SUGGESTED_TECHS, getTechIcon } from "@/constants/onboarding";
 
@@ -100,14 +101,7 @@ export default function Step2() {
             marginBottom: 24,
           }}
         >
-          <View
-            style={{
-              width: 120,
-              height: 120,
-              borderRadius: 60,
-              backgroundColor: "#10391D",
-            }}
-          />
+          <LogoPlaceholder size={120} />
         </View>
 
         {/* Heading */}

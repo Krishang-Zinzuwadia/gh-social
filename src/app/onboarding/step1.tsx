@@ -11,6 +11,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import PrimaryButton from "@/components/onboarding/PrimaryButton";
 import ProgressBar from "@/components/onboarding/ProgressBar";
 import SkillCard from "@/components/onboarding/SkillCard";
+import LogoPlaceholder from "@/components/onboarding/LogoPlaceholder";
 import { SKILL_CATEGORIES } from "@/constants/onboarding";
 
 export default function Step1() {
@@ -66,14 +67,7 @@ export default function Step1() {
             marginBottom: 24,
           }}
         >
-          <View
-            style={{
-              width: 120,
-              height: 120,
-              borderRadius: 60,
-              backgroundColor: "#10391D",
-            }}
-          />
+          <LogoPlaceholder size={120} />
         </View>
 
         {/* Heading */}

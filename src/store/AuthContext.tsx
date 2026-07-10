@@ -63,7 +63,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setUser(null);
           } catch (e) {
             console.error('Failed to clear session storage', e);
-            setUser(null);
             throw e;
           }
         }
@@ -100,7 +99,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(null);
     } catch (e) {
       console.error('Failed to clear session storage', e);
-      setUser(null);
       throw e;
     }
   };

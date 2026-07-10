@@ -6,9 +6,12 @@ export async function setItemAsync(key: string, value: string): Promise<void> {
     try {
       if (typeof localStorage !== 'undefined') {
         localStorage.setItem(key, value);
+      } else {
+        throw new Error('localStorage is undefined');
       }
     } catch (e) {
-      console.error('Local storage is unavailable:', e);
+      console.error('Local storage error:', e);
+      throw e;
     }
   } else {
     await SecureStore.setItemAsync(key, value);
@@ -35,9 +38,12 @@ export async function deleteItemAsync(key: string): Promise<void> {
     try {
       if (typeof localStorage !== 'undefined') {
         localStorage.removeItem(key);
+      } else {
+        throw new Error('localStorage is undefined');
       }
     } catch (e) {
-      console.error('Local storage is unavailable:', e);
+      console.error('Local storage error:', e);
+      throw e;
     }
   } else {
     await SecureStore.deleteItemAsync(key);

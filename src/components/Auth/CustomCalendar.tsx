@@ -219,7 +219,7 @@ export default function CustomCalendar({
           ) : mode === 'year' ? (
             <View style={{ height: 250 }}>
               <ScrollView showsVerticalScrollIndicator={false}>
-                {Array.from({length: 100}, (_, i) => maxDate.getFullYear() - i).map(year => (
+                {Array.from({length: 120}, (_, i) => maxDate.getFullYear() - i).map(year => (
                   <TouchableOpacity 
                     key={year} 
                     onPress={() => { setCurrentYear(year); setMode('calendar'); }}

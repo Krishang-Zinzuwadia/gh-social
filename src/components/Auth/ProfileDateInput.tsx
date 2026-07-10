@@ -30,7 +30,10 @@ export default function ProfileDateInput({ value, onChangeText }: ProfileDateInp
   };
 
   const selectedDate = parseDate(value);
-  const displayValue = value ? `${selectedDate.getDate().toString().padStart(2, '0')} ${MONTHS[selectedDate.getMonth()]} ${selectedDate.getFullYear()}` : "";
+  const isValid = !isNaN(selectedDate.getTime());
+  const displayValue = value 
+    ? (isValid ? `${selectedDate.getDate().toString().padStart(2, '0')} ${MONTHS[selectedDate.getMonth()]} ${selectedDate.getFullYear()}` : value) 
+    : "";
 
   const handleSelectDate = (date: Date) => {
     const y = date.getFullYear();

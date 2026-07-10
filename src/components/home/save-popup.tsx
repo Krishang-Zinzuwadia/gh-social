@@ -6,7 +6,7 @@ import { NebulaIcon } from '../icons';
 import { useAuth } from '../../store/AuthContext';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { getUserBoards } from '../../api/boards';
-import * as SecureStore from 'expo-secure-store';
+import * as SecureStore from '../../utils/storage';
 import { useOptimisticMutations } from '../../hooks/useOptimisticMutations';
 import { ActivityIndicator } from 'react-native';
 

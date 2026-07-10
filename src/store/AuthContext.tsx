@@ -58,9 +58,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } else {
         // If unauthorized, clear token
         if (response.status === 401) {
-          await SecureStore.deleteItemAsync('access_token').catch((e) => {
+          try {
+            await SecureStore.deleteItemAsync('access_token');
+          } catch (e) {
             console.error('Failed to clear session storage', e);
-          });
+          }
           setUser(null);
         }
       }
@@ -88,12 +90,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         method: 'POST',
         headers: token ? { 'Authorization': `Bearer ${token}` } : {}
       });
+    try {
+      await SecureStore.deleteItemAsync('access_token');
     } catch (e) {
-      console.error(e);
-    }
-    await SecureStore.deleteItemAsync('access_token').catch((e) => {
       console.error('Failed to clear session storage', e);
-    });
+    }
     setUser(null);
   };
 

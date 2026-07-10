@@ -3,7 +3,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import { ScrollView, View, Text, Pressable } from "react-native";
 import { useAuth } from "../../store/AuthContext";
 import { useOnboarding } from "../../store/OnboardingContext";
-import * as SecureStore from 'expo-secure-store';
+import * as SecureStore from '../../utils/storage';
 import { setupOnboarding } from "../../api/onboarding";
 
 import ProgressBar from "@/components/onboarding/ProgressBar";

@@ -3,6 +3,11 @@ import { View, Text, TextInput, TouchableOpacity } from "react-native";
 import { CalendarIcon } from "./icons";
 import CustomCalendar from "./CustomCalendar";
 
+const MONTHS = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December"
+];
+
 type ProfileDateInputProps = {
   value: string;
   onChangeText: (text: string) => void;
@@ -25,6 +30,7 @@ export default function ProfileDateInput({ value, onChangeText }: ProfileDateInp
   };
 
   const selectedDate = parseDate(value);
+  const displayValue = value ? `${selectedDate.getDate().toString().padStart(2, '0')} ${MONTHS[selectedDate.getMonth()]} ${selectedDate.getFullYear()}` : "";
 
   const handleSelectDate = (date: Date) => {
     const y = date.getFullYear();
@@ -41,7 +47,9 @@ export default function ProfileDateInput({ value, onChangeText }: ProfileDateInp
         Date of Birth
       </Text>
 
-      <View
+      <TouchableOpacity
+        activeOpacity={0.8}
+        onPress={() => setShow(true)}
         className="
           w-full
           h-[56px]
@@ -55,18 +63,17 @@ export default function ProfileDateInput({ value, onChangeText }: ProfileDateInp
         "
       >
         <TextInput
-          placeholder="YYYY-MM-DD"
+          placeholder="DD Month YYYY"
           placeholderTextColor="#666"
           className="text-white text-[15px] font-nata flex-1 outline-none"
-          value={value}
-          onChangeText={onChangeText}
-          keyboardType="numeric"
-          maxLength={10}
+          value={displayValue}
+          editable={false}
+          pointerEvents="none"
         />
-        <TouchableOpacity onPress={() => setShow(true)} className="p-2 -mr-2">
+        <View className="p-2 -mr-2">
           <CalendarIcon size={20} color="#727272" />
-        </TouchableOpacity>
-      </View>
+        </View>
+      </TouchableOpacity>
 
       <CustomCalendar
         visible={show}

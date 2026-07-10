@@ -60,10 +60,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (response.status === 401) {
           try {
             await SecureStore.deleteItemAsync('access_token');
+            setUser(null);
           } catch (e) {
             console.error('Failed to clear session storage', e);
-          } finally {
-            setUser(null);
+            throw e;
           }
         }
       }
@@ -96,10 +96,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
     try {
       await SecureStore.deleteItemAsync('access_token');
+      setUser(null);
     } catch (e) {
       console.error('Failed to clear session storage', e);
-    } finally {
-      setUser(null);
+      throw e;
     }
   };
 

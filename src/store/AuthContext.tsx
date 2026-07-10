@@ -58,8 +58,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } else {
         // If unauthorized, clear token
         if (response.status === 401) {
-          await SecureStore.deleteItemAsync('access_token');
-          setUser(null);
+          try {
+            await SecureStore.deleteItemAsync('access_token');
+          } catch (e) {
+            console.error('Failed to clear session storage', e);
+          } finally {
+            setUser(null);
+          }
         }
       }
     } catch (error) {
@@ -89,8 +94,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (e) {
       console.error(e);
     }
-    await SecureStore.deleteItemAsync('access_token');
-    setUser(null);
+    try {
+      await SecureStore.deleteItemAsync('access_token');
+    } catch (e) {
+      console.error('Failed to clear session storage', e);
+    } finally {
+      setUser(null);
+    }
   };
 
   return (

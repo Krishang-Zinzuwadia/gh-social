@@ -81,7 +81,7 @@ export default function ProfileDateInput({ value, onChangeText }: ProfileDateInp
       <CustomCalendar
         visible={show}
         onClose={() => setShow(false)}
-        selectedDate={selectedDate}
+        selectedDate={isValid ? selectedDate : new Date()}
         onSelectDate={handleSelectDate}
         maxDate={new Date()}
       />

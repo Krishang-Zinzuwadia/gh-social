@@ -9,6 +9,7 @@ import { getUserBoards } from '../../api/boards';
 import * as SecureStore from 'expo-secure-store';
 import { useOptimisticMutations } from '../../hooks/useOptimisticMutations';
 import { ActivityIndicator } from 'react-native';
+import type { FeedbackAction } from '../../api/activity';
 
 interface SavePopupProps {
   isVisible: boolean;
@@ -19,7 +20,7 @@ interface SavePopupProps {
   isGestureActive: boolean;
   repoId?: string;
   repoName?: string;
-  onQueueActivity?: (event: { repo_id: string; action: 'like' | 'save' | 'skip' | 'dwell' | 'unlike' | 'unsave'; dwell_seconds?: number }) => void;
+  onQueueActivity?: (event: { repo_id: string; action: FeedbackAction; dwell_seconds?: number }) => void;
 }
 
 const INITIAL_COLLECTIONS: string[] = ['AI Projects', 'Web Development', 'Open Source', 'Inspiration'];

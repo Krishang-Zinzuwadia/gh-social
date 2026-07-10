@@ -2,6 +2,7 @@ import { db } from '../db/index.js';
 import { activities } from '../db/schema.js';
 import { eq, and, desc, sql } from 'drizzle-orm';
 import type { ActivityInsert, ActivityUpdate } from '../types/index.js';
+import type { FeedbackInteraction } from '../config/feedback.js';
 
 export async function toggleRepoLike(userId: string, repoId: string) {
   try {
@@ -19,7 +20,7 @@ export async function toggleRepoSave(userId: string, repoId: string) {
 
 export interface BatchedActivityEvent {
   repo_id: string;
-  action: 'like' | 'save' | 'skip' | 'dwell' | 'unlike' | 'unsave';
+  action: FeedbackInteraction;
   dwell_seconds?: number;
 }
 
@@ -47,8 +48,9 @@ export async function processBatchedActivity(userId: string, events: BatchedActi
           ON CONFLICT (user_id, repo_id) DO UPDATE 
           SET 
             time_spent = activity.time_spent + EXCLUDED.time_spent,
-            likelihood_count = CASE 
+            likelihood_count = CASE
                                 WHEN ${event.action} = 'like' THEN 1 
+                                WHEN ${event.action} = 'dislike' THEN -1
                                 WHEN ${event.action} = 'unlike' THEN 0 
                                 ELSE activity.likelihood_count 
                                END,

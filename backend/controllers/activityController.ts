@@ -5,6 +5,7 @@ import { FeedService } from '../services/feedService.js';
 import { sendError, sendSuccess, sendDatabaseError } from '../utils/response.js';
 import { isValidUuid } from '../utils/validators.js';
 import { mlService } from '../services/mlService.js';
+import { isFeedbackInteraction } from '../config/feedback.js';
 
 const feedService = new FeedService();
 
@@ -27,9 +28,22 @@ export async function processBatchedActivity(req: AuthRequest, res: Response): P
   if (!userId) {
     return sendError(res, 401, 'Unauthorized');
   }
-  
+
   if (!Array.isArray(events)) {
     return sendError(res, 400, 'events must be an array');
+  }
+  if (events.length === 0 || events.length > 100) {
+    return sendError(res, 400, 'events must contain between 1 and 100 items');
+  }
+  for (const event of events) {
+    if (!event || typeof event.repo_id !== 'string' || !isFeedbackInteraction(event.action)) {
+      return sendError(res, 400, 'Each event requires a repo_id and supported action');
+    }
+    if (event.action === 'dwell' && (
+      typeof event.dwell_seconds !== 'number' || event.dwell_seconds <= 0
+    )) {
+      return sendError(res, 400, 'dwell_seconds must be positive for dwell events');
+    }
   }
 
   const { error } = await activityService.processBatchedActivity(userId, events);
@@ -44,6 +58,7 @@ export async function processBatchedActivity(req: AuthRequest, res: Response): P
     action: e.action,
     dwell_seconds: e.dwell_seconds
   })));
+  void feedService.invalidateUserFeed(userId);
 
   return sendSuccess(res, 202, { message: 'Batched activity processed' });
 }
@@ -62,7 +77,7 @@ export async function getUserActivity(req: Request, res: Response): Promise<void
 
 export async function getSavedActivity(req: Request, res: Response): Promise<void> {
   const userId = req.params.userId as string;
-  
+
   const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 20;
   const offset = req.query.offset ? parseInt(req.query.offset as string, 10) : 0;
 
@@ -163,8 +178,16 @@ export async function deleteActivityById(req: Request, res: Response): Promise<v
 }
 
 // Toggle like for a user/repo pair.
-export async function likeRepo(req: Request, res: Response): Promise<void> {
+export async function likeRepo(req: AuthRequest, res: Response): Promise<void> {
   const { userId, repoId } = req.params as { userId: string; repoId: string };
+  const authUserId = req.user?.userId;
+
+  if (!authUserId) {
+    return sendError(res, 401, 'Unauthorized');
+  }
+  if (authUserId !== userId) {
+    return sendError(res, 403, 'Forbidden: user mismatch.');
+  }
 
   if (!isValidUuid(userId) || !isValidUuid(repoId)) {
     return sendError(res, 400, 'userId and repoId must be valid UUIDs.');
@@ -176,15 +199,28 @@ export async function likeRepo(req: Request, res: Response): Promise<void> {
     return sendDatabaseError(res, error);
   }
 
-  void mlService.sendBatchedActivityFeedback([{ user_id: userId, repo_id: repoId, action: 'like' }]);
+  const liked = (data as { likelihood_count?: number } | null)?.likelihood_count === 1;
+  void mlService.sendBatchedActivityFeedback([{
+    user_id: userId,
+    repo_id: repoId,
+    action: liked ? 'like' : 'unlike',
+  }]);
   void feedService.invalidateUserFeed(userId);
 
   return sendSuccess(res, 200, data);
 }
 
 // Toggle save for a user/repo pair.
-export async function saveRepo(req: Request, res: Response): Promise<void> {
+export async function saveRepo(req: AuthRequest, res: Response): Promise<void> {
   const { userId, repoId } = req.params as { userId: string; repoId: string };
+  const authUserId = req.user?.userId;
+
+  if (!authUserId) {
+    return sendError(res, 401, 'Unauthorized');
+  }
+  if (authUserId !== userId) {
+    return sendError(res, 403, 'Forbidden: user mismatch.');
+  }
 
   if (!isValidUuid(userId) || !isValidUuid(repoId)) {
     return sendError(res, 400, 'userId and repoId must be valid UUIDs.');
@@ -196,7 +232,12 @@ export async function saveRepo(req: Request, res: Response): Promise<void> {
     return sendDatabaseError(res, error);
   }
 
-  void mlService.sendBatchedActivityFeedback([{ user_id: userId, repo_id: repoId, action: 'save' }]);
+  const saved = (data as { is_saved?: boolean } | null)?.is_saved === true;
+  void mlService.sendBatchedActivityFeedback([{
+    user_id: userId,
+    repo_id: repoId,
+    action: saved ? 'save' : 'unsave',
+  }]);
   void feedService.invalidateUserFeed(userId);
 
   return sendSuccess(res, 200, data);

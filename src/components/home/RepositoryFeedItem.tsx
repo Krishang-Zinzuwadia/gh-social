@@ -4,6 +4,7 @@ import { RepositoryData } from '../../data/repositories';
 import { RepositoryScreen } from './RepositoryScreen';
 import { SavePopup } from './save-popup';
 import { ReadmePopup } from './ReadmePopup';
+import type { FeedbackAction } from '../../api/activity';
 
 function clampNumber(value: number, minimum: number, maximum: number) {
   return Math.min(Math.max(value, minimum), maximum);
@@ -25,7 +26,7 @@ export function RepositoryFeedItem({
   pageWidth: number;
   pageHeight: number;
   isViewable?: boolean;
-  onQueueActivity?: (event: { repo_id: string; action: 'like' | 'save' | 'skip' | 'dwell' | 'unlike' | 'unsave'; dwell_seconds?: number }, flushNow?: boolean) => void;
+  onQueueActivity?: (event: { repo_id: string; action: FeedbackAction; dwell_seconds?: number }, flushNow?: boolean) => void;
 }) {
   const [isPopupVisible, setIsPopupVisible] = useState(false);
   const [isReadmeVisible, setIsReadmeVisible] = useState(false);

@@ -5,6 +5,11 @@ import { RepositoryScreen } from './RepositoryScreen';
 import { SavePopup } from './save-popup';
 import { ReadmePopup } from './ReadmePopup';
 import type { FeedbackAction } from '../../api/activity';
+import {
+  DWELL_VISIBILITY_THRESHOLD_MS,
+  FEEDBACK_ACTIONS,
+  IMPRESSION_VISIBILITY_THRESHOLD_MS,
+} from '../../constants/feedbackActions';
 
 function clampNumber(value: number, minimum: number, maximum: number) {
   return Math.min(Math.max(value, minimum), maximum);
@@ -37,22 +42,46 @@ export function RepositoryFeedItem({
 
   const isDraggingRef = useRef(false);
   const visibleStartTime = useRef<number | null>(null);
+  const impressionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const impressionSentRef = useRef(false);
   const userActionTaken = useRef(false);
 
   React.useEffect(() => {
     if (isViewable) {
       visibleStartTime.current = Date.now();
+      impressionSentRef.current = false;
       userActionTaken.current = false;
+      if (impressionTimeoutRef.current) {
+        clearTimeout(impressionTimeoutRef.current);
+      }
+      impressionTimeoutRef.current = setTimeout(() => {
+        if (visibleStartTime.current !== null && !impressionSentRef.current) {
+          impressionSentRef.current = true;
+          onQueueActivity?.({ repo_id: repository.id, action: FEEDBACK_ACTIONS.impression });
+        }
+      }, IMPRESSION_VISIBILITY_THRESHOLD_MS);
     } else if (visibleStartTime.current !== null) {
       const dwellSeconds = (Date.now() - visibleStartTime.current) / 1000;
-      if (!userActionTaken.current && onQueueActivity) {
-        onQueueActivity({ repo_id: repository.id, action: 'skip', dwell_seconds: dwellSeconds });
-      } else if (userActionTaken.current && onQueueActivity) {
-        // Just record dwell time if action was already sent
-        onQueueActivity({ repo_id: repository.id, action: 'dwell', dwell_seconds: dwellSeconds });
+      if (impressionTimeoutRef.current) {
+        clearTimeout(impressionTimeoutRef.current);
+        impressionTimeoutRef.current = null;
+      }
+      if (dwellSeconds * 1000 >= DWELL_VISIBILITY_THRESHOLD_MS) {
+        onQueueActivity?.({
+          repo_id: repository.id,
+          action: FEEDBACK_ACTIONS.dwell,
+          dwell_seconds: dwellSeconds,
+        });
       }
       visibleStartTime.current = null;
     }
+
+    return () => {
+      if (impressionTimeoutRef.current) {
+        clearTimeout(impressionTimeoutRef.current);
+        impressionTimeoutRef.current = null;
+      }
+    };
   }, [isViewable, onQueueActivity, repository.id]);
 
   const openSaveDrawer = useCallback(() => {
@@ -189,7 +218,11 @@ export function RepositoryFeedItem({
           repository={repository}
           pageWidth={pageWidth}
           pageHeight={pageHeight}
-          onReadFullPress={() => setIsReadmeVisible(true)}
+          onReadFullPress={() => {
+            userActionTaken.current = true;
+            onQueueActivity?.({ repo_id: repository.id, action: FEEDBACK_ACTIONS.readmeOpen }, true);
+            setIsReadmeVisible(true);
+          }}
           onQueueActivity={(e, flushNow) => {
             userActionTaken.current = true;
             onQueueActivity?.(e, flushNow);

@@ -9,6 +9,7 @@ import ReadmeCard from './ReadmeCard';
 import { HomeUserFooter } from './UserFooter';
 import { ThumbsUpHomeIcon, ThumbsDownHomeIcon } from './FeedIcons';
 import type { FeedbackAction } from '../../api/activity';
+import { FEEDBACK_ACTIONS } from '../../constants/feedbackActions';
 
 function clampNumber(value: number, minimum: number, maximum: number) {
   return Math.min(Math.max(value, minimum), maximum);
@@ -186,12 +187,12 @@ export function RepositoryScreen({
                     setHasDisliked(false);
                     if (onQueueActivity) {
                       // Pass true to flush immediately
-                      onQueueActivity({ repo_id: repository.id, action: 'like' }, true);
+                      onQueueActivity({ repo_id: repository.id, action: FEEDBACK_ACTIONS.like }, true);
                     }
                   } else {
                     setHasLiked(false);
                     if (onQueueActivity) {
-                      onQueueActivity({ repo_id: repository.id, action: 'unlike' }, true);
+                      onQueueActivity({ repo_id: repository.id, action: FEEDBACK_ACTIONS.unlike }, true);
                     }
                   }
                 }}
@@ -219,10 +220,10 @@ export function RepositoryScreen({
                   if (!hasDisliked) {
                     setHasDisliked(true);
                     setHasLiked(false);
-                    onQueueActivity?.({ repo_id: repository.id, action: 'dislike' }, true);
+                    onQueueActivity?.({ repo_id: repository.id, action: FEEDBACK_ACTIONS.dislike }, true);
                   } else {
                     setHasDisliked(false);
-                    onQueueActivity?.({ repo_id: repository.id, action: 'unlike' }, true);
+                    onQueueActivity?.({ repo_id: repository.id, action: FEEDBACK_ACTIONS.undislike }, true);
                   }
                 }}
                 style={[

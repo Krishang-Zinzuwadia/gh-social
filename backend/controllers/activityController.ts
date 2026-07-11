@@ -20,7 +20,7 @@ export async function getAllActivity(_req: Request, res: Response): Promise<void
   return sendSuccess(res, 200, data);
 }
 
-// Process a batch of activity events (likes, saves, skips, dwells)
+// Process a batch of activity events (impressions, dwells, and explicit feedback)
 export async function processBatchedActivity(req: AuthRequest, res: Response): Promise<void> {
   const userId = req.user?.userId;
   const events = req.body.events;

@@ -10,6 +10,7 @@ import * as SecureStore from 'expo-secure-store';
 import { useOptimisticMutations } from '../../hooks/useOptimisticMutations';
 import { ActivityIndicator } from 'react-native';
 import type { FeedbackAction } from '../../api/activity';
+import { FEEDBACK_ACTIONS } from '../../constants/feedbackActions';
 
 interface SavePopupProps {
   isVisible: boolean;
@@ -121,7 +122,7 @@ export function SavePopup({
     if (!selected || !repoId || !repoName) return;
     setStatus('saved');
     if (onQueueActivity) {
-      onQueueActivity({ repo_id: repoId, action: 'save' });
+      onQueueActivity({ repo_id: repoId, action: FEEDBACK_ACTIONS.save });
     }
     addRepoToBoardMutation.mutate({ boardId: selected, repoId, repoName });
     if (saveTimeoutRef.current) {

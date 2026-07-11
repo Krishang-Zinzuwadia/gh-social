@@ -1,13 +1,7 @@
 import { API_URL } from './config';
+import type { FeedbackAction } from '../constants/feedbackActions';
 
-export type FeedbackAction =
-  | 'like'
-  | 'save'
-  | 'dislike'
-  | 'skip'
-  | 'dwell'
-  | 'unlike'
-  | 'unsave';
+export type { FeedbackAction } from '../constants/feedbackActions';
 
 export async function getSavedRepos(userId: string, token: string, limit: number = 20, offset: number = 0) {
   const response = await fetch(`${API_URL}/activity/user/${userId}/saved?limit=${limit}&offset=${offset}`, {

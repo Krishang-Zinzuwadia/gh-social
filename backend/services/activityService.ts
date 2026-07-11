@@ -52,6 +52,7 @@ export async function processBatchedActivity(userId: string, events: BatchedActi
                                 WHEN ${event.action} = 'like' THEN 1 
                                 WHEN ${event.action} = 'dislike' THEN -1
                                 WHEN ${event.action} = 'unlike' THEN 0 
+                                WHEN ${event.action} = 'undislike' THEN 0 
                                 ELSE activity.likelihood_count 
                                END,
             is_saved = CASE 

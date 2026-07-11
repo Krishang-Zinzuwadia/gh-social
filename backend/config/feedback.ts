@@ -1,11 +1,14 @@
 export const FEEDBACK_WEIGHTS = {
+  impression: 0.0,
+  readme_open: 0.2,
+  github_open: 0.3,
   like: 1.0,
   save: 0.8,
+  share: 0.6,
   dislike: -1.0,
+  undislike: 0.0,
   unlike: 0.0,
   unsave: 0.0,
-  click: 0.2,
-  skip: -0.2,
 } as const;
 
 export type FeedbackInteraction = keyof typeof FEEDBACK_WEIGHTS | 'dwell';

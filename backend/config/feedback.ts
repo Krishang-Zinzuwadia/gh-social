@@ -15,5 +15,8 @@ export type FeedbackInteraction = keyof typeof FEEDBACK_WEIGHTS | 'dwell';
 
 export function isFeedbackInteraction(value: unknown): value is FeedbackInteraction {
   return typeof value === 'string'
-    && (value === 'dwell' || Object.hasOwn(FEEDBACK_WEIGHTS, value));
+    && (
+      value === 'dwell'
+      || Object.prototype.hasOwnProperty.call(FEEDBACK_WEIGHTS, value)
+    );
 }

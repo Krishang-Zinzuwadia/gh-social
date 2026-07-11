@@ -46,19 +46,31 @@ export async function processBatchedActivity(req: AuthRequest, res: Response): P
     }
   }
 
+  const mlEvents: { user_id: string; repo_id: string; action: any; dwell_seconds?: number }[] = [];
+  for (const event of events) {
+    if (event.action === 'like' || event.action === 'dislike') {
+      const { data: currentActivity } = await activityService.getActivityByUserAndRepo(userId, event.repo_id);
+      if (event.action === 'like' && currentActivity?.likelihood_count === -1) {
+        mlEvents.push({ user_id: userId, repo_id: event.repo_id, action: 'undislike' });
+      } else if (event.action === 'dislike' && currentActivity?.likelihood_count === 1) {
+        mlEvents.push({ user_id: userId, repo_id: event.repo_id, action: 'unlike' });
+      }
+    }
+    mlEvents.push({
+      user_id: userId,
+      repo_id: event.repo_id,
+      action: event.action,
+      dwell_seconds: event.dwell_seconds
+    });
+  }
+
   const { error } = await activityService.processBatchedActivity(userId, events);
   if (error) {
     return sendDatabaseError(res, error as import('../types/index.js').PostgresError);
   }
 
   // Also asynchronously send to ML service
-  void mlService.sendBatchedActivityFeedback(events.map((e: any) => ({
-    user_id: userId,
-    repo_id: e.repo_id,
-    action: e.action,
-    dwell_seconds: e.dwell_seconds
-  })));
-  void feedService.invalidateUserFeed(userId);
+  void mlService.sendBatchedActivityFeedback(mlEvents as any);
 
   return sendSuccess(res, 202, { message: 'Batched activity processed' });
 }
@@ -193,6 +205,9 @@ export async function likeRepo(req: AuthRequest, res: Response): Promise<void> {
     return sendError(res, 400, 'userId and repoId must be valid UUIDs.');
   }
 
+  const { data: currentActivity } = await activityService.getActivityByUserAndRepo(userId, repoId);
+  const wasDisliked = currentActivity?.likelihood_count === -1;
+
   const { data, error } = await activityService.toggleRepoLike(userId, repoId);
 
   if (error) {
@@ -200,12 +215,16 @@ export async function likeRepo(req: AuthRequest, res: Response): Promise<void> {
   }
 
   const liked = (data as { likelihood_count?: number } | null)?.likelihood_count === 1;
-  void mlService.sendBatchedActivityFeedback([{
+  const mlEvents: any[] = [];
+  if (liked && wasDisliked) {
+    mlEvents.push({ user_id: userId, repo_id: repoId, action: 'undislike' });
+  }
+  mlEvents.push({
     user_id: userId,
     repo_id: repoId,
     action: liked ? 'like' : 'unlike',
-  }]);
-  void feedService.invalidateUserFeed(userId);
+  });
+  void mlService.sendBatchedActivityFeedback(mlEvents);
 
   return sendSuccess(res, 200, data);
 }
@@ -238,7 +257,6 @@ export async function saveRepo(req: AuthRequest, res: Response): Promise<void> {
     repo_id: repoId,
     action: saved ? 'save' : 'unsave',
   }]);
-  void feedService.invalidateUserFeed(userId);
 
   return sendSuccess(res, 200, data);
 }

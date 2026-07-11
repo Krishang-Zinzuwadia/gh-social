@@ -8,6 +8,7 @@ import * as repoService from '../services/repoService.js';
 import { db } from '../db/index.js';
 import { repos } from '../db/schema.js';
 import { eq } from 'drizzle-orm';
+import { mlService } from '../services/mlService.js';
 
 async function resolveRepoId(repoIdOrFullName: string): Promise<string | null> {
   if (isValidUuid(repoIdOrFullName)) return repoIdOrFullName;
@@ -154,6 +155,14 @@ export async function saveRepoToBoard(req: AuthRequest, res: Response): Promise<
         invalidReferenceMessage: 'Repo does not exist or is not linked to a valid record.',
       });
     }
+    
+    // Emit 'save' only after atomic board mutation succeeds
+    void mlService.sendBatchedActivityFeedback([{
+      user_id: authUserId,
+      repo_id: repoId,
+      action: 'save'
+    }]);
+
     return sendSuccess(res, 201, data);
   } catch (err) {
     return sendControllerError(res, err);

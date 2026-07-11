@@ -98,7 +98,7 @@ export const userFeedback = pgTable('user_feedback', {
   feedback_score: doublePrecision('feedback_score').notNull(),
   updated_at: timestamp('updated_at', { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
 }, (t) => ({
-  pk: primaryKey({ columns: [t.user_id, t.repo_id] }),
+  pk: primaryKey({ columns: [t.user_id, t.repo_id, t.interaction_type] }),
   userUpdatedIdx: index('user_feedback_user_updated_idx').on(t.user_id, t.updated_at),
   scoreCheck: check(
     'user_feedback_score_range',

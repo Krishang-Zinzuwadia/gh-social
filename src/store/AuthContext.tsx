@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import * as SecureStore from '../utils/storage';
+import { getStorageItem, setStorageItem, removeStorageItem } from '../utils/storage';
 import { API_URL } from '../api/config';
 
 interface User {
@@ -30,7 +30,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const loadSession = async () => {
     try {
-      const token = await SecureStore.getItemAsync('access_token');
+      const token = await getStorageItem('access_token');
       if (token) {
         await fetchUserProfile(token);
       }
@@ -59,11 +59,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // If unauthorized, clear token
         if (response.status === 401) {
           try {
-            await SecureStore.deleteItemAsync('access_token');
+            await removeStorageItem('access_token');
           } catch (e) {
             console.error('Failed to clear session storage', e);
+          } finally {
+            setUser(null);
           }
-          setUser(null);
         }
       }
     } catch (error) {
@@ -72,30 +73,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const checkOnboardingStatus = async () => {
-    const token = await SecureStore.getItemAsync('access_token');
+    const token = await getStorageItem('access_token');
     if (token) {
       await fetchUserProfile(token);
     }
   };
 
   const setSession = async (token: string, authUser: any) => {
-    await SecureStore.setItemAsync('access_token', token);
+    await setStorageItem('access_token', token);
     await fetchUserProfile(token);
   };
 
   const signOut = async () => {
     try {
-      const token = await SecureStore.getItemAsync('access_token');
+      const token = await getStorageItem('access_token');
       await fetch(`${API_URL}/auth/logout`, { 
         method: 'POST',
         headers: token ? { 'Authorization': `Bearer ${token}` } : {}
       });
+    } catch (e) {
+      console.error(e);
+    }
+    
     try {
-      await SecureStore.deleteItemAsync('access_token');
+      await removeStorageItem('access_token');
     } catch (e) {
       console.error('Failed to clear session storage', e);
+    } finally {
+      setUser(null);
     }
-    setUser(null);
   };
 
   return (

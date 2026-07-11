@@ -1,7 +1,7 @@
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 
-export async function setItemAsync(key: string, value: string): Promise<void> {
+export async function setStorageItem(key: string, value: string): Promise<void> {
   if (Platform.OS === 'web') {
     try {
       if (typeof localStorage !== 'undefined') {
@@ -18,7 +18,7 @@ export async function setItemAsync(key: string, value: string): Promise<void> {
   }
 }
 
-export async function getItemAsync(key: string): Promise<string | null> {
+export async function getStorageItem(key: string): Promise<string | null> {
   if (Platform.OS === 'web') {
     try {
       if (typeof localStorage !== 'undefined') {
@@ -33,7 +33,7 @@ export async function getItemAsync(key: string): Promise<string | null> {
   }
 }
 
-export async function deleteItemAsync(key: string): Promise<void> {
+export async function removeStorageItem(key: string): Promise<void> {
   if (Platform.OS === 'web') {
     try {
       if (typeof localStorage !== 'undefined') {
@@ -49,3 +49,8 @@ export async function deleteItemAsync(key: string): Promise<void> {
     await SecureStore.deleteItemAsync(key);
   }
 }
+
+// Legacy aliases to maintain backward compatibility across the rest of the app
+export const setItemAsync = setStorageItem;
+export const getItemAsync = getStorageItem;
+export const deleteItemAsync = removeStorageItem;

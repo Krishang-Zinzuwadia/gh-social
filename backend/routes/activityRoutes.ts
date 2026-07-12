@@ -10,6 +10,7 @@ import {
   updateActivityById,
   deleteActivityById,
   likeRepo,
+  dislikeRepo,
   saveRepo,
   processBatchedActivity,
 } from '../controllers/activityController.js';
@@ -52,6 +53,9 @@ router.delete('/:activityId', deleteActivityById);
 
 // Toggle like for a user/repo pair.
 router.post('/user/:userId/repo/:repoId/like', requireAuth, likeRepo);
+
+// Toggle dislike for a user/repo pair.
+router.post('/user/:userId/repo/:repoId/dislike', requireAuth, dislikeRepo);
 
 // Toggle save for a user/repo pair.
 router.post('/user/:userId/repo/:repoId/save', requireAuth, saveRepo);

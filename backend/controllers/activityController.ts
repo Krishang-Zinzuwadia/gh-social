@@ -260,3 +260,51 @@ export async function saveRepo(req: AuthRequest, res: Response): Promise<void> {
 
   return sendSuccess(res, 200, data);
 }
+
+// Toggle dislike for a user/repo pair.
+export async function dislikeRepo(req: AuthRequest, res: Response): Promise<void> {
+  const { userId, repoId } = req.params as { userId: string; repoId: string };
+  const authUserId = req.user?.userId;
+
+  if (!authUserId) {
+    return sendError(res, 401, 'Unauthorized');
+  }
+  if (authUserId !== userId) {
+    return sendError(res, 403, 'Forbidden: user mismatch.');
+  }
+
+  if (!isValidUuid(userId) || !isValidUuid(repoId)) {
+    return sendError(res, 400, 'userId and repoId must be valid UUIDs.');
+  }
+
+  const { data: currentActivity } = await activityService.getActivityByUserAndRepo(userId, repoId);
+  const wasLiked = currentActivity?.likelihood_count === 1;
+  const wasDisliked = currentActivity?.likelihood_count === -1;
+
+  // Toggle dislike via the batch processing service (handles the CASE logic)
+  const action = wasDisliked ? 'undislike' : 'dislike';
+  const { error } = await activityService.processBatchedActivity(userId, [
+    { repo_id: repoId, action },
+  ]);
+
+  if (error) {
+    return sendDatabaseError(res, error as import('../types/index.js').PostgresError);
+  }
+
+  // Build ML events with correct reversal ordering
+  const mlEvents: { user_id: string; repo_id: string; action: string }[] = [];
+  if (!wasDisliked && wasLiked) {
+    // Switching from like → dislike: emit unlike first
+    mlEvents.push({ user_id: userId, repo_id: repoId, action: 'unlike' });
+  }
+  mlEvents.push({
+    user_id: userId,
+    repo_id: repoId,
+    action,
+  });
+  void mlService.sendBatchedActivityFeedback(mlEvents as any);
+
+  // Re-fetch the updated activity row
+  const { data: updatedActivity } = await activityService.getActivityByUserAndRepo(userId, repoId);
+  return sendSuccess(res, 200, updatedActivity);
+}

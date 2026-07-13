@@ -6,7 +6,7 @@ import { RepositoryFeedItem } from '@/components/home/RepositoryFeedItem';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import * as SecureStore from 'expo-secure-store';
 import { fetchFeed } from '@/api/feed';
-import { sendBatchedActivity } from '@/api/activity';
+import { sendBatchedActivity, type FeedbackAction } from '@/api/activity';
 
 const TAB_BAR_HEIGHT = 60;
 const WEB_FEED_LIST_STYLE =
@@ -45,7 +45,7 @@ export default function HomeScreen() {
   const pageWidth = Math.max(Math.min(viewportWidth - 28, 680), 1);
   const pageHeight = Math.max(height - TAB_BAR_HEIGHT - 28, 1);
   
-  const pendingActivityBatch = useRef<{ repo_id: string; action: 'like' | 'save' | 'skip' | 'dwell' | 'unlike' | 'unsave'; dwell_seconds?: number }[]>([]);
+  const pendingActivityBatch = useRef<{ repo_id: string; action: FeedbackAction; dwell_seconds?: number }[]>([]);
 
   const flushActivityBatch = useCallback(async () => {
     if (pendingActivityBatch.current.length > 0) {
@@ -99,7 +99,7 @@ export default function HomeScreen() {
     repository: mapBackendToFrontend(item),
   })) || [];
 
-  const handleQueueActivity = useCallback((event: { repo_id: string; action: 'like' | 'save' | 'skip' | 'dwell' | 'unlike' | 'unsave'; dwell_seconds?: number }, flushNow?: boolean) => {
+  const handleQueueActivity = useCallback((event: { repo_id: string; action: FeedbackAction; dwell_seconds?: number }, flushNow?: boolean) => {
     pendingActivityBatch.current.push(event);
     
     if (flushNow || pendingActivityBatch.current.length >= 10) {

@@ -2,6 +2,7 @@ import { db } from '../db/index.js';
 import { activities } from '../db/schema.js';
 import { eq, and, desc, sql } from 'drizzle-orm';
 import type { ActivityInsert, ActivityUpdate } from '../types/index.js';
+import type { FeedbackInteraction } from '../config/feedback.js';
 
 export async function toggleRepoLike(userId: string, repoId: string) {
   try {
@@ -19,7 +20,7 @@ export async function toggleRepoSave(userId: string, repoId: string) {
 
 export interface BatchedActivityEvent {
   repo_id: string;
-  action: 'like' | 'save' | 'skip' | 'dwell' | 'unlike' | 'unsave';
+  action: FeedbackInteraction;
   dwell_seconds?: number;
 }
 
@@ -34,7 +35,7 @@ export async function processBatchedActivity(userId: string, events: BatchedActi
       try {
         // We use raw SQL for UPSERT because interval math is simpler
         // We resolve the repo_id UUID using a SELECT to handle string IDs (full_name) from the ML service, or fallback to UUID directly
-        await db.execute(sql`
+        const result = await db.execute(sql`
           INSERT INTO activity (user_id, repo_id, time_spent, likelihood_count, is_saved)
           SELECT 
             ${userId}::uuid,
@@ -47,9 +48,11 @@ export async function processBatchedActivity(userId: string, events: BatchedActi
           ON CONFLICT (user_id, repo_id) DO UPDATE 
           SET 
             time_spent = activity.time_spent + EXCLUDED.time_spent,
-            likelihood_count = CASE 
+            likelihood_count = CASE
                                 WHEN ${event.action} = 'like' THEN 1 
+                                WHEN ${event.action} = 'dislike' THEN -1
                                 WHEN ${event.action} = 'unlike' THEN 0 
+                                WHEN ${event.action} = 'undislike' THEN 0 
                                 ELSE activity.likelihood_count 
                                END,
             is_saved = CASE 
@@ -58,9 +61,12 @@ export async function processBatchedActivity(userId: string, events: BatchedActi
                         ELSE activity.is_saved 
                        END
         `);
+        if (result.rowCount === 0) {
+          return { error: { code: 'PGRST116', message: 'Repo not found or not affected' } };
+        }
       } catch (err) {
         console.error(`[ActivityService] Failed to process event for repo ${event.repo_id}:`, err);
-        // Continue processing other events in the batch
+        return { error: err };
       }
     }
     return { error: null };

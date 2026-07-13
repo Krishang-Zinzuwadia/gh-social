@@ -9,6 +9,8 @@ import { getUserBoards } from '../../api/boards';
 import * as SecureStore from 'expo-secure-store';
 import { useOptimisticMutations } from '../../hooks/useOptimisticMutations';
 import { ActivityIndicator } from 'react-native';
+import type { FeedbackAction } from '../../api/activity';
+import { FEEDBACK_ACTIONS } from '../../constants/feedbackActions';
 
 interface SavePopupProps {
   isVisible: boolean;
@@ -19,7 +21,7 @@ interface SavePopupProps {
   isGestureActive: boolean;
   repoId?: string;
   repoName?: string;
-  onQueueActivity?: (event: { repo_id: string; action: 'like' | 'save' | 'skip' | 'dwell' | 'unlike' | 'unsave'; dwell_seconds?: number }) => void;
+  onQueueActivity?: (event: { repo_id: string; action: FeedbackAction; dwell_seconds?: number }) => void;
 }
 
 const INITIAL_COLLECTIONS: string[] = ['AI Projects', 'Web Development', 'Open Source', 'Inspiration'];
@@ -119,9 +121,7 @@ export function SavePopup({
   const saveRepository = () => {
     if (!selected || !repoId || !repoName) return;
     setStatus('saved');
-    if (onQueueActivity) {
-      onQueueActivity({ repo_id: repoId, action: 'save' });
-    }
+    // Intentionally omitting onQueueActivity for 'save' since the backend automatically emits it.
     addRepoToBoardMutation.mutate({ boardId: selected, repoId, repoName });
     if (saveTimeoutRef.current) {
       clearTimeout(saveTimeoutRef.current);

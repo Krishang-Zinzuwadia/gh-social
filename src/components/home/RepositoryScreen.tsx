@@ -8,6 +8,8 @@ import DescriptionCard from './DescriptionCard';
 import ReadmeCard from './ReadmeCard';
 import { HomeUserFooter } from './UserFooter';
 import { ThumbsUpHomeIcon, ThumbsDownHomeIcon } from './FeedIcons';
+import type { FeedbackAction } from '../../api/activity';
+import { FEEDBACK_ACTIONS } from '../../constants/feedbackActions';
 
 function clampNumber(value: number, minimum: number, maximum: number) {
   return Math.min(Math.max(value, minimum), maximum);
@@ -30,7 +32,7 @@ export function RepositoryScreen({
   pageHeight: number;
   repository: RepositoryData;
   onReadFullPress: () => void;
-  onQueueActivity?: (event: { repo_id: string; action: 'like' | 'save' | 'skip' | 'dwell' | 'unlike' | 'unsave'; dwell_seconds?: number }, flushNow?: boolean) => void;
+  onQueueActivity?: (event: { repo_id: string; action: FeedbackAction; dwell_seconds?: number }, flushNow?: boolean) => void;
 }) {
   const insets = useSafeAreaInsets();
   const isSmallPhone = pageWidth < 380;
@@ -185,12 +187,12 @@ export function RepositoryScreen({
                     setHasDisliked(false);
                     if (onQueueActivity) {
                       // Pass true to flush immediately
-                      onQueueActivity({ repo_id: repository.id, action: 'like' }, true);
+                      onQueueActivity({ repo_id: repository.id, action: FEEDBACK_ACTIONS.like }, true);
                     }
                   } else {
                     setHasLiked(false);
                     if (onQueueActivity) {
-                      onQueueActivity({ repo_id: repository.id, action: 'unlike' }, true);
+                      onQueueActivity({ repo_id: repository.id, action: FEEDBACK_ACTIONS.unlike }, true);
                     }
                   }
                 }}
@@ -218,9 +220,10 @@ export function RepositoryScreen({
                   if (!hasDisliked) {
                     setHasDisliked(true);
                     setHasLiked(false);
-                    // Usually you'd queue a 'dislike' action if backend supported it
+                    onQueueActivity?.({ repo_id: repository.id, action: FEEDBACK_ACTIONS.dislike }, true);
                   } else {
                     setHasDisliked(false);
+                    onQueueActivity?.({ repo_id: repository.id, action: FEEDBACK_ACTIONS.undislike }, true);
                   }
                 }}
                 style={[

@@ -1,4 +1,7 @@
 import { API_URL } from './config';
+import type { FeedbackAction } from '../constants/feedbackActions';
+
+export type { FeedbackAction } from '../constants/feedbackActions';
 
 export async function getSavedRepos(userId: string, token: string, limit: number = 20, offset: number = 0) {
   const response = await fetch(`${API_URL}/activity/user/${userId}/saved?limit=${limit}&offset=${offset}`, {
@@ -36,7 +39,7 @@ export async function toggleSaveRepo(userId: string, repoId: string, token: stri
   return json.data;
 }
 
-export async function sendBatchedActivity(events: { repo_id: string; action: 'like' | 'save' | 'skip' | 'dwell' | 'unlike' | 'unsave'; dwell_seconds?: number }[], token: string) {
+export async function sendBatchedActivity(events: { repo_id: string; action: FeedbackAction; dwell_seconds?: number }[], token: string) {
   if (events.length === 0) return;
   
   const response = await fetch(`${API_URL}/activity/batch`, {

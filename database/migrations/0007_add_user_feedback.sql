@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS "user_feedback" (
     "interaction_type" varchar(50) NOT NULL,
     "feedback_score" double precision NOT NULL,
     "updated_at" timestamp with time zone DEFAULT now() NOT NULL,
-    CONSTRAINT "user_feedback_pkey" PRIMARY KEY ("user_id", "repo_id"),
+    CONSTRAINT "user_feedback_pkey" PRIMARY KEY ("user_id", "repo_id", "interaction_type"),
     CONSTRAINT "user_feedback_score_range"
         CHECK ("feedback_score" >= -1.0 AND "feedback_score" <= 1.0)
 );

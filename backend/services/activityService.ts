@@ -35,7 +35,7 @@ export async function processBatchedActivity(userId: string, events: BatchedActi
       try {
         // We use raw SQL for UPSERT because interval math is simpler
         // We resolve the repo_id UUID using a SELECT to handle string IDs (full_name) from the ML service, or fallback to UUID directly
-        await db.execute(sql`
+        const result = await db.execute(sql`
           INSERT INTO activity (user_id, repo_id, time_spent, likelihood_count, is_saved)
           SELECT 
             ${userId}::uuid,
@@ -61,9 +61,12 @@ export async function processBatchedActivity(userId: string, events: BatchedActi
                         ELSE activity.is_saved 
                        END
         `);
+        if (result.rowCount === 0) {
+          return { error: { code: 'PGRST116', message: 'Repo not found or not affected' } };
+        }
       } catch (err) {
         console.error(`[ActivityService] Failed to process event for repo ${event.repo_id}:`, err);
-        // Continue processing other events in the batch
+        return { error: err };
       }
     }
     return { error: null };

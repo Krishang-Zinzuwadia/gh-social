@@ -121,9 +121,7 @@ export function SavePopup({
   const saveRepository = () => {
     if (!selected || !repoId || !repoName) return;
     setStatus('saved');
-    if (onQueueActivity) {
-      onQueueActivity({ repo_id: repoId, action: FEEDBACK_ACTIONS.save });
-    }
+    // Intentionally omitting onQueueActivity for 'save' since the backend automatically emits it.
     addRepoToBoardMutation.mutate({ boardId: selected, repoId, repoName });
     if (saveTimeoutRef.current) {
       clearTimeout(saveTimeoutRef.current);

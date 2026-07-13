@@ -4,7 +4,7 @@ import { getResponsiveContentWidth } from '@/components/responsive-layout';
 import { RepositoryData } from '@/data/repositories';
 import { RepositoryFeedItem } from '@/components/home/RepositoryFeedItem';
 import { useInfiniteQuery } from '@tanstack/react-query';
-import * as SecureStore from 'expo-secure-store';
+import * as SecureStore from '../../utils/storage';
 import { fetchFeed } from '@/api/feed';
 import { sendBatchedActivity, type FeedbackAction } from '@/api/activity';
 

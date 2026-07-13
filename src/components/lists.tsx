@@ -1,7 +1,7 @@
 import React from "react";
 import { View, Text, useWindowDimensions, ActivityIndicator } from "react-native";
 import { useInfiniteQuery } from "@tanstack/react-query";
-import * as SecureStore from "expo-secure-store";
+import * as SecureStore from "../utils/storage";
 import RecentSaves from "./recentsaves";
 import { getUserBoards } from "../api/boards";
 

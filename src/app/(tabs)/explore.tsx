@@ -9,7 +9,7 @@ import TrendingRepoCard from '../../components/explore/TrendingRepoCard';
 import SkeletonCard from '../../components/explore/SkeletonCard';
 import { getResponsiveContainerStyle } from '../../components/responsive-layout';
 import { fetchFeed } from '../../api/feed';
-import * as SecureStore from 'expo-secure-store';
+import * as SecureStore from '../../utils/storage';
 import { Repo, TabName } from '../../types';
 import { APP_THEME } from '../../constants/theme';
 

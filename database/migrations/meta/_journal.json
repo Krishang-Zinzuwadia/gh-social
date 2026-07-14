@@ -56,6 +56,13 @@
       "when": 1783555200000,
       "tag": "0007_add_user_feedback",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1784020646000,
+      "tag": "0008_add_feedback_event_log",
+      "breakpoints": true
     }
   ]
 }

@@ -7,10 +7,12 @@
   "scripts": {
     "dev": "tsx watch server.ts",
     "build": "tsc",
+    "test": "tsx --test tests/**/*.test.ts",
     "start": "node dist/server.js",
     "migrate": "node scripts/migrate.js"
   },
   "dependencies": {
+    "@gh-social/feedback-events": "file:../contracts/feedback-events",
     "@supabase/supabase-js": "^2.107.0",
     "axios": "^1.18.1",
     "cookie-parser": "^1.4.7",

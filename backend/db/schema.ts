@@ -106,6 +106,55 @@ export const userFeedback = pgTable('user_feedback', {
   ),
 }));
 
+// Append-only canonical events are the replay source for ML features.
+export const feedbackEventLog = pgTable('feedback_event_log', {
+  event_id: uuid('event_id').primaryKey(),
+  schema_version: integer('schema_version').notNull(),
+  user_id: uuid('user_id').references(() => users.user_id, { onDelete: 'cascade' }).notNull(),
+  repo_id: uuid('repo_id').references(() => repos.repo_id, { onDelete: 'cascade' }).notNull(),
+  action: varchar('action', { length: 32 }).notNull(),
+  dwell_seconds: doublePrecision('dwell_seconds'),
+  model_update: boolean('model_update').notNull(),
+  intent_weight: doublePrecision('intent_weight').notNull(),
+  intent_strength: varchar('intent_strength', { length: 16 }).notNull(),
+  feature_operation: varchar('feature_operation', { length: 16 }).notNull(),
+  reverses: varchar('reverses', { length: 32 }),
+  occurred_at: timestamp('occurred_at', { withTimezone: true, mode: 'string' }).notNull(),
+  created_at: timestamp('created_at', { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+}, (t) => ({
+  userOccurredIdx: index('feedback_event_log_user_occurred_idx').on(t.user_id, t.occurred_at, t.event_id),
+  repoOccurredIdx: index('feedback_event_log_repo_occurred_idx').on(t.repo_id, t.occurred_at, t.event_id),
+  schemaVersionCheck: check('feedback_event_log_schema_version', sql`${t.schema_version} = 1`),
+  actionCheck: check(
+    'feedback_event_log_action',
+    sql`${t.action} IN ('impression', 'dwell', 'readme_open', 'github_open', 'like', 'save', 'share', 'dislike', 'unlike', 'unsave', 'undislike')`,
+  ),
+  dwellCheck: check(
+    'feedback_event_log_dwell',
+    sql`(${t.action} = 'dwell' AND ${t.dwell_seconds} > 0) OR (${t.action} <> 'dwell' AND ${t.dwell_seconds} IS NULL)`,
+  ),
+  intentWeightCheck: check(
+    'feedback_event_log_intent_weight',
+    sql`${t.intent_weight} >= -1.0 AND ${t.intent_weight} <= 1.0`,
+  ),
+  intentStrengthCheck: check(
+    'feedback_event_log_intent_strength',
+    sql`${t.intent_strength} IN ('neutral', 'weak', 'strong', 'negative', 'reversal')`,
+  ),
+  featureOperationCheck: check(
+    'feedback_event_log_feature_operation',
+    sql`${t.feature_operation} IN ('increment', 'accumulate', 'set', 'clear')`,
+  ),
+  reversalCheck: check(
+    'feedback_event_log_reversal',
+    sql`(${t.action} = 'unlike' AND ${t.reverses} = 'like') OR (${t.action} = 'unsave' AND ${t.reverses} = 'save') OR (${t.action} = 'undislike' AND ${t.reverses} = 'dislike') OR (${t.action} NOT IN ('unlike', 'unsave', 'undislike') AND ${t.reverses} IS NULL)`,
+  ),
+  impressionPolicyCheck: check(
+    'feedback_event_log_impression_policy',
+    sql`${t.action} <> 'impression' OR (${t.model_update} = false AND ${t.intent_weight} = 0)`,
+  ),
+}));
+
 // 7. COMMENT
 export const comments = pgTable('comment', {
   comment_id: uuid('comment_id').defaultRandom().primaryKey(),

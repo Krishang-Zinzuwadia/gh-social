@@ -60,8 +60,9 @@ export async function processBatchedActivity(userId: string, events: BatchedActi
                         WHEN ${event.action} = 'unsave' THEN false 
                         ELSE activity.is_saved 
                        END
+          RETURNING activity_id
         `);
-        if (result.rowCount === 0) {
+        if (result.length === 0) {
           return { error: { code: 'PGRST116', message: 'Repo not found or not affected' } };
         }
       } catch (err) {

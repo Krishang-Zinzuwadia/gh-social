@@ -342,7 +342,25 @@ export async function handleOAuthCallback(
       );
     }
 
-    // 2. Insert a short-lived (5 minute) authorization code into the DB using Drizzle
+    // 2. Ensure the user has a row in public.users (first-time OAuth users won't).
+    //    Without this, the oauth_codes INSERT below fails with a FK violation.
+    const meta = data.user.user_metadata || {};
+    const defaultUsername =
+      (typeof meta.preferred_username === "string" && meta.preferred_username.trim()) ||
+      (typeof meta.user_name === "string" && meta.user_name.trim()) ||
+      `user_${data.user.id.slice(0, 8)}`;
+
+    await db
+      .insert(users)
+      .values({
+        user_id: data.user.id,
+        username: defaultUsername,
+        full_name: (typeof meta.full_name === "string" && meta.full_name.trim()) || null,
+        avatar_url: (typeof meta.avatar_url === "string" && meta.avatar_url.trim()) || null,
+      })
+      .onConflictDoNothing({ target: users.user_id });
+
+    // 3. Insert a short-lived (5 minute) authorization code into the DB using Drizzle
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
     const [codeData] = await db
       .insert(oauthCodes)
@@ -359,8 +377,7 @@ export async function handleOAuthCallback(
       );
     }
 
-    // 3. Redirect to your frontend with the short-lived code.
-    // CLIENT_URL should already be the full callback URL (e.g. ghsocial://auth/callback)
+    // 4. Redirect to your frontend with the short-lived code.
     res.redirect(`${CLIENT_URL}?code=${codeData.code}`);
   } catch (error) {
     console.error("OAuth Callback Caught Error:", error);

@@ -18,9 +18,9 @@ export function useOAuth() {
       const oauthUrl = await getOAuthUrl(provider);
 
       // 2. The redirect URI the backend will redirect back to after OAuth completes.
-      //    Must match CLIENT_URL in backend/.env (e.g. "ghsocial://auth/callback")
-      const redirectUri = Linking.createURL('auth/callback');
-
+      //    Must match CLIENT_URL in backend/.env (e.g. "ghsocial://callback")
+      const redirectUri = Linking.createURL('callback');
+      
       // 3. Open the in-app browser — it will intercept the redirect automatically
       const result = await WebBrowser.openAuthSessionAsync(oauthUrl, redirectUri);
 

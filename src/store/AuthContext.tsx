@@ -89,6 +89,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const token = await getStorageItem('access_token');
       await fetch(`${API_URL}/auth/logout`, { 
         method: 'POST',
+        credentials: 'include',
         headers: token ? { 'Authorization': `Bearer ${token}` } : {}
       });
     } catch (e) {

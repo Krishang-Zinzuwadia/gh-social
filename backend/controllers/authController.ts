@@ -326,7 +326,7 @@ export async function handleOAuthCallback(
   if (!code) {
     const reason = (req.query.error as string) || "no_code";
     return res.redirect(
-      `${CLIENT_URL}/auth/callback?error=${encodeURIComponent(reason)}`,
+      `${CLIENT_URL}?error=${encodeURIComponent(reason)}`,
     );
   }
 
@@ -338,11 +338,50 @@ export async function handleOAuthCallback(
     if (error || !data.user) {
       console.error("OAuth Exchange Error:", error);
       return res.redirect(
-        `${CLIENT_URL}/auth/callback?error=Authentication failed`,
+        `${CLIENT_URL}?error=Authentication failed`,
       );
     }
 
-    // 2. Insert a short-lived (5 minute) authorization code into the DB using Drizzle
+    // 2. Ensure the user has a row in public.users (first-time OAuth users won't).
+    //    Without this, the oauth_codes INSERT below fails with a FK violation.
+    const existingUsers = await db
+      .select({ user_id: users.user_id })
+      .from(users)
+      .where(eq(users.user_id, data.user.id))
+      .limit(1);
+
+    if (existingUsers.length === 0) {
+      const meta = data.user.user_metadata || {};
+      let defaultUsername =
+        (typeof meta.preferred_username === "string" && meta.preferred_username.trim()) ||
+        (typeof meta.user_name === "string" && meta.user_name.trim()) ||
+        `user_${data.user.id.slice(0, 8)}`;
+
+      // Check if username is taken
+      const takenUsernames = await db
+        .select({ user_id: users.user_id })
+        .from(users)
+        .where(eq(users.username, defaultUsername))
+        .limit(1);
+
+      if (takenUsernames.length > 0) {
+        // Append random string to make it unique and respect 50 char limit
+        const randomHex = crypto.randomBytes(2).toString("hex");
+        defaultUsername = `${defaultUsername.slice(0, 44)}_${randomHex}`;
+      }
+
+      await db
+        .insert(users)
+        .values({
+          user_id: data.user.id,
+          username: defaultUsername,
+          full_name: (typeof meta.full_name === "string" && meta.full_name.trim()) || null,
+          avatar_url: (typeof meta.avatar_url === "string" && meta.avatar_url.trim()) || null,
+        })
+        .onConflictDoNothing({ target: users.user_id });
+    }
+
+    // 3. Insert a short-lived (5 minute) authorization code into the DB using Drizzle
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
     const [codeData] = await db
       .insert(oauthCodes)
@@ -355,15 +394,15 @@ export async function handleOAuthCallback(
     if (!codeData) {
       console.error("OAuth Code Insert Error");
       return res.redirect(
-        `${CLIENT_URL}/auth/callback?error=Failed to generate auth code`,
+        `${CLIENT_URL}?error=Failed to generate auth code`,
       );
     }
 
-    // 3. Redirect to your frontend with the short-lived code
-    res.redirect(`${CLIENT_URL}/auth/callback?code=${codeData.code}`);
+    // 4. Redirect to your frontend with the short-lived code.
+    res.redirect(`${CLIENT_URL}?code=${codeData.code}`);
   } catch (error) {
     console.error("OAuth Callback Caught Error:", error);
-    res.redirect(`${CLIENT_URL}/auth/callback?error=Internal server error`);
+    res.redirect(`${CLIENT_URL}?error=Internal server error`);
   }
 }
 

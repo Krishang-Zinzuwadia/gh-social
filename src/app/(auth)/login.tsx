@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { KeyboardAvoidingView, Platform, ScrollView, Text, View } from "react-native";
 import { useAuth } from "../../store/AuthContext";
 import { login } from "../../api/auth";
+import { useOAuth } from "../../hooks/useOAuth";
 
 import AuthFooter from "@/components/Auth/AuthFooter";
 import LogoCircle from "@/components/Auth/LogoCircle";
@@ -22,6 +23,7 @@ export default function LoginScreen() {
   const router = useRouter();
   const scrollViewRef = useRef<ScrollView>(null);
   const { setSession } = useAuth();
+  const { signInWithProvider, isLoading: oauthLoading, error: oauthError } = useOAuth();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -91,17 +93,27 @@ export default function LoginScreen() {
           {/* Social buttons */}
           <View className="mt-10 gap-y-5">
             <SocialButton
-              label="Continue with GitHub"
+              label={oauthLoading ? "Opening..." : "Continue with GitHub"}
               icon={<GithubIcon />}
               showChevron
+              disabled={oauthLoading}
+              onPress={() => signInWithProvider('github')}
             />
 
             <SocialButton
-              label="Continue with Google"
+              label={oauthLoading ? "Opening..." : "Continue with Google"}
               icon={<GoogleIcon />}
               showChevron
+              disabled={oauthLoading}
+              onPress={() => signInWithProvider('google')}
             />
           </View>
+
+          {oauthError ? (
+            <Text className="text-[#E57373] text-[13px] font-nata mt-3 text-center">
+              {oauthError}
+            </Text>
+          ) : null}
 
           {/* Divider */}
           <View className="mt-7">

@@ -4,6 +4,7 @@ export const register = async (email: string, password: string, fullName: string
   const response = await fetch(`${API_URL}/auth/signup`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
     body: JSON.stringify({ 
       email, 
       password, 
@@ -23,6 +24,7 @@ export const login = async (email: string, password: string) => {
   const response = await fetch(`${API_URL}/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
     body: JSON.stringify({ email, password }),
   });
 
@@ -37,6 +39,7 @@ export const logout = async () => {
   const response = await fetch(`${API_URL}/auth/logout`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
   });
 
   const data = await response.json();
@@ -59,6 +62,7 @@ export const exchangeCode = async (code: string): Promise<{ accessToken: string;
   const response = await fetch(`${API_URL}/auth/exchange`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
     body: JSON.stringify({ code }),
   });
   const data = await response.json();

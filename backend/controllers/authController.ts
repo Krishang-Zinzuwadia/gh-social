@@ -326,7 +326,7 @@ export async function handleOAuthCallback(
   if (!code) {
     const reason = (req.query.error as string) || "no_code";
     return res.redirect(
-      `${CLIENT_URL}/auth/callback?error=${encodeURIComponent(reason)}`,
+      `${CLIENT_URL}?error=${encodeURIComponent(reason)}`,
     );
   }
 
@@ -338,7 +338,7 @@ export async function handleOAuthCallback(
     if (error || !data.user) {
       console.error("OAuth Exchange Error:", error);
       return res.redirect(
-        `${CLIENT_URL}/auth/callback?error=Authentication failed`,
+        `${CLIENT_URL}?error=Authentication failed`,
       );
     }
 
@@ -355,15 +355,16 @@ export async function handleOAuthCallback(
     if (!codeData) {
       console.error("OAuth Code Insert Error");
       return res.redirect(
-        `${CLIENT_URL}/auth/callback?error=Failed to generate auth code`,
+        `${CLIENT_URL}?error=Failed to generate auth code`,
       );
     }
 
-    // 3. Redirect to your frontend with the short-lived code
-    res.redirect(`${CLIENT_URL}/auth/callback?code=${codeData.code}`);
+    // 3. Redirect to your frontend with the short-lived code.
+    // CLIENT_URL should already be the full callback URL (e.g. ghsocial://auth/callback)
+    res.redirect(`${CLIENT_URL}?code=${codeData.code}`);
   } catch (error) {
     console.error("OAuth Callback Caught Error:", error);
-    res.redirect(`${CLIENT_URL}/auth/callback?error=Internal server error`);
+    res.redirect(`${CLIENT_URL}?error=Internal server error`);
   }
 }
 

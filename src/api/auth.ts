@@ -45,3 +45,25 @@ export const logout = async () => {
   }
   return data;
 };
+
+export const getOAuthUrl = async (provider: 'github' | 'google'): Promise<string> => {
+  const response = await fetch(`${API_URL}/auth/oauth/${provider}`);
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.error || `Failed to get ${provider} OAuth URL`);
+  }
+  return data.data.url as string;
+};
+
+export const exchangeCode = async (code: string): Promise<{ accessToken: string; user: any }> => {
+  const response = await fetch(`${API_URL}/auth/exchange`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ code }),
+  });
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.error || 'Failed to exchange authorization code');
+  }
+  return data.data as { accessToken: string; user: any };
+};

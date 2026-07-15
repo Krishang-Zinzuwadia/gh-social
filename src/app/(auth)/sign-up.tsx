@@ -1,5 +1,6 @@
 import { useRouter } from 'expo-router';
 import { ScrollView, Text, View } from 'react-native';
+import { useOAuth } from '../../hooks/useOAuth';
 
 import AuthFooter from '@/components/Auth/AuthFooter';
 import { GithubIcon, GoogleIcon, MailIcon } from '@/components/Auth/icons';
@@ -9,6 +10,7 @@ import SocialButton from '@/components/Auth/SocialButton';
 
 export default function SignUpScreen() {
   const router = useRouter();
+  const { signInWithProvider, isLoading: oauthLoading, error: oauthError } = useOAuth();
 
   return (
     <View className="flex-1 bg-[#0A0C09]">
@@ -38,14 +40,18 @@ export default function SignUpScreen() {
 
         <View className="gap-y-3">
           <SocialButton
-            label="Continue with GitHub"
+            label={oauthLoading ? "Opening..." : "Continue with GitHub"}
             icon={<GithubIcon size={20} color="#ffffff" />}
             showChevron
+            disabled={oauthLoading}
+            onPress={() => signInWithProvider('github')}
           />
           <SocialButton
-            label="Continue with Google"
+            label={oauthLoading ? "Opening..." : "Continue with Google"}
             icon={<GoogleIcon size={20} />}
             showChevron
+            disabled={oauthLoading}
+            onPress={() => signInWithProvider('google')}
           />
           <SocialButton
             label="Continue with Email"
@@ -54,6 +60,12 @@ export default function SignUpScreen() {
             onPress={() => router.push('/(auth)/sign-up-email')}
           />
         </View>
+
+        {oauthError ? (
+          <Text className="text-[#E57373] text-[13px] font-nata mt-3 text-center">
+            {oauthError}
+          </Text>
+        ) : null}
 
         <View className="mt-8 mb-6">
           <OrDivider />

@@ -14,7 +14,19 @@
     },
     "android": {
       "predictiveBackGestureEnabled": false,
-      "package": "com.weave.app"
+      "package": "com.weave.app",
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "ghsocial"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ]
     },
     "web": {
       "output": "static"

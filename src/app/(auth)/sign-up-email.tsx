@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import { useAuth } from "../../store/AuthContext";
 import { register } from "../../api/auth";
+import { useOAuth } from "../../hooks/useOAuth";
 
 import AuthFooter from "@/components/Auth/AuthFooter";
 import AuthInput from "@/components/Auth/AuthInput";
@@ -24,6 +25,7 @@ import SocialButton from "@/components/Auth/SocialButton";
 export default function SignUpEmail() {
   const router = useRouter();  
   const scrollViewRef = useRef<ScrollView>(null);
+  const { signInWithProvider, isLoading: oauthLoading, error: oauthError } = useOAuth();
 
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -101,17 +103,27 @@ export default function SignUpEmail() {
 
           <View className="mt-10 gap-y-5">
               <SocialButton
-                  label="Continue with GitHub"
+                  label={oauthLoading ? "Opening..." : "Continue with GitHub"}
                   icon={<GithubIcon />}
                   showChevron
+                  disabled={oauthLoading}
+                  onPress={() => signInWithProvider('github')}
               />
 
               <SocialButton
-                  label="Continue with Google"
+                  label={oauthLoading ? "Opening..." : "Continue with Google"}
                   icon={<GoogleIcon />}
                   showChevron
+                  disabled={oauthLoading}
+                  onPress={() => signInWithProvider('google')}
               />
           </View>
+
+          {oauthError ? (
+            <Text className="text-[#E57373] text-[13px] font-nata mt-3 text-center">
+              {oauthError}
+            </Text>
+          ) : null}
 
           <View className="mt-7">
             <OrDivider />

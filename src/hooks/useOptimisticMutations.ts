@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import * as SecureStore from "expo-secure-store";
+import * as SecureStore from "../utils/storage";
 import { createBoard } from "../api/boards";
 import { toggleSaveRepo } from "../api/activity";
 

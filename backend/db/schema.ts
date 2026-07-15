@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, text, date, integer, jsonb, boolean, timestamp, primaryKey, unique, interval, check, AnyPgColumn, index } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, text, date, integer, doublePrecision, jsonb, boolean, timestamp, primaryKey, unique, interval, check, AnyPgColumn, index } from 'drizzle-orm/pg-core';
 import { relations, sql } from 'drizzle-orm';
 
 // 1. USERS
@@ -89,6 +89,21 @@ export const activities = pgTable('activity', {
 }, (t) => ({
   unq: unique('activity_user_repo_unique').on(t.user_id, t.repo_id),
   repoIdx: index('activity_repo_id_idx').on(t.repo_id),
+}));
+
+export const userFeedback = pgTable('user_feedback', {
+  user_id: uuid('user_id').references(() => users.user_id, { onDelete: 'cascade' }).notNull(),
+  repo_id: uuid('repo_id').references(() => repos.repo_id, { onDelete: 'cascade' }).notNull(),
+  interaction_type: varchar('interaction_type', { length: 50 }).notNull(),
+  feedback_score: doublePrecision('feedback_score').notNull(),
+  updated_at: timestamp('updated_at', { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+}, (t) => ({
+  pk: primaryKey({ columns: [t.user_id, t.repo_id, t.interaction_type] }),
+  userUpdatedIdx: index('user_feedback_user_updated_idx').on(t.user_id, t.updated_at),
+  scoreCheck: check(
+    'user_feedback_score_range',
+    sql`${t.feedback_score} >= -1.0 AND ${t.feedback_score} <= 1.0`,
+  ),
 }));
 
 // 7. COMMENT

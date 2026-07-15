@@ -1,4 +1,5 @@
 import type { RepoRow, UserProfile } from '../types/database.js';
+import type { FeedbackInteraction } from '../config/feedback.js';
 
 const DEFAULT_ML_TIMEOUT_MS = 30000;
 
@@ -116,7 +117,7 @@ class MLService {
     }
   }
 
-  async sendBatchedActivityFeedback(events: { user_id: string; repo_id: string; action: string; dwell_seconds?: number }[]): Promise<void> {
+  async sendBatchedActivityFeedback(events: { user_id: string; repo_id: string; action: FeedbackInteraction; dwell_seconds?: number }[]): Promise<void> {
     try {
       await Promise.all(
         events.map((event) => this.post('/api/v1/feedback', event))

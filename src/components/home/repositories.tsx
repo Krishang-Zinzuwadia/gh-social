@@ -2,7 +2,7 @@ import { View, Text, useWindowDimensions, ActivityIndicator } from "react-native
 import Svg, { Path, Circle } from "react-native-svg"
 import RecentPins from "../recentpins"
 import { useInfiniteQuery } from "@tanstack/react-query"
-import * as SecureStore from "expo-secure-store"
+import * as SecureStore from "../../utils/storage"
 import { getSavedRepos } from "../../api/activity"
 
 interface RepositoriesProps {

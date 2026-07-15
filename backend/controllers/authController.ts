@@ -344,21 +344,42 @@ export async function handleOAuthCallback(
 
     // 2. Ensure the user has a row in public.users (first-time OAuth users won't).
     //    Without this, the oauth_codes INSERT below fails with a FK violation.
-    const meta = data.user.user_metadata || {};
-    const defaultUsername =
-      (typeof meta.preferred_username === "string" && meta.preferred_username.trim()) ||
-      (typeof meta.user_name === "string" && meta.user_name.trim()) ||
-      `user_${data.user.id.slice(0, 8)}`;
+    const existingUsers = await db
+      .select({ user_id: users.user_id })
+      .from(users)
+      .where(eq(users.user_id, data.user.id))
+      .limit(1);
 
-    await db
-      .insert(users)
-      .values({
-        user_id: data.user.id,
-        username: defaultUsername,
-        full_name: (typeof meta.full_name === "string" && meta.full_name.trim()) || null,
-        avatar_url: (typeof meta.avatar_url === "string" && meta.avatar_url.trim()) || null,
-      })
-      .onConflictDoNothing({ target: users.user_id });
+    if (existingUsers.length === 0) {
+      const meta = data.user.user_metadata || {};
+      let defaultUsername =
+        (typeof meta.preferred_username === "string" && meta.preferred_username.trim()) ||
+        (typeof meta.user_name === "string" && meta.user_name.trim()) ||
+        `user_${data.user.id.slice(0, 8)}`;
+
+      // Check if username is taken
+      const takenUsernames = await db
+        .select({ user_id: users.user_id })
+        .from(users)
+        .where(eq(users.username, defaultUsername))
+        .limit(1);
+
+      if (takenUsernames.length > 0) {
+        // Append random string to make it unique and respect 50 char limit
+        const randomHex = crypto.randomBytes(2).toString("hex");
+        defaultUsername = `${defaultUsername.slice(0, 44)}_${randomHex}`;
+      }
+
+      await db
+        .insert(users)
+        .values({
+          user_id: data.user.id,
+          username: defaultUsername,
+          full_name: (typeof meta.full_name === "string" && meta.full_name.trim()) || null,
+          avatar_url: (typeof meta.avatar_url === "string" && meta.avatar_url.trim()) || null,
+        })
+        .onConflictDoNothing({ target: users.user_id });
+    }
 
     // 3. Insert a short-lived (5 minute) authorization code into the DB using Drizzle
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000);

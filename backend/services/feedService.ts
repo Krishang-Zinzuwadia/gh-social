@@ -19,6 +19,35 @@ export class FeedService {
     return `user:${userId}:feed_generating`;
   }
 
+  private getVersionKey(userId: string): string {
+    return `user:${userId}:feed_version`;
+  }
+
+  private async recordMetric(name: string): Promise<void> {
+    try {
+      await redisClient.incr(`metrics:feed:${name}`);
+    } catch {
+      // best effort
+    }
+  }
+
+  private async getFeedVersion(userId: string): Promise<number> {
+    try {
+      const raw = await redisClient.get(this.getVersionKey(userId));
+      return raw ? Number(raw) || 0 : 0;
+    } catch {
+      return 0;
+    }
+  }
+
+  private async bumpFeedVersion(userId: string): Promise<number> {
+    try {
+      return await redisClient.incr(this.getVersionKey(userId));
+    } catch {
+      return 0;
+    }
+  }
+
   private flattenRecommendationBatches(batches: MlRecommendationBatches): unknown[] {
     return Object.keys(batches)
       .filter((key) => key.startsWith('batch_'))
@@ -74,10 +103,19 @@ export class FeedService {
   /**
    * Stores ML recommendation objects in the Redis delivery queue.
    */
-  async processAndCacheBatch(userId: string, recommendations: any[]): Promise<void> {
+  async processAndCacheBatch(userId: string, recommendations: any[], expectedVersion?: number): Promise<void> {
     const queueKey = this.getQueueKey(userId);
 
     try {
+      if (expectedVersion !== undefined) {
+        const currentVersion = await this.getFeedVersion(userId);
+        if (currentVersion !== expectedVersion) {
+          await this.recordMetric('stale_drop');
+          console.log(`[FeedService] Dropped stale feed batch for User: ${userId}`);
+          return;
+        }
+      }
+
       if (recommendations.length === 0) {
         await redisClient.set(queueKey, '__empty__', 'EX', this.SESSION_TTL);
         return;
@@ -95,6 +133,7 @@ export class FeedService {
       pipeline.expire(queueKey, this.SESSION_TTL);
       await pipeline.exec();
 
+      await this.recordMetric('cache_populate');
       console.log(`[FeedService] Cached ${enriched.length} ML recommendations for User: ${userId}`);
     } catch (error) {
       console.error('[FeedService] Error caching feed batch:', error);
@@ -102,11 +141,20 @@ export class FeedService {
     }
   }
 
-  async appendBatch(userId: string, recommendations: any[]): Promise<void> {
+  async appendBatch(userId: string, recommendations: any[], expectedVersion?: number): Promise<void> {
     const queueKey = this.getQueueKey(userId);
 
     try {
       if (recommendations.length === 0) return;
+
+      if (expectedVersion !== undefined) {
+        const currentVersion = await this.getFeedVersion(userId);
+        if (currentVersion !== expectedVersion) {
+          await this.recordMetric('stale_drop');
+          console.log(`[FeedService] Dropped stale replenishment batch for User: ${userId}`);
+          return;
+        }
+      }
 
       const enriched = await this.enrichRecommendations(recommendations);
       const pipeline = redisClient.pipeline();
@@ -114,8 +162,10 @@ export class FeedService {
       for (const post of enriched) {
         pipeline.rpush(queueKey, JSON.stringify(post));
       }
+      pipeline.expire(queueKey, this.SESSION_TTL);
 
       await pipeline.exec();
+      await this.recordMetric('cache_append');
       console.log(`[FeedService] Appended ${enriched.length} ML recommendations for User: ${userId}`);
     } catch (error) {
       console.error('[FeedService] Error appending feed batch:', error);
@@ -148,9 +198,10 @@ export class FeedService {
     if (acquired === 'OK') {
       try {
         const coldStart = await this.isColdStartUser(userId);
+        const feedVersion = await this.getFeedVersion(userId);
         const batches = await mlService.generateRecommendations(userId, coldStart);
         const recommendations = this.flattenRecommendationBatches(batches);
-        await this.appendBatch(userId, recommendations);
+        await this.appendBatch(userId, recommendations, feedVersion);
       } catch (error) {
         console.error('[FeedService] Background replenishment failed:', error);
       } finally {
@@ -176,7 +227,7 @@ export class FeedService {
       const type = await redisClient.type(queueKey);
       if (type === 'string') {
         const val = await redisClient.get(queueKey);
-        if (val === '__empty__') return [];
+      if (val === '__empty__') return [];
       }
 
       // Pop the next `limit` items using an atomic transaction (MULTI/EXEC)
@@ -192,8 +243,11 @@ export class FeedService {
       const remaining = results[2]?.[1] as number | undefined;
 
       if (!rawFeedItems || rawFeedItems.length === 0) {
+        await this.recordMetric('cache_miss');
         return null;
       }
+
+      await this.recordMetric('cache_hit');
 
       // Just-In-Time Replenishment
       if (remaining !== undefined && remaining < 3) {
@@ -230,9 +284,10 @@ export class FeedService {
       if (acquired === 'OK') {
         try {
           const coldStart = await this.isColdStartUser(userId);
+          const feedVersion = await this.getFeedVersion(userId);
           const batches = await mlService.generateRecommendations(userId, coldStart);
           const recommendations = this.flattenRecommendationBatches(batches);
-          await this.processAndCacheBatch(userId, recommendations);
+          await this.processAndCacheBatch(userId, recommendations, feedVersion);
           
           // Re-fetch now that it's cached so we pop exactly `limit`
           return await this.getCachedFeed(userId, limit) || [];
@@ -262,7 +317,9 @@ export class FeedService {
 
   async invalidateUserFeed(userId: string): Promise<void> {
     try {
+      await this.bumpFeedVersion(userId);
       await redisClient.del(this.getQueueKey(userId));
+      await this.recordMetric('cache_invalidate');
     } catch (error) {
       console.error(`[FeedService] Failed to invalidate feed cache for ${userId}:`, error);
     }

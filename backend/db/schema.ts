@@ -106,6 +106,24 @@ export const userFeedback = pgTable('user_feedback', {
   ),
 }));
 
+export const interactionEvents = pgTable('interaction_events', {
+  event_id: uuid('event_id').defaultRandom().primaryKey(),
+  user_id: uuid('user_id').references(() => users.user_id, { onDelete: 'cascade' }).notNull(),
+  repo_id: uuid('repo_id').references(() => repos.repo_id, { onDelete: 'cascade' }).notNull(),
+  action: varchar('action', { length: 50 }).notNull(),
+  dwell_seconds: doublePrecision('dwell_seconds'),
+  metadata: jsonb('metadata').default('{}').notNull(),
+  created_at: timestamp('created_at', { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+}, (t) => ({
+  userCreatedIdx: index('interaction_events_user_created_idx').on(t.user_id, t.created_at),
+  repoCreatedIdx: index('interaction_events_repo_created_idx').on(t.repo_id, t.created_at),
+  actionCreatedIdx: index('interaction_events_action_created_idx').on(t.action, t.created_at),
+  dwellCheck: check(
+    'interaction_events_dwell_nonnegative',
+    sql`${t.dwell_seconds} IS NULL OR ${t.dwell_seconds} >= 0`,
+  ),
+}));
+
 // 7. COMMENT
 export const comments = pgTable('comment', {
   comment_id: uuid('comment_id').defaultRandom().primaryKey(),

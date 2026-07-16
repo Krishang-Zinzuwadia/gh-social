@@ -5,6 +5,7 @@ export interface Repo {
   forks: string;
   author: string;
   avatarColor: string;
+  avatarGradient?: readonly [string, string];
   avatarInitial: string;
   hasIcon?: boolean;
   language?: string;

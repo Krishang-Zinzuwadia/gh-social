@@ -1,6 +1,6 @@
 import React from 'react';
 import { TextInput, View } from 'react-native';
-import SearchIcon from '../../assets/icons/search.svg';
+import Svg, { Circle, Path } from 'react-native-svg';
 
 interface SearchBarProps {
   value: string;
@@ -8,22 +8,48 @@ interface SearchBarProps {
   placeholder?: string;
 }
 
+function SearchGlyph(): React.JSX.Element {
+  return (
+    <Svg width={15} height={15} viewBox="0 0 24 24" fill="none">
+      <Circle cx={11} cy={11} r={7} stroke="rgba(235,235,245,0.4)" strokeWidth={2} />
+      <Path d="m20 20-3.5-3.5" stroke="rgba(235,235,245,0.4)" strokeWidth={2} strokeLinecap="round" />
+    </Svg>
+  );
+}
+
 export default function SearchBar({
   value,
   onChangeText,
-  placeholder = 'Explore',
+  placeholder = 'Repos, devs, topics',
 }: SearchBarProps): React.JSX.Element {
   return (
-    <View className="flex-row items-center bg-[#1C1C1E] border border-white rounded-full px-4 py-2.5 mx-4 mb-2">
-      <SearchIcon stroke="#6B7280" width={16} height={16} />
-      <TextInput
-        className="flex-1 text-white text-sm ml-2"
-        placeholder={placeholder}
-        placeholderTextColor="#6B7280"
-        value={value}
-        onChangeText={onChangeText}
-        style={{ fontFamily: 'NataSans-Regular' }}
-      />
+    <View style={{ paddingTop: 14, paddingHorizontal: 20 }}>
+      <View
+        style={{
+          height: 38,
+          borderRadius: 12,
+          backgroundColor: 'rgba(118, 118, 128, 0.18)',
+          paddingHorizontal: 12,
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 8,
+        }}
+      >
+        <SearchGlyph />
+        <TextInput
+          value={value}
+          onChangeText={onChangeText}
+          placeholder={placeholder}
+          placeholderTextColor="rgba(235,235,245,0.3)"
+          style={{
+            flex: 1,
+            color: '#FFFFFF',
+            fontSize: 15,
+            padding: 0,
+            borderWidth: 0,
+          }}
+        />
+      </View>
     </View>
   );
 }

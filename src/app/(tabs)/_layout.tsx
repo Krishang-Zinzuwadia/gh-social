@@ -1,19 +1,5 @@
 import { Tabs } from 'expo-router';
-import { useEffect, useMemo, type ReactNode } from 'react';
-import {
-  Animated,
-  Easing,
-  Pressable,
-  StyleSheet,
-  View,
-  type ColorValue,
-  type GestureResponderEvent,
-} from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Svg, { Circle, Path } from 'react-native-svg';
-import { BlurView } from 'expo-blur';
-
-import { APP_THEME } from '../../constants/theme';
+import { Home, Search, User } from 'lucide-react-native';
 
 const ICON_SIZE = 21;
 const ICON_SLOT_SIZE = 31;
@@ -114,87 +100,49 @@ export default function TabsLayout() {
       initialRouteName="home"
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: APP_THEME.activeAccent,
-        tabBarInactiveTintColor: APP_THEME.inactiveAccent,
-        tabBarActiveBackgroundColor: 'transparent',
-        tabBarInactiveBackgroundColor: 'transparent',
-        tabBarAllowFontScaling: false,
-        tabBarLabelPosition: 'below-icon',
-        tabBarLabelStyle: styles.label,
-        tabBarIconStyle: styles.icon,
-        tabBarItemStyle: styles.item,
-        tabBarBackground: () => (
-          <BlurView
-            blurMethod="dimezisBlurViewSdk31Plus"
-            intensity={72}
-            tint="dark"
-            style={[StyleSheet.absoluteFill, styles.barBackground]}
-          />
-        ),
-        tabBarStyle: [
-          styles.bar,
-          {
-            height: 54 + Math.max(insets.bottom, 5),
-            paddingBottom: Math.max(insets.bottom, 5),
-            paddingLeft: Math.max(8, insets.left),
-            paddingRight: Math.max(8, insets.right),
-          },
-        ],
-        tabBarButton: ({
-          'aria-selected': selected,
-          accessibilityLabel,
-          accessibilityState,
-          children,
-          onLongPress,
-          onPress,
-          style,
-          testID,
-        }) => (
-          <Pressable
-            accessibilityLabel={accessibilityLabel}
-            accessibilityRole="tab"
-            accessibilityState={{ ...accessibilityState, selected }}
-            onLongPress={onLongPress}
-            onPress={onPress as (event: GestureResponderEvent) => void}
-            style={[style, styles.button]}
-            testID={testID}
-          >
-            {children}
-          </Pressable>
-        ),
+        tabBarActiveTintColor: '#8EFF7A',
+        tabBarInactiveTintColor: '#FFFFFF',
+        tabBarStyle: {
+          backgroundColor: '#090B08',
+          borderTopColor: '#090B08',
+          borderTopWidth: 0.5,
+          height: 84,
+          paddingTop: 10,
+          paddingHorizontal: 8,
+          paddingBottom: 0,
+          elevation: 0,
+          boxShadow: 'none',
+        },
+        tabBarItemStyle: {
+          paddingTop: 2,
+          paddingBottom: 0,
+        },
+        tabBarLabelStyle: {
+          fontSize: 10,
+          fontWeight: '500',
+          marginTop: 4,
+        },
       }}
     >
       <Tabs.Screen
         name="home"
         options={{
           title: 'Home',
-          tabBarIcon: ({ color, focused }) => (
-            <TabIconFrame focused={focused}>
-              <HomeIcon color={color} focused={focused} />
-            </TabIconFrame>
-          ),
+          tabBarIcon: ({ color }) => <Home color={color} size={24} strokeWidth={1.8} />,
         }}
       />
       <Tabs.Screen
         name="explore"
         options={{
           title: 'Explore',
-          tabBarIcon: ({ color, focused }) => (
-            <TabIconFrame focused={focused}>
-              <ExploreIcon color={color} focused={focused} />
-            </TabIconFrame>
-          ),
+          tabBarIcon: ({ color }) => <Search color={color} size={24} strokeWidth={1.8} />,
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
           title: 'Profile',
-          tabBarIcon: ({ color, focused }) => (
-            <TabIconFrame focused={focused}>
-              <ProfileIcon color={color} focused={focused} />
-            </TabIconFrame>
-          ),
+          tabBarIcon: ({ color }) => <User color={color} size={24} strokeWidth={1.8} />,
         }}
       />
     </Tabs>

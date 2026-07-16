@@ -1,12 +1,12 @@
 import '@/global.css';
 import { useEffect } from 'react';
-import { Stack } from "expo-router";
+import { Stack, useRouter, useSegments } from "expo-router";
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 import { AuthProvider, useAuth } from '../store/AuthContext';
-import { useRouter, useSegments } from 'expo-router';
 
 // Keep the splash screen visible while we fetch resources
 SplashScreen.preventAutoHideAsync();
@@ -23,21 +23,18 @@ function RootLayoutNav() {
     const inOnboardingGroup = segments[0] === 'onboarding';
 
     if (!user && !inAuthGroup) {
-      // Redirect unauthenticated users to login
       router.replace('/(auth)/login');
-    } else if (user && !user.onboarding_completed && !inOnboardingGroup) {
-      // Redirect authenticated users who haven't finished onboarding
-      router.replace('/onboarding/create-profile');
-    } else if (user && user.onboarding_completed && (inAuthGroup || inOnboardingGroup)) {
-      // Redirect fully authenticated users away from auth/onboarding pages to main app
-      router.replace('/(tabs)/home');
+    } else if (user) {
+      if (user.onboarding_completed === false && !inOnboardingGroup) {
+        router.replace('/onboarding/create-profile');
+      } else if (user.onboarding_completed === true && (inAuthGroup || inOnboardingGroup)) {
+        router.replace('/(tabs)/explore');
+      }
     }
-  }, [user, isLoading, segments]);
+  }, [user, isLoading, segments, router]);
 
   return <Stack screenOptions={{ headerShown: false }} />;
 }
-
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 const queryClient = new QueryClient();
 

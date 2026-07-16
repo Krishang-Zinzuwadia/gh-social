@@ -17,7 +17,6 @@ export default function ProfileTextArea({ value, onChangeText, ...rest }: Props)
       <TextInput
         multiline
         numberOfLines={2}
-        maxLength={60}
         textAlignVertical="top"
         placeholder="Tell us about yourself!"
         placeholderTextColor="#666"

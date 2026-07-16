@@ -23,7 +23,7 @@ import SectionLabel from "@/components/Auth/SectionLabel";
 import SocialButton from "@/components/Auth/SocialButton";
 
 export default function SignUpEmail() {
-  const router = useRouter();  
+  const router = useRouter();
   const scrollViewRef = useRef<ScrollView>(null);
   const { signInWithProvider, isLoading: oauthLoading, error: oauthError } = useOAuth();
 
@@ -39,10 +39,10 @@ export default function SignUpEmail() {
   const hasNumber = /\d/.test(password);
   const hasUppercase = /[A-Z]/.test(password);
   const isPasswordValid = hasMinLength && hasNumber && hasUppercase;
-  
+
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   const isEmailValid = emailRegex.test(email);
-  
+
   const isFormValid = fullName.trim().length > 0 && isEmailValid && isPasswordValid && !isLoading;
 
   useEffect(() => {
@@ -68,8 +68,8 @@ export default function SignUpEmail() {
   };
 
   return (
-    <KeyboardAvoidingView 
-      style={{ flex: 1 }} 
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
     >
@@ -135,9 +135,9 @@ export default function SignUpEmail() {
 
           <View className="mt-2">
 
-            <SectionLabel title="Full name" />
+            <SectionLabel title="Name" />
             <AuthInput
-              placeholder="Enter your full name"
+              placeholder="Enter your name"
               icon="user"
               value={fullName}
               onChangeText={setFullName}

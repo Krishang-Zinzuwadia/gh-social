@@ -1,0 +1,132 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://gh-social.dev/contracts/feedback-event.schema.json",
+  "title": "Canonical feedback event",
+  "description": "Shared feedback event contract for the Expo client, backend, and ML service.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "event_id",
+    "occurred_at",
+    "user_id",
+    "repo_id",
+    "action",
+    "model_update",
+    "intent_weight",
+    "intent_strength",
+    "feature_operation"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "event_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "occurred_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "user_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "repo_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "action": {
+      "$ref": "#/$defs/action"
+    },
+    "dwell_seconds": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "model_update": {
+      "type": "boolean",
+      "description": "False only for events that are logged without updating model features."
+    },
+    "intent_weight": {
+      "type": "number",
+      "minimum": -1,
+      "maximum": 1
+    },
+    "intent_strength": {
+      "enum": [
+        "neutral",
+        "weak",
+        "strong",
+        "negative",
+        "reversal"
+      ]
+    },
+    "feature_operation": {
+      "enum": [
+        "increment",
+        "accumulate",
+        "set",
+        "clear"
+      ]
+    },
+    "reverses": {
+      "$ref": "#/$defs/action"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "action": {
+            "const": "dwell"
+          }
+        },
+        "required": [
+          "action"
+        ]
+      },
+      "then": {
+        "required": [
+          "dwell_seconds"
+        ]
+      }
+    }
+  ],
+  "$defs": {
+    "action": {
+      "type": "string",
+      "enum": [
+        "impression",
+        "dwell",
+        "readme_open",
+        "github_open",
+        "like",
+        "save",
+        "share",
+        "dislike",
+        "unlike",
+        "unsave",
+        "undislike"
+      ]
+    }
+  },
+  "x-feedback-policy": {
+    "log-only-actions": [
+      "impression"
+    ],
+    "strong-intent-actions": [
+      "readme_open",
+      "github_open",
+      "like",
+      "save",
+      "share"
+    ],
+    "reversal-actions": {
+      "unlike": "like",
+      "unsave": "save",
+      "undislike": "dislike"
+    },
+    "long-dwell-seconds": 30
+  }
+}

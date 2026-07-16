@@ -1,6 +1,11 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { getStorageItem, setStorageItem, removeStorageItem } from '../utils/storage';
 import { API_URL } from '../api/config';
+import {
+  AUTH_BYPASS_ENABLED,
+  AUTH_BYPASS_PROFILE_STORAGE_KEY,
+  AUTH_BYPASS_USER,
+} from '../constants/auth';
 
 interface User {
   user_id: string;
@@ -29,27 +34,48 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    loadSession();
+  const loadBypassUser = useCallback(async () => {
+    const savedProfile = await getStorageItem(AUTH_BYPASS_PROFILE_STORAGE_KEY);
+    if (!savedProfile) return AUTH_BYPASS_USER;
+
+    try {
+      const parsedProfile = JSON.parse(savedProfile);
+      return {
+        ...AUTH_BYPASS_USER,
+        ...(typeof parsedProfile.username === 'string' ? { username: parsedProfile.username } : {}),
+        ...(typeof parsedProfile.full_name === 'string' ? { full_name: parsedProfile.full_name } : {}),
+        ...(typeof parsedProfile.bio === 'string' ? { bio: parsedProfile.bio } : {}),
+      };
+    } catch {
+      return AUTH_BYPASS_USER;
+    }
   }, []);
 
-  const loadSession = async () => {
+  const fetchUserProfile = useCallback(async (token: string) => {
     try {
-      const token = await getStorageItem('access_token');
-      if (token) {
-        await fetchUserProfile(token);
-      }
-    } catch (e) {
-      console.error('Failed to load session', e);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const fetchUserProfile = async (token: string) => {
-    const response = await fetch(`${API_URL}/onboarding/status`, {
-      headers: {
-        'Authorization': `Bearer ${token}`
+      const response = await fetch(`${API_URL}/onboarding/status`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (response.ok) {
+        const responseData = await response.json();
+        const { isComplete, profile } = responseData.data;
+        setUser({
+          ...profile,
+          onboarding_completed: isComplete
+        }); // backend returns { success: true, data: { isComplete, profile } }
+      } else {
+        // If unauthorized, clear token
+        if (response.status === 401) {
+          try {
+            await removeStorageItem('access_token');
+          } catch (e) {
+            console.error('Failed to clear session storage', e);
+          } finally {
+            setUser(null);
+          }
+        }
       }
     });
 
@@ -73,6 +99,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const checkOnboardingStatus = async () => {
+    if (AUTH_BYPASS_ENABLED) {
+      setUser(await loadBypassUser());
+      return;
+    }
+
     const token = await getStorageItem('access_token');
     if (token) {
       await fetchUserProfile(token);
@@ -80,6 +111,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const setSession = async (token: string, authUser: any) => {
+    if (AUTH_BYPASS_ENABLED) {
+      setUser(await loadBypassUser());
+      return;
+    }
+
     await setStorageItem('access_token', token);
 
     // Let routing move a newly-created account into onboarding immediately,
@@ -119,6 +155,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signOut = async () => {
+    if (AUTH_BYPASS_ENABLED) {
+      setUser(await loadBypassUser());
+      return;
+    }
+
     try {
       const token = await getStorageItem('access_token');
       await fetch(`${API_URL}/auth/logout`, { 
@@ -138,6 +179,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(null);
     }
   };
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      void loadSession();
+    }, 0);
+
+    return () => clearTimeout(timer);
+  }, [loadSession]);
 
   return (
     <AuthContext.Provider value={{ user, isLoading, setSession, enterOnboardingPreview, completeOnboardingPreview, signOut, checkOnboardingStatus }}>

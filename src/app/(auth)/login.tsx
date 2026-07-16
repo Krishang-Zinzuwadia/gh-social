@@ -55,8 +55,8 @@ export default function LoginScreen() {
   };
 
   return (
-    <KeyboardAvoidingView 
-      style={{ flex: 1 }} 
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
     >
@@ -77,7 +77,7 @@ export default function LoginScreen() {
           {/* Heading */}
           <View className="items-center mt-8">
             <Text
-              
+
               className="text-white text-[30px] text-center font-nataBold"
             >
               Welcome to{' '}
@@ -128,7 +128,7 @@ export default function LoginScreen() {
 
           {/* Email */}
           <Text
-            
+
             className="text-white text-[15px] mt-8 mb-3 font-nata"
           >
             Email Address
@@ -144,7 +144,7 @@ export default function LoginScreen() {
 
           {/* Password */}
           <Text
-            
+
             className="text-white text-[15px] mt-7 mb-3 font-nata"
           >
             Password

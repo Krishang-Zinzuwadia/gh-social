@@ -95,12 +95,10 @@ export const REFERENCE_THEME = {
 } as const;
 
 export const APP_THEME = {
-  background: REFERENCE_THEME.background,
-  activeAccent: REFERENCE_THEME.text,
-  inactiveAccent: REFERENCE_THEME.inactive,
-  borderDark: REFERENCE_THEME.separator,
-  tabBarBackground: 'rgba(10,10,12,0.85)',
-  tabBarBorder: 'rgba(255,255,255,0.10)',
+  background: '#0A0C09',
+  activeAccent: '#F7F7F8',
+  inactiveAccent: '#77767C',
+  borderDark: '#242524',
+  tabBarBackground: '#0A0C09',
+  tabBarBorder: '#0A0C09',
 } as const;
-
-

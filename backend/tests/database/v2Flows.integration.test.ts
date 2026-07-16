@@ -69,6 +69,36 @@ async function seed(): Promise<void> {
 
 integration('v2 database, outbox, and Redis feed flows preserve invariants', async () => {
   await seed();
+
+  // UUID ordering intentionally opposes client ordering. The latest action
+  // must win, and feedback versions must follow the submitted sequence.
+  const likeThenUnlike = [
+    event('like', 'ffffffff-ffff-4fff-8fff-fffffffffff1'),
+    event('unlike', '00000000-0000-4000-8000-000000000001'),
+  ];
+  const orderedResult = await processInteractionBatchV2(userId, likeThenUnlike);
+  assert.deepEqual(orderedResult.results.map((result) => result.feedback_version), ['1', '2']);
+  assert.equal(Number((await sqlClient`
+    SELECT count(*) AS count FROM app.reactions WHERE user_id=${userId}::uuid AND repo_id=${repoId}::uuid
+  `)[0].count), 0);
+  const persistedVersions = await sqlClient`
+    SELECT event_id,feedback_version FROM telemetry.interaction_events
+    WHERE event_id IN (${likeThenUnlike[0].event_id}::uuid,${likeThenUnlike[1].event_id}::uuid)
+  `;
+  const versionByEvent = new Map(persistedVersions.map((row) => [String(row.event_id), String(row.feedback_version)]));
+  assert.equal(versionByEvent.get(likeThenUnlike[0].event_id), '1');
+  assert.equal(versionByEvent.get(likeThenUnlike[1].event_id), '2');
+
+  const unlikeThenLike = [
+    event('unlike', 'ffffffff-ffff-4fff-8fff-fffffffffff2'),
+    event('like', '00000000-0000-4000-8000-000000000002'),
+  ];
+  const reverseResult = await processInteractionBatchV2(userId, unlikeThenLike);
+  assert.deepEqual(reverseResult.results.map((result) => result.feedback_version), ['3', '4']);
+  assert.equal(String((await sqlClient`
+    SELECT reaction FROM app.reactions WHERE user_id=${userId}::uuid AND repo_id=${repoId}::uuid
+  `)[0].reaction), 'like');
+
   const first = event('like');
   const accepted = await processInteractionBatchV2(userId, [first]);
   assert.equal(accepted.accepted, 1);

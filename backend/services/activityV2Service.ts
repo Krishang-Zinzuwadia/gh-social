@@ -45,8 +45,17 @@ export async function processInteractionBatchV2(
     let invalidateFeed = false;
     const results = new Map<string, { event_id: string; status: 'accepted' | 'duplicate'; feedback_version?: string }>();
 
-    const sorted = [...events].sort((a, b) => a.repo_id.localeCompare(b.repo_id) || a.event_id.localeCompare(b.event_id));
-    for (const event of sorted) {
+    // Repository engagement rows are shared across users. Lock them in a
+    // deterministic order to prevent cross-user deadlocks, then apply the
+    // events in the exact order supplied by the client. Event IDs provide
+    // idempotency only and must never determine state-transition order.
+    const repoIds = [...new Set(events.map((event) => event.repo_id))].sort();
+    for (const repoId of repoIds) {
+      await tx`INSERT INTO app.repo_engagement (repo_id) VALUES (${repoId}::uuid) ON CONFLICT DO NOTHING`;
+      await tx`SELECT repo_id FROM app.repo_engagement WHERE repo_id=${repoId}::uuid FOR UPDATE`;
+    }
+
+    for (const event of events) {
       if (event.serve_id) {
         const served = await tx`
           SELECT 1 FROM telemetry.feed_serves serve

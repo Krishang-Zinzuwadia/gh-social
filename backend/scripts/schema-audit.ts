@@ -61,6 +61,27 @@ try {
     missing.push(`prohibited-grant:${row.grantee}:${row.table_schema}.${row.table_name}:${row.privilege_type}`);
   }
 
+  const runtimeGrantRows = await client`
+    SELECT has_column_privilege(
+      'ghsocial_backend',
+      'telemetry.interaction_events',
+      'feedback_version',
+      'UPDATE'
+    ) AS can_assign_feedback_version,
+    has_column_privilege(
+      'ghsocial_backend',
+      'telemetry.user_repo_engagement',
+      'feedback_score',
+      'UPDATE'
+    ) AS can_update_engagement
+  `;
+  if (runtimeGrantRows[0]?.can_assign_feedback_version !== true) {
+    missing.push('required-grant:ghsocial_backend:telemetry.interaction_events.feedback_version:UPDATE');
+  }
+  if (runtimeGrantRows[0]?.can_update_engagement !== true) {
+    missing.push('required-grant:ghsocial_backend:telemetry.user_repo_engagement:UPDATE');
+  }
+
   const migrationRows = await client`
     SELECT hash, created_at FROM drizzle.__drizzle_migrations ORDER BY created_at
   `.catch(() => []);

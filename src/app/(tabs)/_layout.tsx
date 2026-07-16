@@ -1,8 +1,5 @@
 import { Tabs } from 'expo-router';
-import HomeIcon from '../../assets/icons/Vector (1).svg';
-import CompassIcon from '../../assets/icons/material-symbols_explore-outline.svg';
-import UserIcon from '../../assets/icons/Vector (10).svg';
-import { APP_THEME } from '../../constants/theme';
+import { Home, Search, User } from 'lucide-react-native';
 
 export default function TabsLayout() {
   return (
@@ -10,57 +7,49 @@ export default function TabsLayout() {
       initialRouteName="explore"
       screenOptions={{
         headerShown: false,
+        tabBarActiveTintColor: '#8EFF7A',
+        tabBarInactiveTintColor: '#FFFFFF',
         tabBarStyle: {
-          backgroundColor: APP_THEME.tabBarBackground,
-          borderTopColor: APP_THEME.tabBarBorder,
-          borderTopWidth: 0,
+          backgroundColor: '#090B08',
+          borderTopColor: '#090B08',
+          borderTopWidth: 0.5,
+          height: 84,
+          paddingTop: 10,
+          paddingHorizontal: 8,
+          paddingBottom: 0,
           elevation: 0,
-          shadowOpacity: 0,
-          height: 60,
-          width: '100%',
+          boxShadow: 'none',
         },
         tabBarItemStyle: {
-          justifyContent: 'center',
-          alignItems: 'center',
-          height: 60,
-          paddingTop: 0,
+          paddingTop: 2,
           paddingBottom: 0,
         },
-        tabBarIconStyle: {
-          justifyContent: 'center',
-          alignItems: 'center',
-          alignSelf: 'center',
-          marginTop: 0,
-          marginBottom: 0,
+        tabBarLabelStyle: {
+          fontSize: 10,
+          fontWeight: '500',
+          marginTop: 4,
         },
-        tabBarShowLabel: false,
       }}
     >
       <Tabs.Screen
         name="home"
         options={{
           title: 'Home',
-          tabBarIcon: ({ focused }) => (
-            <HomeIcon fill={focused ? APP_THEME.activeAccent : APP_THEME.inactiveAccent} width={24} height={24} />
-          ),
+          tabBarIcon: ({ color }) => <Home color={color} size={24} strokeWidth={1.8} />,
         }}
       />
       <Tabs.Screen
         name="explore"
         options={{
-          title: 'Trending',
-          tabBarIcon: ({ focused }) => (
-            <CompassIcon fill={focused ? APP_THEME.activeAccent : APP_THEME.inactiveAccent} width={30} height={31} />
-          ),
+          title: 'Explore',
+          tabBarIcon: ({ color }) => <Search color={color} size={24} strokeWidth={1.8} />,
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
           title: 'Profile',
-          tabBarIcon: ({ focused }) => (
-            <UserIcon fill={focused ? APP_THEME.activeAccent : APP_THEME.inactiveAccent} width={22} height={22} />
-          ),
+          tabBarIcon: ({ color }) => <User color={color} size={24} strokeWidth={1.8} />,
         }}
       />
     </Tabs>

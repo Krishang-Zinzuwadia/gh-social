@@ -1,59 +1,111 @@
 import React from 'react';
-import { Text, TouchableOpacity, View } from 'react-native';
-import GitBranchIcon from '../../assets/icons/git-branch.svg';
-import StarIcon from '../../assets/icons/star.svg';
+import { Pressable, Text, View } from 'react-native';
+import Svg, { Circle, Defs, LinearGradient, Path, Stop } from 'react-native-svg';
 import { Repo } from '../../types';
-import Avatar from '../Avatar';
 
 interface RepoCardProps {
   repo: Repo;
   onPress?: () => void;
 }
 
-const regular = { fontFamily: 'NataSans-Regular' };
-const bold = { fontFamily: 'NataSans-Bold' };
+function StarIcon(): React.JSX.Element {
+  return (
+    <Svg width={11} height={11} viewBox="0 0 24 24" fill="#FFD60A">
+      <Path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z" />
+    </Svg>
+  );
+}
 
-export default function RepoCard({ repo, onPress }: RepoCardProps): React.JSX.Element {
-  // Replace hyphens with hyphen + space to guarantee wrapping on hyphens across all platforms
-  const formattedName = repo.name.replace(/-/g, '- ');
+function ForkIcon(): React.JSX.Element {
+  return (
+    <Svg width={11} height={11} viewBox="0 0 24 24" fill="none">
+      <Circle cx={6} cy={4.5} r={2.3} stroke="rgba(235,235,245,0.55)" strokeWidth={2} />
+      <Circle cx={18} cy={4.5} r={2.3} stroke="rgba(235,235,245,0.55)" strokeWidth={2} />
+      <Circle cx={12} cy={19.5} r={2.3} stroke="rgba(235,235,245,0.55)" strokeWidth={2} />
+      <Path
+        d="M6 7v1.5A3.5 3.5 0 0 0 9.5 12h5A3.5 3.5 0 0 0 18 8.5V7M12 12v5"
+        stroke="rgba(235,235,245,0.55)"
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
 
-  // Dynamic sizing: long names get a larger font size to emphasize wrapping/height,
-  // short names get a smaller font size to keep the box compact.
-  const isLongName = repo.name.length > 25;
-  const titleFontSize = isLongName ? 14 : 12;
-  const titleLineHeight = isLongName ? 18 : 16;
+function GradientAvatar({ repo }: { repo: Repo }): React.JSX.Element {
+  const colors = repo.avatarGradient ?? [repo.avatarColor, repo.avatarColor];
 
   return (
-    <TouchableOpacity
+    <View style={{ width: 20, height: 20 }}>
+      <Svg width={20} height={20} viewBox="0 0 20 20">
+        <Defs>
+          <LinearGradient id={`avatar-${repo.id}`} x1="3" y1="2" x2="17" y2="18" gradientUnits="userSpaceOnUse">
+            <Stop offset="0" stopColor={colors[0]} />
+            <Stop offset="1" stopColor={colors[1]} />
+          </LinearGradient>
+        </Defs>
+        <Circle cx={10} cy={10} r={10} fill={`url(#avatar-${repo.id})`} />
+      </Svg>
+      <View
+        style={{
+          position: 'absolute',
+          inset: 0,
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <Text style={{ color: '#FFFFFF', fontSize: 8, fontWeight: '700' }}>{repo.avatarInitial}</Text>
+      </View>
+    </View>
+  );
+}
+
+export default function RepoCard({ repo, onPress }: RepoCardProps): React.JSX.Element {
+  return (
+    <Pressable
       onPress={onPress}
-      className="rounded-xl p-4"
       style={{
-        backgroundColor: '#191F18',
-        borderColor: '#2E3D2E',
-        borderWidth: 1,
+        borderRadius: 16,
+        backgroundColor: '#1C1C1E',
+        padding: 14,
       }}
-      activeOpacity={0.7}
     >
       <Text
-        className="text-white mb-2"
-        style={[bold, { fontSize: titleFontSize, lineHeight: titleLineHeight, width: '100%' }]}
+        style={{
+          color: '#FFFFFF',
+          fontSize: 14,
+          fontWeight: '600',
+          letterSpacing: 0,
+          lineHeight: 18.9,
+        }}
       >
-        {formattedName}
+        {repo.name}
       </Text>
-      <View className="flex-row items-center" style={{ gap: 10 }}>
-        <View className="flex-row items-center" style={{ gap: 3 }}>
-          <StarIcon stroke="#FBBF24" fill="#FBBF24" width={11} height={11} />
-          <Text className="text-[#A3A3A3] text-xs" style={regular}>{repo.stars}</Text>
+      <Text
+        style={{
+          color: 'rgba(235, 235, 245, 0.55)',
+          fontSize: 11.5,
+          lineHeight: 16.675,
+          marginTop: 5,
+        }}
+      >
+        {repo.description}
+      </Text>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 11, marginTop: 8 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+          <StarIcon />
+          <Text style={{ color: 'rgba(235, 235, 245, 0.55)', fontSize: 11.5, fontWeight: '500' }}>{repo.stars}</Text>
         </View>
-        <View className="flex-row items-center" style={{ gap: 3 }}>
-          <GitBranchIcon stroke="#A3A3A3" width={11} height={11} />
-          <Text className="text-[#A3A3A3] text-xs" style={regular}>{repo.forks}</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+          <ForkIcon />
+          <Text style={{ color: 'rgba(235, 235, 245, 0.55)', fontSize: 11.5, fontWeight: '500' }}>{repo.forks}</Text>
         </View>
       </View>
-      <View className="flex-row items-center mt-2" style={{ gap: 5 }}>
-        <Avatar color={repo.avatarColor} initial={repo.avatarInitial} size={16} author={repo.author} />
-        <Text className="text-[#6B7280] text-xs" style={regular}>{repo.author}</Text>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7, marginTop: 11 }}>
+        <GradientAvatar repo={repo} />
+        <Text style={{ color: 'rgba(235, 235, 245, 0.6)', fontSize: 12, fontWeight: '500' }}>{repo.author}</Text>
       </View>
-    </TouchableOpacity>
+    </Pressable>
   );
 }

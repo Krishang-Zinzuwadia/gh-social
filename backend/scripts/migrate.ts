@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import { migrate } from 'drizzle-orm/postgres-js/migrator';
 import postgres from 'postgres';
+import { LEGACY_BASELINE_TAGS, RETROACTIVE_LEGACY_TAGS } from './migrationPlan.js';
 
 const databaseUrl = process.env.DATABASE_URL;
 if (!databaseUrl) throw new Error('DATABASE_URL is required.');
@@ -17,6 +18,33 @@ const journal = JSON.parse(
 ) as { entries: Array<{ idx: number; tag: string; when: number }> };
 
 const client = postgres(databaseUrl, { max: 1, prepare: false });
+
+type MigrationEntry = { idx: number; tag: string; when: number; hash: string; sql: string };
+
+function migrationEntries(tags: readonly string[]): MigrationEntry[] {
+  const allowed = new Set(tags);
+  return journal.entries.filter((entry) => allowed.has(entry.tag)).map((entry) => {
+    const sql = fs.readFileSync(path.join(migrationsFolder, `${entry.tag}.sql`), 'utf8');
+    return { ...entry, sql, hash: crypto.createHash('sha256').update(sql).digest('hex') };
+  });
+}
+
+async function recordedMigrationHashes(): Promise<Set<string>> {
+  if (!await relationExists('drizzle', '__drizzle_migrations')) return new Set();
+  const rows = await client`SELECT hash FROM drizzle.__drizzle_migrations`;
+  return new Set(rows.map((row) => String(row.hash)));
+}
+
+async function ensureMigrationHistoryTable(): Promise<void> {
+  await client`CREATE SCHEMA IF NOT EXISTS drizzle`;
+  await client`
+    CREATE TABLE IF NOT EXISTS drizzle.__drizzle_migrations (
+      id serial PRIMARY KEY,
+      hash text NOT NULL,
+      created_at bigint
+    )
+  `;
+}
 
 async function bootstrapSupabaseAuthStub(): Promise<void> {
   if (process.env.BOOTSTRAP_SUPABASE_AUTH_STUB !== '1') return;
@@ -57,17 +85,8 @@ async function adoptLegacyHistory(): Promise<void> {
     if (!await relationExists('public', relation)) missingRelations.push(relation);
   }
 
-  const legacyEntries = journal.entries.filter((item) => /^000[0-7]_/.test(item.tag)).map((entry) => ({
-    ...entry,
-    hash: crypto.createHash('sha256')
-      .update(fs.readFileSync(path.join(migrationsFolder, `${entry.tag}.sql`)))
-      .digest('hex'),
-  }));
-  let recordedHashes = new Set<string>();
-  if (hasDrizzleHistory) {
-    const rows = await client`SELECT hash FROM drizzle.__drizzle_migrations`;
-    recordedHashes = new Set(rows.map((row) => String(row.hash)));
-  }
+  const legacyEntries = migrationEntries(LEGACY_BASELINE_TAGS);
+  const recordedHashes = hasDrizzleHistory ? await recordedMigrationHashes() : new Set<string>();
   const historyComplete = legacyEntries.every((entry) => recordedHashes.has(entry.hash));
   if (historyComplete) return;
 
@@ -80,14 +99,7 @@ async function adoptLegacyHistory(): Promise<void> {
     throw new Error(`Cannot adopt incomplete legacy schema; missing public tables: ${missingRelations.join(', ')}.`);
   }
 
-  await client`CREATE SCHEMA IF NOT EXISTS drizzle`;
-  await client`
-    CREATE TABLE IF NOT EXISTS drizzle.__drizzle_migrations (
-      id serial PRIMARY KEY,
-      hash text NOT NULL,
-      created_at bigint
-    )
-  `;
+  await ensureMigrationHistoryTable();
 
   for (const entry of legacyEntries) {
     await client`
@@ -98,12 +110,33 @@ async function adoptLegacyHistory(): Promise<void> {
       )
     `;
   }
-  console.log('Adopted audited legacy migrations 0000-0007 into Drizzle history.');
+  console.log('Adopted the audited parent-journal legacy baseline into Drizzle history.');
+}
+
+async function applyRetroactiveLegacyMigrations(): Promise<void> {
+  if (!await relationExists('public', 'repo')) return;
+  await ensureMigrationHistoryTable();
+  const recordedHashes = await recordedMigrationHashes();
+  for (const entry of migrationEntries(RETROACTIVE_LEGACY_TAGS)) {
+    if (recordedHashes.has(entry.hash)) continue;
+    await client.begin(async (tx) => {
+      for (const statement of entry.sql.split('--> statement-breakpoint')) {
+        if (statement.trim()) await tx.unsafe(statement).simple();
+      }
+      await tx`
+        INSERT INTO drizzle.__drizzle_migrations (hash, created_at)
+        VALUES (${entry.hash}, ${entry.when})
+      `;
+    });
+    recordedHashes.add(entry.hash);
+    console.log(`Applied retroactive legacy migration ${entry.tag}.`);
+  }
 }
 
 try {
   await bootstrapSupabaseAuthStub();
   await adoptLegacyHistory();
+  await applyRetroactiveLegacyMigrations();
   await migrate(drizzle(client), {
     migrationsFolder,
     migrationsSchema: 'drizzle',

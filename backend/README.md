@@ -257,4 +257,6 @@ Set `TRUST_PROXY=true` only when exactly one trusted ingress proxy is in front o
 8. Wait for outbox drain and rebuild Qdrant from the new backend-issued mappings.
 9. Require `/readyz` healthy, outbox `dead=0`, integration tests passing, and ML health healthy before frontend release.
 
-For verification use `npm run build`, `npm test`, database integration with `RUN_DATABASE_INTEGRATION=1`, and HTTP integration with `RUN_HTTP_INTEGRATION=1`. The integration suite uses Redis database 14 by default and clears only that test database.
+Databases with the known parent-journal history are upgraded directly: the migrator executes and records the retroactive `0004_add_likes_given` and `0005_add_is_saved` SQL before `0008`. Do not set `ADOPT_LEGACY_SCHEMA` for that normal upgrade. The one-time `ADOPT_LEGACY_SCHEMA=1` escape hatch is only for an audited legacy schema whose baseline Drizzle history is genuinely absent or incomplete; exercise it on a clone and run `schema:audit` before using it against the target.
+
+For verification use `npm run build`, `npm test`, database integration with `RUN_DATABASE_INTEGRATION=1`, parent-history migration integration with `RUN_MIGRATION_UPGRADE_INTEGRATION=1`, and HTTP integration with `RUN_HTTP_INTEGRATION=1`. The integration suite uses Redis database 14 by default and clears only that test database.

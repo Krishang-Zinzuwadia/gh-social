@@ -4,40 +4,16 @@ import { Stack } from "expo-router";
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
-import { AuthProvider, useAuth } from '../store/AuthContext';
-import { useRouter, useSegments } from 'expo-router';
+import { AuthProvider } from '../store/AuthContext';
 
 // Keep the splash screen visible while we fetch resources
 SplashScreen.preventAutoHideAsync();
 
 function RootLayoutNav() {
-  const { user, isLoading } = useAuth();
-  const segments = useSegments();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (isLoading) return;
-
-    const inAuthGroup = segments[0] === '(auth)';
-    const inOnboardingGroup = segments[0] === 'onboarding';
-
-    if (!user && !inAuthGroup) {
-      // Redirect unauthenticated users to login
-      router.replace('/(auth)/login');
-    } else if (user && !user.onboarding_completed && !inOnboardingGroup) {
-      // Redirect authenticated users who haven't finished onboarding
-      router.replace('/onboarding/create-profile');
-    } else if (user && user.onboarding_completed && (inAuthGroup || inOnboardingGroup)) {
-      // Redirect fully authenticated users away from auth/onboarding pages to main app
-      router.replace('/(tabs)/explore');
-    }
-  }, [user, isLoading, segments]);
-
   return <Stack screenOptions={{ headerShown: false }} />;
 }
-
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 const queryClient = new QueryClient();
 

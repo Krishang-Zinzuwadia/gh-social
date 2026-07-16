@@ -4,11 +4,8 @@ import * as activityService from '../services/activityService.js';
 import { FeedService } from '../services/feedService.js';
 import { sendError, sendSuccess, sendDatabaseError } from '../utils/response.js';
 import { isValidUuid } from '../utils/validators.js';
-import { normalizeFeedbackAction } from '../config/feedback.js';
-import {
-  recordAndForwardFeedbackEvents,
-  type FeedbackEventSource,
-} from '../services/feedbackEventService.js';
+import { mlService } from '../services/mlService.js';
+import { isFeedbackInteraction } from '../config/feedback.js';
 
 const feedService = new FeedService();
 
@@ -38,35 +35,28 @@ export async function processBatchedActivity(req: AuthRequest, res: Response): P
   if (events.length === 0 || events.length > 100) {
     return sendError(res, 400, 'events must contain between 1 and 100 items');
   }
-  const normalizedEvents: activityService.BatchedActivityEvent[] = [];
   for (const event of events) {
-    const action = normalizeFeedbackAction(event?.action);
-    if (!event || typeof event.repo_id !== 'string' || !action) {
+    if (!event || typeof event.repo_id !== 'string' || !isFeedbackInteraction(event.action)) {
       return sendError(res, 400, 'Each event requires a repo_id and supported action');
     }
-    if (action === 'dwell' && (
+    if (event.action === 'dwell' && (
       typeof event.dwell_seconds !== 'number' || event.dwell_seconds <= 0
     )) {
       return sendError(res, 400, 'dwell_seconds must be positive for dwell events');
     }
-    normalizedEvents.push({
-      repo_id: event.repo_id,
-      action,
-      ...(action === 'dwell' ? { dwell_seconds: event.dwell_seconds } : {}),
-    });
   }
 
-  const feedbackEvents: FeedbackEventSource[] = [];
-  for (const event of normalizedEvents) {
+  const mlEvents: { user_id: string; repo_id: string; action: any; dwell_seconds?: number }[] = [];
+  for (const event of events) {
     if (event.action === 'like' || event.action === 'dislike') {
       const { data: currentActivity } = await activityService.getActivityByUserAndRepo(userId, event.repo_id);
       if (event.action === 'like' && currentActivity?.likelihood_count === -1) {
-        feedbackEvents.push({ user_id: userId, repo_id: event.repo_id, action: 'undislike' });
+        mlEvents.push({ user_id: userId, repo_id: event.repo_id, action: 'undislike' });
       } else if (event.action === 'dislike' && currentActivity?.likelihood_count === 1) {
-        feedbackEvents.push({ user_id: userId, repo_id: event.repo_id, action: 'unlike' });
+        mlEvents.push({ user_id: userId, repo_id: event.repo_id, action: 'unlike' });
       }
     }
-    feedbackEvents.push({
+    mlEvents.push({
       user_id: userId,
       repo_id: event.repo_id,
       action: event.action,
@@ -74,19 +64,13 @@ export async function processBatchedActivity(req: AuthRequest, res: Response): P
     });
   }
 
-  const { error } = await activityService.processBatchedActivity(userId, normalizedEvents);
+  const { error } = await activityService.processBatchedActivity(userId, events);
   if (error) {
     return sendDatabaseError(res, error as import('../types/index.js').PostgresError);
   }
 
-  try {
-    await recordAndForwardFeedbackEvents(feedbackEvents);
-  } catch (feedbackError) {
-    console.error('[ActivityController] Failed to record feedback events:', feedbackError);
-    return sendError(res, 500, 'Feedback events could not be recorded');
-  }
-
-  void feedService.invalidateUserFeed(userId);
+  // Also asynchronously send to ML service
+  void mlService.sendBatchedActivityFeedback(mlEvents as any);
 
   return sendSuccess(res, 202, { message: 'Batched activity processed' });
 }
@@ -231,22 +215,16 @@ export async function likeRepo(req: AuthRequest, res: Response): Promise<void> {
   }
 
   const liked = (data as { likelihood_count?: number } | null)?.likelihood_count === 1;
-  const feedbackEvents: FeedbackEventSource[] = [];
+  const mlEvents: any[] = [];
   if (liked && wasDisliked) {
-    feedbackEvents.push({ user_id: userId, repo_id: repoId, action: 'undislike' });
+    mlEvents.push({ user_id: userId, repo_id: repoId, action: 'undislike' });
   }
-  feedbackEvents.push({
+  mlEvents.push({
     user_id: userId,
     repo_id: repoId,
     action: liked ? 'like' : 'unlike',
   });
-  try {
-    await recordAndForwardFeedbackEvents(feedbackEvents);
-  } catch (feedbackError) {
-    console.error('[ActivityController] Failed to record like feedback:', feedbackError);
-    return sendError(res, 500, 'Feedback event could not be recorded');
-  }
-  void feedService.invalidateUserFeed(userId);
+  void mlService.sendBatchedActivityFeedback(mlEvents);
 
   return sendSuccess(res, 200, data);
 }
@@ -274,17 +252,11 @@ export async function saveRepo(req: AuthRequest, res: Response): Promise<void> {
   }
 
   const saved = (data as { is_saved?: boolean } | null)?.is_saved === true;
-  try {
-    await recordAndForwardFeedbackEvents([{
-      user_id: userId,
-      repo_id: repoId,
-      action: saved ? 'save' : 'unsave',
-    }]);
-  } catch (feedbackError) {
-    console.error('[ActivityController] Failed to record save feedback:', feedbackError);
-    return sendError(res, 500, 'Feedback event could not be recorded');
-  }
-  void feedService.invalidateUserFeed(userId);
+  void mlService.sendBatchedActivityFeedback([{
+    user_id: userId,
+    repo_id: repoId,
+    action: saved ? 'save' : 'unsave',
+  }]);
 
   return sendSuccess(res, 200, data);
 }
@@ -320,23 +292,17 @@ export async function dislikeRepo(req: AuthRequest, res: Response): Promise<void
   }
 
   // Build ML events with correct reversal ordering
-  const feedbackEvents: FeedbackEventSource[] = [];
+  const mlEvents: { user_id: string; repo_id: string; action: string }[] = [];
   if (!wasDisliked && wasLiked) {
     // Switching from like → dislike: emit unlike first
-    feedbackEvents.push({ user_id: userId, repo_id: repoId, action: 'unlike' });
+    mlEvents.push({ user_id: userId, repo_id: repoId, action: 'unlike' });
   }
-  feedbackEvents.push({
+  mlEvents.push({
     user_id: userId,
     repo_id: repoId,
     action,
   });
-  try {
-    await recordAndForwardFeedbackEvents(feedbackEvents);
-  } catch (feedbackError) {
-    console.error('[ActivityController] Failed to record dislike feedback:', feedbackError);
-    return sendError(res, 500, 'Feedback event could not be recorded');
-  }
-  void feedService.invalidateUserFeed(userId);
+  void mlService.sendBatchedActivityFeedback(mlEvents as any);
 
   // Re-fetch the updated activity row
   const { data: updatedActivity } = await activityService.getActivityByUserAndRepo(userId, repoId);

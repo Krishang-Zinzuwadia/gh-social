@@ -1,8 +1,6 @@
 import { useState, useEffect } from 'react';
-import { ScrollView, FlatList, StatusBar, View, Text, ListRenderItemInfo, useWindowDimensions, Linking } from 'react-native';
-import { fetch } from 'expo/fetch';
+import { ScrollView, FlatList, StatusBar, View, Text, ListRenderItemInfo, useWindowDimensions, Platform, Linking } from 'react-native';
 import { API_URL } from '../../api/config';
-import { sendBatchedActivity } from '../../api/activity';
 import Header from '../../components/explore/Header';
 import RepoCard from '../../components/explore/RepoCard';
 import SearchBar from '../../components/explore/SearchBar';
@@ -10,10 +8,10 @@ import TabBar from '../../components/explore/TabBar';
 import TrendingRepoCard from '../../components/explore/TrendingRepoCard';
 import SkeletonCard from '../../components/explore/SkeletonCard';
 import { getResponsiveContainerStyle } from '../../components/responsive-layout';
+import { fetchFeed } from '../../api/feed';
 import * as SecureStore from '../../utils/storage';
 import { Repo, TabName } from '../../types';
 import { APP_THEME } from '../../constants/theme';
-import { FEEDBACK_ACTIONS } from '../../constants/feedbackActions';
 
 const regular = { fontFamily: 'NataSans-Regular' };
 
@@ -171,20 +169,6 @@ export default function ExploreScreen() {
   };
 
   const handleRepoPress = (repo: Repo) => {
-    void (async () => {
-      const token = await SecureStore.getItemAsync('access_token');
-      if (!token) {
-        console.warn('GitHub open feedback was not sent because the user is not authenticated.');
-        return;
-      }
-      await sendBatchedActivity([{
-        repo_id: repo.id,
-        action: FEEDBACK_ACTIONS.githubOpen,
-      }], token);
-    })().catch((error) => {
-      console.error('Failed to send GitHub open feedback:', error);
-    });
-
     // Use verified URL from DB if available, otherwise use a canonical fallback for static mock cards to prevent 404s
     const url = repo.url || `https://github.com/facebook/react`;
     Linking.openURL(url).catch(err => console.error('Failed to open GitHub link:', err));
@@ -240,7 +224,7 @@ export default function ExploreScreen() {
           Trending is quiet today
         </Text>
         <Text className="text-[#A49898] text-sm text-center leading-5" style={regular}>
-          We couldn&apos;t find any trending repositories at the moment. Check back later to discover what the community is building.
+          We couldn't find any trending repositories at the moment. Check back later to discover what the community is building.
         </Text>
       </View>
     );

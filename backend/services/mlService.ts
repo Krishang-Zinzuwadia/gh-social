@@ -1,5 +1,5 @@
 import type { RepoRow, UserProfile } from '../types/database.js';
-import type { CanonicalFeedbackEvent } from '@gh-social/feedback-events';
+import type { FeedbackInteraction } from '../config/feedback.js';
 
 const DEFAULT_ML_TIMEOUT_MS = 30000;
 
@@ -37,18 +37,6 @@ export interface MlEmbedRepositoryPayload {
   updated_at?: string | null;
 }
 
-export interface MlFeedbackDeliveryReport {
-  accepted: string[];
-  logOnly: string[];
-  failed: Array<{ eventId: string; action: CanonicalFeedbackEvent['action']; error: unknown }>;
-}
-
-export function getMlFeedbackDisposition(
-  event: CanonicalFeedbackEvent,
-): 'accepted' | 'log_only' {
-  return event.model_update ? 'accepted' : 'log_only';
-}
-
 function parseTimeout(): number {
   const raw = process.env.ML_TIMEOUT;
   if (!raw) return DEFAULT_ML_TIMEOUT_MS;
@@ -82,9 +70,6 @@ class MLService {
     if (!this.baseURL) {
       throw new Error('ML_SERVICE_URL is not configured.');
     }
-    if (!this.internalSecret) {
-      throw new Error('INTERNAL_API_SECRET is required for ML service requests.');
-    }
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), this.timeoutMs);
@@ -94,7 +79,7 @@ class MLService {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-internal-secret': this.internalSecret,
+          ...(this.internalSecret ? { 'x-internal-secret': this.internalSecret } : {}),
         },
         body: JSON.stringify(payload),
         signal: controller.signal,
@@ -132,35 +117,15 @@ class MLService {
     }
   }
 
-  async sendBatchedActivityFeedback(
-    events: readonly CanonicalFeedbackEvent[],
-  ): Promise<MlFeedbackDeliveryReport> {
-    const report: MlFeedbackDeliveryReport = { accepted: [], logOnly: [], failed: [] };
-    if (events.length === 0) return report;
-
+  async sendBatchedActivityFeedback(events: { user_id: string; repo_id: string; action: FeedbackInteraction; dwell_seconds?: number }[]): Promise<void> {
     try {
-      await this.post('/api/v1/feedback/batch', { events });
-
-      for (const event of events) {
-        if (getMlFeedbackDisposition(event) === 'log_only') {
-          report.logOnly.push(event.event_id);
-        } else {
-          report.accepted.push(event.event_id);
-        }
-      }
-    } catch (error) {
-      report.failed.push(...events.map((event) => ({
-        eventId: event.event_id,
-        action: event.action,
-        error,
-      })));
-      console.error(
-        `[MLService] Feedback batch failed for events ${events.map((event) => event.event_id).join(', ')}:`,
-        error,
+      await Promise.all(
+        events.map((event) => this.post('/api/v1/feedback', event))
       );
+    } catch (error) {
+      console.error(`[MLService] sendBatchedActivityFeedback failed:`, error);
+      // Best effort; do not crash on feedback failure
     }
-
-    return report;
   }
 
   async onboardUser(payload: MlOnboardPayload): Promise<void> {

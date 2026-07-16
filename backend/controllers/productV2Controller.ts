@@ -169,6 +169,25 @@ async function followList(req: AuthRequest, res: Response, direction: 'followers
 export const listFollowers = (req: AuthRequest, res: Response) => followList(req, res, 'followers');
 export const listFollowing = (req: AuthRequest, res: Response) => followList(req, res, 'following');
 
+export async function listLikesGiven(req: AuthRequest, res: Response): Promise<void> {
+  const target = idParam(req, res, 'userId'); const page = paging(req); if (!target) return;
+  if (!page) return sendError(res, 400, 'limit must be 1-100 and offset must be 0-10000.');
+  const rows = await sqlClient`
+    SELECT r.repo_id,r.url AS github_repo_url,r.owner AS owner_id,r.name AS repo_name,r.full_name,
+      c.description,c.languages AS language_used,
+      COALESCE((SELECT json_agg(t.slug ORDER BY t.slug) FROM app.repo_topics rt JOIN app.topics t USING(topic_id)
+        WHERE rt.repo_id=r.repo_id),'[]'::json) AS topics,
+      e.likes_count,COALESCE(s.star_count,0) AS star_count,COALESCE(s.fork_count,0) AS forks_count
+    FROM app.reactions reaction JOIN app.repos r USING(repo_id)
+    JOIN app.repo_content c USING(repo_id) JOIN app.repo_engagement e USING(repo_id)
+    LEFT JOIN LATERAL (SELECT star_count,fork_count FROM app.repo_stat_snapshots snapshot
+      WHERE snapshot.repo_id=r.repo_id ORDER BY observed_at DESC LIMIT 1) s ON true
+    WHERE reaction.user_id=${target}::uuid AND reaction.reaction='like' AND r.status='active'
+    ORDER BY reaction.updated_at DESC LIMIT ${page.limit} OFFSET ${page.offset}
+  `;
+  sendSuccess(res, 200, { items: rows, ...page });
+}
+
 const repoProjection = `r.repo_id,r.github_id,r.full_name,r.owner,r.name,r.url,c.description,c.primary_language,c.languages,c.content_version,
   e.likes_count,e.dislikes_count,e.saves_count,e.comments_count,e.views_count,
   s.star_count,s.fork_count,s.open_issues_count,s.observed_at,cs.summary,cs.model_version`;
@@ -218,7 +237,7 @@ export async function listSaved(req: AuthRequest, res: Response): Promise<void> 
 export async function listComments(req: AuthRequest, res: Response): Promise<void> {
   const repo = idParam(req, res, 'repoId'); const page = paging(req); if (!repo) return;
   if (!page) return sendError(res, 400, 'Invalid pagination.');
-  const rows = await sqlClient`SELECT c.comment_id,c.parent_comment_id,c.body,c.created_at,c.updated_at,
+  const rows = await sqlClient`SELECT c.comment_id,c.repo_id,c.parent_comment_id,c.body,c.created_at,c.updated_at,
     u.user_id,u.username,u.full_name,u.avatar_url FROM app.comments c JOIN app.users u USING(user_id)
     WHERE c.repo_id=${repo}::uuid AND u.status='active' ORDER BY c.created_at ASC LIMIT ${page.limit} OFFSET ${page.offset}`;
   sendSuccess(res, 200, { items: rows, ...page });

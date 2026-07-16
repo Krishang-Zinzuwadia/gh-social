@@ -11,6 +11,7 @@ router.put('/users/:userId/follow', product.setFollow);
 router.delete('/users/:userId/follow', product.removeFollow);
 router.get('/users/:userId/followers', product.listFollowers);
 router.get('/users/:userId/following', product.listFollowing);
+router.get('/users/:userId/likes-given', product.listLikesGiven);
 router.get('/onboarding/status', product.onboardingStatus);
 router.put('/onboarding', product.completeOnboarding);
 router.get('/repositories', product.listRepositories);

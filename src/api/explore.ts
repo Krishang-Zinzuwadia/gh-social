@@ -1,110 +1,62 @@
 import { Repo, TabName } from '../types';
+import { getStorageItem } from '../utils/storage';
+import { apiV2 } from './client';
 
-type GitHubRepository = {
-  id: number;
+type RepositoryV2 = {
+  repo_id: string;
   name: string;
   full_name: string;
+  owner: string;
+  url: string;
   description: string | null;
-  html_url: string;
-  stargazers_count: number;
-  forks_count: number;
-  language: string | null;
-  owner: {
-    login: string;
-  };
+  primary_language: string | null;
+  star_count?: number | null;
+  fork_count?: number | null;
 };
 
-type GitHubSearchResponse = {
-  items?: GitHubRepository[];
-};
-
-const GITHUB_SEARCH_URL = 'https://api.github.com/search/repositories';
 const AVATAR_COLORS = [
-  ['#64D2FF', '#2A7FBF'],
-  ['#FFB340', '#E08700'],
-  ['#BF5AF2', '#8944AB'],
-  ['#63E6A9', '#2E9E6B'],
-  ['#FF6482', '#C93A56'],
+  ['#64D2FF', '#2A7FBF'], ['#FFB340', '#E08700'], ['#BF5AF2', '#8944AB'],
+  ['#63E6A9', '#2E9E6B'], ['#FF6482', '#C93A56'],
 ] as const;
 
-function formatCompactCount(value: number): string {
+function formatCompactCount(value = 0): string {
   if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(value >= 10_000_000 ? 0 : 1)}M`;
   if (value >= 1_000) return `${(value / 1_000).toFixed(value >= 10_000 ? 0 : 1)}K`;
   return value.toString();
 }
 
-function getRecentDate(daysAgo: number): string {
-  const date = new Date();
-  date.setDate(date.getDate() - daysAgo);
-  return date.toISOString().slice(0, 10);
-}
-
 function getAvatarGradient(seed: string): readonly [string, string] {
-  const charTotal = seed.split('').reduce((sum, char) => sum + char.charCodeAt(0), 0);
-  return AVATAR_COLORS[charTotal % AVATAR_COLORS.length];
-}
-
-function buildSearchQuery(tab: TabName, searchQuery: string): string {
-  const q = searchQuery.trim();
-
-  if (q) {
-    return tab === 'Trending'
-      ? `${q} in:name,description stars:>100`
-      : `${q} in:name,description`;
-  }
-
-  if (tab === 'Trending') {
-    return `stars:>1000 pushed:>${getRecentDate(30)}`;
-  }
-
-  return 'topic:open-source stars:>500';
+  const total = [...seed].reduce((sum, character) => sum + character.charCodeAt(0), 0);
+  return AVATAR_COLORS[total % AVATAR_COLORS.length];
 }
 
 export async function fetchExploreRepos(
   tab: TabName,
   searchQuery: string,
-  signal?: AbortSignal
+  signal?: AbortSignal,
 ): Promise<Repo[]> {
-  const params = new URLSearchParams({
-    q: buildSearchQuery(tab, searchQuery),
-    order: 'desc',
-    per_page: '24',
-  });
-  const sort = tab === 'Trending' ? 'stars' : searchQuery.trim() ? undefined : 'updated';
+  const token = await getStorageItem('access_token');
+  if (!token) throw new Error('Your session has expired. Please log in again.');
+  const query = searchQuery.trim();
+  const path = tab === 'Trending'
+    ? '/repositories/trending?period=daily'
+    : `/repositories?limit=24&offset=0${query ? `&q=${encodeURIComponent(query)}` : ''}`;
+  const data = await apiV2<{ items: RepositoryV2[] }>(path, { signal }, token);
 
-  if (sort) {
-    params.set('sort', sort);
-  }
-
-  const response = await fetch(`${GITHUB_SEARCH_URL}?${params.toString()}`, {
-    headers: {
-      Accept: 'application/vnd.github+json',
-      'X-GitHub-Api-Version': '2022-11-28',
-    },
-    signal,
-  });
-
-  if (!response.ok) {
-    throw new Error('Unable to load repositories right now.');
-  }
-
-  const payload = (await response.json()) as GitHubSearchResponse;
-
-  return (payload.items ?? []).map((repo) => {
-    const avatarGradient = getAvatarGradient(repo.owner.login);
-
+  return data.items.map((repo) => {
+    const gradient = getAvatarGradient(repo.owner);
     return {
-      id: repo.id.toString(),
+      id: repo.repo_id,
       name: repo.name,
       description: repo.description ?? 'No description provided.',
-      stars: formatCompactCount(repo.stargazers_count),
-      forks: formatCompactCount(repo.forks_count),
-      author: repo.owner.login,
-      avatarInitial: repo.owner.login.slice(0, 2).toUpperCase(),
-      avatarColor: avatarGradient[0],
-      avatarGradient,
-      language: repo.language ?? undefined,
-      url: repo.html_url,
+      stars: formatCompactCount(repo.star_count ?? 0),
+      forks: formatCompactCount(repo.fork_count ?? 0),
+      author: repo.owner,
+      avatarInitial: repo.owner.slice(0, 2).toUpperCase(),
+      avatarColor: gradient[0],
+      avatarGradient: gradient,
+      language: repo.primary_language ?? undefined,
+      url: repo.url,
     };
   });
 }

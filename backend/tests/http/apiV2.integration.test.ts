@@ -89,6 +89,14 @@ integration('registered v2 HTTP paths complete controlled integration flows', as
     assert.equal(interaction.status, 202);
     assert.equal(Number((await sqlClient`SELECT count(*) AS count FROM telemetry.ml_outbox`)[0].count), 1);
 
+    const likesGiven = await fetch(`${base}/api/v2/users/${userId}/likes-given?limit=100&offset=0`, {
+      headers: { authorization: `Bearer ${token}` },
+    });
+    assert.equal(likesGiven.status, 200);
+    const likedItems = (await likesGiven.json()) as { data: { items: Array<{ repo_id: string; repo_name: string }> } };
+    assert.deepEqual(likedItems.data.items.map((item) => item.repo_id), [repoId]);
+    assert.equal(likedItems.data.items[0].repo_name, 'http-repo');
+
     const authHeaders = { authorization: `Bearer ${token}`, 'content-type': 'application/json' };
     const me = await fetch(`${base}/api/v2/users/me`, { headers: authHeaders });
     assert.equal(me.status, 200);
@@ -111,6 +119,12 @@ integration('registered v2 HTTP paths complete controlled integration flows', as
     assert.equal(comment.status, 201);
     const commentId = ((await comment.json()) as { data: { comment_id: string } }).data.comment_id;
     assert.match(commentId, /^[0-9a-f-]{36}$/);
+    const comments = await fetch(`${base}/api/v2/repositories/${repoId}/comments`, { headers: authHeaders });
+    assert.equal(comments.status, 200);
+    const commentItems = (await comments.json()) as { data: { items: Array<{ comment_id: string; repo_id: string; body: string }> } };
+    assert.equal(commentItems.data.items[0].comment_id, commentId);
+    assert.equal(commentItems.data.items[0].repo_id, repoId);
+    assert.equal(commentItems.data.items[0].body, 'Useful repository');
 
     const collection = await fetch(`${base}/api/v2/collections`, {
       method: 'POST', headers: authHeaders, body: JSON.stringify({ name: 'Research' }),

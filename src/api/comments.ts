@@ -1,4 +1,5 @@
-import { API_URL } from './config';
+import { apiV2 } from './client';
+import { getStorageItem } from '../utils/storage';
 
 export interface CommentRecord {
   comment_id: string;
@@ -22,12 +23,6 @@ export interface CreateCommentInput {
   parentCommentId?: string | null;
 }
 
-type ApiEnvelope<T> = {
-  success?: boolean;
-  data?: T;
-  error?: string;
-};
-
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
 }
@@ -38,7 +33,7 @@ function normalizeComment(value: unknown): CommentRecord | null {
   const commentId = value.comment_id;
   const userId = value.user_id;
   const repoId = value.repo_id;
-  const body = value.comment;
+  const body = value.comment ?? value.body;
 
   if (
     typeof commentId !== 'string' ||
@@ -60,26 +55,6 @@ function normalizeComment(value: unknown): CommentRecord | null {
   };
 }
 
-async function readEnvelope<T>(response: Response, fallbackMessage: string): Promise<T> {
-  let payload: ApiEnvelope<T> | null = null;
-
-  try {
-    payload = (await response.json()) as ApiEnvelope<T>;
-  } catch {
-    // A non-JSON response is handled by the shared fallback below.
-  }
-
-  if (!response.ok) {
-    throw new Error(payload?.error || fallbackMessage);
-  }
-
-  if (!payload || payload.data === undefined) {
-    throw new Error(fallbackMessage);
-  }
-
-  return payload.data;
-}
-
 export async function getCommentsByRepo(
   repoId: string,
   signal?: AbortSignal,
@@ -87,21 +62,16 @@ export async function getCommentsByRepo(
   const normalizedRepoId = repoId.trim();
   if (!normalizedRepoId) return [];
 
-  const response = await fetch(
-    `${API_URL}/comment/repo/${encodeURIComponent(normalizedRepoId)}`,
-    {
-      method: 'GET',
-      headers: { Accept: 'application/json' },
-      signal,
-    },
+  const token = await getStorageItem('access_token');
+  if (!token) throw new Error('Your session has expired.');
+  const data = await apiV2<{ items: unknown[] }>(
+    `/repositories/${encodeURIComponent(normalizedRepoId)}/comments`, { signal }, token,
   );
-
-  const data = await readEnvelope<unknown>(response, 'Failed to load comments');
-  if (!Array.isArray(data)) {
+  if (!Array.isArray(data.items)) {
     throw new Error('Comments response was not a list');
   }
 
-  return data
+  return data.items
     .map(normalizeComment)
     .filter((comment): comment is CommentRecord => comment !== null);
 }
@@ -115,23 +85,15 @@ export async function createComment(
     throw new Error('A repository and comment are required');
   }
 
-  const response = await fetch(`${API_URL}/comment`, {
+  const data = await apiV2<unknown>(`/repositories/${encodeURIComponent(input.repoId)}/comments`, {
     method: 'POST',
-    headers: {
-      Accept: 'application/json',
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
     body: JSON.stringify({
-      repo_id: input.repoId,
-      comment: body,
+      body,
       ...(input.parentCommentId
         ? { parent_comment_id: input.parentCommentId }
         : {}),
     }),
-  });
-
-  const data = await readEnvelope<unknown>(response, 'Failed to post comment');
+  }, token);
   const comment = normalizeComment(data);
   if (!comment) {
     throw new Error('Comment response was invalid');
@@ -144,16 +106,9 @@ export async function getCommentAuthor(
   userId: string,
   signal?: AbortSignal,
 ): Promise<CommentAuthor> {
-  const response = await fetch(
-    `${API_URL}/users/id/${encodeURIComponent(userId)}`,
-    {
-      method: 'GET',
-      headers: { Accept: 'application/json' },
-      signal,
-    },
-  );
-
-  const data = await readEnvelope<unknown>(response, 'Failed to load comment author');
+  const token = await getStorageItem('access_token');
+  if (!token) throw new Error('Your session has expired.');
+  const data = await apiV2<unknown>(`/users/${encodeURIComponent(userId)}`, { signal }, token);
   if (!isObject(data) || typeof data.user_id !== 'string' || typeof data.username !== 'string') {
     throw new Error('Comment author response was invalid');
   }

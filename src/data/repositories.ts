@@ -1,5 +1,7 @@
 export type RepositoryData = {
   id: string;
+  serveId?: string | null;
+  feedPosition?: number | null;
   title: string;
   owner: string;
   description: string;

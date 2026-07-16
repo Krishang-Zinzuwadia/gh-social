@@ -1,61 +1,50 @@
-import { API_URL } from './config';
+import { apiV2, apiV2Raw } from './client';
 import type { FeedbackAction } from '../constants/feedbackActions';
+import { createUuid, getAppSessionId } from '../utils/uuid';
 
 export type { FeedbackAction } from '../constants/feedbackActions';
 
-export async function getSavedRepos(userId: string, token: string, limit: number = 20, offset: number = 0) {
-  const response = await fetch(`${API_URL}/activity/user/${userId}/saved?limit=${limit}&offset=${offset}`, {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
-  });
+export type QueuedActivity = {
+  repo_id: string;
+  action: FeedbackAction;
+  dwell_seconds?: number;
+  serve_id?: string | null;
+  position?: number | null;
+};
 
-  if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(errorData.error || 'Failed to fetch saved repos');
-  }
-
-  const json = await response.json();
-  return json.data;
+export async function getSavedRepos(_userId: string, token: string, limit = 20, offset = 0) {
+  const data = await apiV2<{ items: Record<string, unknown>[] }>(`/repositories/saved?limit=${limit}&offset=${offset}`, {}, token);
+  return data.items.map((repository) => ({
+    activity_id: `saved-${String(repository.repo_id)}`,
+    repo_id: repository.repo_id,
+    is_saved: true,
+    repo: { ...repository, repo_name: repository.name },
+  }));
 }
 
-export async function toggleSaveRepo(userId: string, repoId: string, token: string) {
-  const response = await fetch(`${API_URL}/activity/user/${userId}/repo/${repoId}/save`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
-  });
-
-  if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(errorData.error || 'Failed to toggle save for repo');
-  }
-
-  const json = await response.json();
-  return json.data;
+export async function toggleSaveRepo(_userId: string, repoId: string, token: string) {
+  return sendBatchedActivity([{ repo_id: repoId, action: 'save' }], token);
 }
 
-export async function sendBatchedActivity(events: { repo_id: string; action: FeedbackAction; dwell_seconds?: number }[], token: string) {
+export async function sendBatchedActivity(events: QueuedActivity[], token: string) {
   if (events.length === 0) return;
-  
-  const response = await fetch(`${API_URL}/activity/batch`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify({ events }),
-  });
-
-  if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(errorData.error || 'Failed to send batched activity');
-  }
-
-  const json = await response.json();
-  return json.data;
+  const now = new Date().toISOString();
+  const payload = events.map((event) => ({
+    event_id: createUuid(),
+    schema_version: 2 as const,
+    session_id: getAppSessionId(),
+    serve_id: event.serve_id ?? null,
+    repo_id: event.repo_id,
+    position: event.position ?? null,
+    event_type: event.action,
+    dwell_ms: event.action === 'dwell'
+      ? Math.min(300_000, Math.max(3_000, Math.round((event.dwell_seconds ?? 3) * 1_000)))
+      : null,
+    client_occurred_at: now,
+    context: { client: 'expo', source: event.serve_id ? 'feed' : 'product' },
+  }));
+  const { data } = await apiV2Raw('/interactions/batch', {
+    method: 'POST', body: JSON.stringify({ events: payload }),
+  }, token);
+  return data;
 }

@@ -68,6 +68,7 @@ Signup/profile creation and ML onboarding enqueue are one backend transaction. O
 | `DELETE /api/v2/users/:userId/follow` | none | Idempotently unfollows; `204` |
 | `GET /api/v2/users/:userId/followers` | `limit`, `offset` | Followers |
 | `GET /api/v2/users/:userId/following` | `limit`, `offset` | Following users |
+| `GET /api/v2/users/:userId/likes-given` | `limit`, `offset` | Repositories liked by the user |
 | `GET /api/v2/onboarding/status` | none | `{completed,profile_version}` |
 | `PUT /api/v2/onboarding` | `{bio?,topics:[slug,...]}` | Replaces interests, increments profile version, enqueues ML onboarding |
 

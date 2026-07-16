@@ -10,6 +10,8 @@ export interface BatchedActivityEvent {
   dwell_seconds?: number;
 }
 
+type SqlExecutor = Pick<typeof db, 'execute'>;
+
 const STATEFUL_ACTIONS = new Set<FeedbackInteraction>([
   'like',
   'dislike',
@@ -24,12 +26,16 @@ function isStatefulAction(action: FeedbackInteraction): boolean {
   return STATEFUL_ACTIONS.has(action);
 }
 
-async function insertInteractionEvent(userId: string, event: BatchedActivityEvent) {
+async function insertInteractionEvent(
+  executor: SqlExecutor,
+  userId: string,
+  event: BatchedActivityEvent,
+) {
   const metadata = event.dwell_seconds === undefined
     ? {}
     : { dwell_seconds: event.dwell_seconds };
 
-  const inserted = await db.execute(sql`
+  const inserted = await executor.execute(sql`
     INSERT INTO interaction_events (user_id, repo_id, action, dwell_seconds, metadata)
     SELECT
       ${userId}::uuid,
@@ -47,7 +53,11 @@ async function insertInteractionEvent(userId: string, event: BatchedActivityEven
   }
 }
 
-async function upsertActivityState(userId: string, event: BatchedActivityEvent) {
+async function upsertActivityState(
+  executor: SqlExecutor,
+  userId: string,
+  event: BatchedActivityEvent,
+) {
   if (!isStatefulAction(event.action)) {
     return;
   }
@@ -60,7 +70,7 @@ async function upsertActivityState(userId: string, event: BatchedActivityEvent) 
       : 0;
   const isSave = event.action === 'save';
 
-  const updated = await db.execute(sql`
+  const updated = await executor.execute(sql`
     INSERT INTO activity (user_id, repo_id, time_spent, likelihood_count, is_saved)
     SELECT
       ${userId}::uuid,
@@ -98,10 +108,12 @@ async function upsertActivityState(userId: string, event: BatchedActivityEvent) 
 
 export async function processBatchedActivity(userId: string, events: BatchedActivityEvent[]) {
   try {
-    for (const event of events) {
-      await insertInteractionEvent(userId, event);
-      await upsertActivityState(userId, event);
-    }
+    await db.transaction(async (tx) => {
+      for (const event of events) {
+        await insertInteractionEvent(tx, userId, event);
+        await upsertActivityState(tx, userId, event);
+      }
+    });
 
     return { error: null };
   } catch (error) {

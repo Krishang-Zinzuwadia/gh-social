@@ -1,0 +1,172 @@
+import assert from 'node:assert/strict';
+import crypto from 'node:crypto';
+import test from 'node:test';
+import { Redis } from 'ioredis';
+
+import { sqlClient } from '../../db/index.js';
+import { processInteractionBatchV2 } from '../../services/activityV2Service.js';
+import { OutboxService } from '../../services/outboxService.js';
+import { DataReconciliationService } from '../../services/dataReconciliationService.js';
+import { PostgresFeedPersistence } from '../../adapters/postgresFeedPersistence.js';
+import { RedisFeedQueue } from '../../redis/feedQueue.js';
+import { FeedV2Service } from '../../services/feedV2Service.js';
+import type { InteractionEventV2 } from '../../contracts/interactions.v2.js';
+
+const integration = process.env.RUN_DATABASE_INTEGRATION === '1' ? test : test.skip;
+const userId = '00000000-0000-4000-8000-000000000101';
+const repoId = '00000000-0000-4000-8000-000000000102';
+const sessionId = '00000000-0000-4000-8000-000000000103';
+
+test.after(async () => {
+  if (process.env.RUN_DATABASE_INTEGRATION === '1') await sqlClient.end({ timeout: 1 });
+});
+
+function event(eventType: InteractionEventV2['event_type'], eventId = crypto.randomUUID()): InteractionEventV2 {
+  return {
+    event_id: eventId, schema_version: 2, session_id: sessionId, serve_id: null, repo_id: repoId,
+    position: null, event_type: eventType, dwell_ms: eventType === 'dwell' ? 3_000 : null,
+    client_occurred_at: new Date().toISOString(), context: { test: true },
+  };
+}
+
+async function seed(): Promise<void> {
+  await sqlClient`
+    TRUNCATE app.users,app.repos,app.trending_snapshots,telemetry.ml_outbox,telemetry.generation_attempts CASCADE
+  `;
+  await sqlClient`
+    INSERT INTO auth.users (id,raw_user_meta_data) VALUES (
+      ${userId}::uuid,${JSON.stringify({ user_name: 'v2_test', full_name: 'V2 Test' })}::jsonb
+    ) ON CONFLICT (id) DO NOTHING
+  `;
+  await sqlClient`
+    INSERT INTO app.users (user_id,username,status) VALUES (${userId}::uuid,'v2_test','active')
+  `;
+  await sqlClient`INSERT INTO app.user_stats (user_id) VALUES (${userId}::uuid)`;
+  await sqlClient`INSERT INTO app.user_feed_state (user_id) VALUES (${userId}::uuid)`;
+  await sqlClient`
+    INSERT INTO app.repos (repo_id,github_id,full_name,owner,name,url,status)
+    VALUES (${repoId}::uuid,101,'owner/repo','owner','repo','https://github.com/owner/repo','active')
+  `;
+  await sqlClient`
+    INSERT INTO app.repo_content (repo_id,content_hash,description,languages)
+    VALUES (${repoId}::uuid,'test','repo','[]'::jsonb)
+  `;
+  await sqlClient`INSERT INTO app.repo_engagement (repo_id) VALUES (${repoId}::uuid)`;
+  await sqlClient`
+    INSERT INTO app.repo_stat_snapshots (repo_id,observed_at,star_count,fork_count)
+    VALUES (${repoId}::uuid,now(),10,1)
+  `;
+  const snapshotId = '00000000-0000-4000-8000-000000000104';
+  await sqlClient`
+    INSERT INTO app.trending_snapshots (snapshot_id,period,source,computed_at,complete,active,activated_at)
+    VALUES (${snapshotId}::uuid,'test','integration',now(),true,true,now())
+  `;
+  await sqlClient`
+    INSERT INTO app.trending_snapshot_items (snapshot_id,position,repo_id)
+    VALUES (${snapshotId}::uuid,0,${repoId}::uuid)
+  `;
+}
+
+integration('v2 database, outbox, and Redis feed flows preserve invariants', async () => {
+  await seed();
+
+  // UUID ordering intentionally opposes client ordering. The latest action
+  // must win, and feedback versions must follow the submitted sequence.
+  const likeThenUnlike = [
+    event('like', 'ffffffff-ffff-4fff-8fff-fffffffffff1'),
+    event('unlike', '00000000-0000-4000-8000-000000000001'),
+  ];
+  const orderedResult = await processInteractionBatchV2(userId, likeThenUnlike);
+  assert.deepEqual(orderedResult.results.map((result) => result.feedback_version), ['1', '2']);
+  assert.equal(Number((await sqlClient`
+    SELECT count(*) AS count FROM app.reactions WHERE user_id=${userId}::uuid AND repo_id=${repoId}::uuid
+  `)[0].count), 0);
+  const persistedVersions = await sqlClient`
+    SELECT event_id,feedback_version FROM telemetry.interaction_events
+    WHERE event_id IN (${likeThenUnlike[0].event_id}::uuid,${likeThenUnlike[1].event_id}::uuid)
+  `;
+  const versionByEvent = new Map(persistedVersions.map((row) => [String(row.event_id), String(row.feedback_version)]));
+  assert.equal(versionByEvent.get(likeThenUnlike[0].event_id), '1');
+  assert.equal(versionByEvent.get(likeThenUnlike[1].event_id), '2');
+
+  const unlikeThenLike = [
+    event('unlike', 'ffffffff-ffff-4fff-8fff-fffffffffff2'),
+    event('like', '00000000-0000-4000-8000-000000000002'),
+  ];
+  const reverseResult = await processInteractionBatchV2(userId, unlikeThenLike);
+  assert.deepEqual(reverseResult.results.map((result) => result.feedback_version), ['3', '4']);
+  assert.equal(String((await sqlClient`
+    SELECT reaction FROM app.reactions WHERE user_id=${userId}::uuid AND repo_id=${repoId}::uuid
+  `)[0].reaction), 'like');
+
+  const first = event('like');
+  const accepted = await processInteractionBatchV2(userId, [first]);
+  assert.equal(accepted.accepted, 1);
+  assert.equal((await processInteractionBatchV2(userId, [first])).duplicates, 1);
+
+  await assert.rejects(processInteractionBatchV2(userId, [{ ...first, event_type: 'dislike' }]), /different content/);
+  await Promise.all([
+    processInteractionBatchV2(userId, [event('dislike')]),
+    processInteractionBatchV2(userId, [event('like')]),
+  ]);
+  const reactionRows = await sqlClient`
+    SELECT reaction FROM app.reactions WHERE user_id=${userId}::uuid AND repo_id=${repoId}::uuid
+  `;
+  assert.equal(reactionRows.length, 1);
+  assert.ok(['like', 'dislike'].includes(String(reactionRows[0].reaction)));
+
+  await new DataReconciliationService().reconcileCounters();
+  const counters = await sqlClient`
+    SELECT engagement.likes_count,engagement.dislikes_count
+    FROM app.repo_engagement engagement WHERE repo_id=${repoId}::uuid
+  `;
+  assert.equal(Number(counters[0].likes_count) + Number(counters[0].dislikes_count), 1);
+
+  const firstWorker = new OutboxService();
+  const secondWorker = new OutboxService();
+  const [claimA, claimB] = await Promise.all([firstWorker.claim(1), secondWorker.claim(1)]);
+  assert.equal(claimA.length, 1);
+  assert.equal(claimB.length, 1);
+  assert.notEqual(claimA[0].outbox_id, claimB[0].outbox_id);
+  await firstWorker.markFailed(claimA[0], 'permanent test failure', false);
+  await secondWorker.markDelivered(claimB[0]);
+  assert.equal(await firstWorker.replay(claimA[0].outbox_id), true);
+
+  const redis = new Redis(process.env.REDIS_DATABASE_TEST_URL ?? 'redis://127.0.0.1:6379/14', { maxRetriesPerRequest: 1 });
+  await redis.flushdb();
+  try {
+    const queue = new RedisFeedQueue(redis);
+    const feed = new FeedV2Service(
+      new PostgresFeedPersistence(), queue, undefined, true, 1_500, 25, 'database-integration-feed-cursor-secret',
+    );
+    const request = { feed_request_id: crypto.randomUUID(), session_id: sessionId, limit: 10, cursor: null };
+    const served = await feed.getFeed(userId, request);
+    assert.equal(served.source, 'fallback');
+    assert.deepEqual(served.items.map((item) => item.repo_id), [repoId]);
+    assert.deepEqual(await feed.getFeed(userId, request), served);
+
+    const version = await new PostgresFeedPersistence().getFeedVersion(userId);
+    const recommendation = {
+      repo_id: repoId, score: 1, source: 'semantic', model_version: 'integration-model', summary_id: null,
+    };
+    await queue.replace(userId, version, [recommendation, recommendation], 60);
+    const firstPageRequestId = crypto.randomUUID();
+    const firstPage = await feed.getFeed(userId, {
+      feed_request_id: firstPageRequestId, session_id: sessionId, limit: 1, cursor: null,
+    });
+    assert.deepEqual(firstPage.items.map((item) => item.position), [0]);
+    assert.ok(firstPage.next_cursor);
+    const replayedFirstPage = await feed.getFeed(userId, {
+      feed_request_id: firstPageRequestId, session_id: sessionId, limit: 1, cursor: null,
+    });
+    assert.equal(replayedFirstPage.next_cursor, firstPage.next_cursor);
+    const secondPage = await feed.getFeed(userId, {
+      feed_request_id: crypto.randomUUID(), session_id: sessionId, limit: 1, cursor: firstPage.next_cursor,
+    });
+    assert.deepEqual(secondPage.items.map((item) => item.position), [1]);
+    assert.equal(secondPage.next_cursor, null);
+  } finally {
+    await redis.flushdb();
+    await redis.quit();
+  }
+});

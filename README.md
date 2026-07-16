@@ -1,150 +1,62 @@
-<div align="center">
+# WEave / GH Social
 
-![Forktober GIF](https://raw.githubusercontent.com/ACM-VIT/.github/master/profile/acm_gif_banner.gif)
+WEave is an Expo application for discovering, saving, discussing, and receiving personalized recommendations for GitHub repositories. The repository contains the Expo client, the Express/PostgreSQL backend, Redis-backed feed workers, database migrations, and the versioned backend-to-ML contract.
 
-<!-- Project Title -->
-<h2>PROJECT TITLE</h2>
+## Architecture
 
-<p>Short description about the project. One or two lines that explain what it does and who it’s for.</p>
+- The Expo SDK 56 client calls only the public backend HTTP API.
+- PostgreSQL is the durable source of truth for product state and telemetry.
+- Redis is an expendable, versioned feed queue with reservation recovery.
+- Backend workers deliver durable outbox jobs to the authenticated ML API.
+- ML owns Qdrant vectors and model artifacts; it does not own product records.
+- Backend UUIDs are the canonical user and repository identities across services.
 
-<p>
-  <a href="https://acmvit.in/" target="_blank">
-    <img alt="made-by-acm" src="https://img.shields.io/badge/MADE%20BY-ACM%20VIT-orange?style=flat-square&logo=acm&link=acmvit.in" />
-  </a>
-  <!-- Uncomment the below line to add the license badge. Make sure the right license badge is reflected. -->
-  <!-- <img alt="license" src="https://img.shields.io/badge/License-MIT-green.svg?style=for-the-badge" /> -->
-  <!-- Add forks/stars/tech stack badges from https://shields.io/ as needed -->
-</p>
+The authoritative API and operating contract is in [backend/README.md](backend/README.md). The full design and staged rollout are documented in [BACKEND_ML_PRODUCTION_ARCHITECTURE.md](BACKEND_ML_PRODUCTION_ARCHITECTURE.md), with parallel ownership and merge rules in [BACKEND_ML_TWO_PERSON_WORKSPLIT.md](BACKEND_ML_TWO_PERSON_WORKSPLIT.md).
 
-</div>
+## Local development
 
----
+Requirements:
 
-## Table of Contents
-- [About](#about)
-- [Quick Start](#quick-start)
-- [Usage](#usage)
-- [Contributing](#contributing)
-- [Hacktoberfest](#hacktoberfest)
-- [Submitting a Pull Request](#submitting-a-pull-request)
-- [Guidelines for Pull Request](#guidelines-for-pull-request)
-- [Authors](#authors)
+- Node.js 20.19 or newer
+- PostgreSQL/Supabase
+- Redis
+- The separately deployed ML service for personalized generation
 
----
-
-## About
-Write a compelling overview about the project: the problem it solves, the motivation, and what makes it unique. Include a short roadmap or key features if helpful.
-
----
-
-## Quick Start
+Install and validate the Expo app:
 
 ```bash
-# 1) Fork and clone
-# Click Fork on GitHub, then:
- git clone https://github.com/<your-username>/<repo>.git
- cd <repo>
-
-# 2) Create a branch
- git checkout -b feat/your-feature
-
-# 3) Install dependencies
-# paste your install command(s) here
-
-# 4) Run the project
-# paste your run command(s) here
+npm install
+npm run lint
+npx tsc --noEmit
+npx expo start
 ```
 
----
+Configure the backend and run it separately:
 
-## Usage
-Provide examples and code snippets showing how to use the project. Add screenshots or GIFs if applicable.
-
-```console
-# examples
-<your-cli> init
-<your-cli> run
+```bash
+cd backend
+npm install
+npm run build
+npm test
+npm run migrate
+npm run dev
 ```
 
----
+Copy the root and backend `.env.example` files to `.env` files and supply local credentials. Never commit real secrets. The v2 feature flags and production process topology are described in the backend README.
+
+## Production processes
+
+Run the API and worker roles as separate processes:
+
+```text
+API:                  npm start
+Outbox worker:        WORKER_ROLE=outbox npm run worker
+Feed reconciliation: WORKER_ROLE=feed npm run worker
+Maintenance:         WORKER_ROLE=maintenance npm run worker
+```
+
+Before a release, require the frontend lint/type checks, backend build/tests, schema audit, database and HTTP integration tests, healthy outbox/Redis/ML dependencies, and the cutover gates in the architecture plan. Do not enable a full production cohort from local test results alone.
 
 ## Contributing
-We welcome contributions of all kinds! Please read our [Contributing Guidelines](contributing.md) to get started quickly and make your PRs count.
 
----
-
-## Hacktoberfest
-
-<p>
-  <a href="https://hacktoberfest.com/" target="_blank">
-<img alt="hactoberfest" src="https://img.shields.io/github/hacktoberfest/2025/tmrowco/tmrowapp-contrib?style=flat-square&logo=acm&labelColor=indigo&link=hacktoberfest.com"/>
-  </a>
-
-<!-- Badge Format 
-https://img.shields.io/github/hacktoberfest/:year/:user/:repo
--->
-
-Join us for Hacktoberfest! Quality > quantity.
-- Aim for meaningful, well‑scoped PR/MRs that solve real issues.
-- Non‑code contributions (docs, design, tutorials) are welcome via PR.
-- Full participation details: https://hacktoberfest.com/participation
-
----
-
-## Submitting a Pull Request
-
-1. Fork the repository (top‑right on GitHub)
-2. Clone your fork locally:
-   ```bash
-   git clone <HTTPS-ADDRESS>
-   cd <NAME-OF-REPO>
-   ```
-3. Create a new branch:
-   ```bash
-   git checkout -b <your-branch-name>
-   ```
-4. Make your changes and stage them:
-   ```bash
-   git add .
-   ```
-5. Commit your changes:
-   ```bash
-   git commit -m "feat: your message"
-   ```
-6. Push to your fork:
-   ```bash
-   git push origin <your-branch-name>
-   ```
-7. Open a Pull Request and clearly describe what you changed and why. Link related issues (e.g., “Fixes #123”).
-
-<!-- <img src="https://img.shields.io/github/:variant/:user/:repo?style=flat-square&labelColor=orange" alt="Open a Pull Request" /> -->
-
----
-
-## Guidelines for Pull Request
-- Avoid PRs that are automated/scripted or plagiarized from someone else’s work.
-- Don’t spam; keep each PR focused and meaningful.
-- The project maintainer’s decision on PR validity is final.
-- For more, see our [Contributing Guidelines](contributing.md) and the Hacktoberfest [participation rules](https://hacktoberfest.com/participation).
-
----
-
-## Authors
-
-**Authors:** <!-- [author1's name](link), [author2's name](link) -->  
-**Contributors:** <!-- Generate contributors list using https://contributors-img.web.app/preview -->
-
----
-
-## Community & Conduct
-By participating in this project, you agree to abide by our [Code of Conduct](CODE_OF_CONDUCT.md).
-
----
-
-<div align="center">
-  
-🤍 Crafted with love by <a href="https://acmvit.in/" target="_blank">ACM‑VIT</a>
-
-![Footer GIF](https://raw.githubusercontent.com/ACM-VIT/.github/master/profile/domains.gif)
-
-</div>
+Read [CONTRIBUTING.md](CONTRIBUTING.md) and [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md). Backend/ML work must also follow the file ownership, contract-freeze, migration-numbering, and controlled-integration rules in the two-person work plan.

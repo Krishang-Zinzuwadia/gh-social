@@ -1,6 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { getStorageItem, setStorageItem, removeStorageItem } from '../utils/storage';
 import { API_URL } from '../api/config';
+import { apiV2 } from '../api/client';
 import {
   AUTH_BYPASS_ENABLED,
   AUTH_BYPASS_PROFILE_STORAGE_KEY,
@@ -53,31 +54,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const fetchUserProfile = useCallback(async (token: string) => {
     try {
-      const response = await fetch(`${API_URL}/onboarding/status`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+      const profile = await apiV2<Record<string, unknown> & { topics?: unknown[] }>('/users/me', {}, token);
+      setUser({
+        ...profile,
+        user_id: String(profile.user_id),
+        username: String(profile.username),
+        onboarding_completed: Array.isArray(profile.topics) && profile.topics.length > 0,
       });
-      if (response.ok) {
-        const responseData = await response.json();
-        const { isComplete, profile } = responseData.data;
-        setUser({
-          ...profile,
-          onboarding_completed: isComplete
-        }); // backend returns { success: true, data: { isComplete, profile } }
-      } else {
-        // If unauthorized, clear token
-        if (response.status === 401) {
-          try {
-            await removeStorageItem('access_token');
-          } catch (e) {
-            console.error('Failed to clear session storage', e);
-          } finally {
-            setUser(null);
-          }
-        }
-      }
     } catch (error) {
+      const status = (error as { status?: number }).status;
+      // A 404 means an older valid session predates its v2 product profile.
+      // Clear it so the next login can run ensureIdentityProfile atomically.
+      if (status === 401 || status === 404) {
+        await removeStorageItem('access_token').catch(() => undefined);
+        setUser(null);
+        return;
+      }
       console.error('Failed to fetch user profile', error);
     }
   }, []);

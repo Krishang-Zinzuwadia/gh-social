@@ -1,0 +1,35 @@
+import crypto from 'node:crypto';
+import type { NextFunction, Request, Response } from 'express';
+import redisClient from '../config/redis.js';
+
+export function securityHeaders(_req: Request, res: Response, next: NextFunction): void {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('Referrer-Policy', 'no-referrer');
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  res.setHeader('Cross-Origin-Resource-Policy', 'same-site');
+  next();
+}
+
+export async function authRateLimit(req: Request, res: Response, next: NextFunction): Promise<void> {
+  const windowSeconds = 60;
+  const maximum = 20;
+  const identity = crypto.createHash('sha256').update(`${req.ip}:${req.path}`).digest('hex');
+  const key = `rate:auth:${identity}`;
+  try {
+    const count = Number(await redisClient.eval(
+      "local n=redis.call('INCR',KEYS[1]); if n==1 then redis.call('EXPIRE',KEYS[1],ARGV[1]) end; return n",
+      1, key, windowSeconds,
+    ));
+    res.setHeader('RateLimit-Limit', maximum);
+    res.setHeader('RateLimit-Remaining', Math.max(0, maximum - count));
+    if (count > maximum) {
+      res.setHeader('Retry-After', windowSeconds);
+      res.status(429).json({ success: false, error: 'Too many authentication requests. Try again shortly.' });
+      return;
+    }
+  } catch (error) {
+    console.error('[RateLimit] Redis unavailable; relying on ingress limits:', error);
+  }
+  next();
+}

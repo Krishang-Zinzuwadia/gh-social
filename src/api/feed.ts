@@ -1,19 +1,50 @@
-import { API_URL } from './config';
+import { apiV2Raw } from './client';
+import { createUuid, getAppSessionId } from '../utils/uuid';
 
-export async function fetchFeed(token: string) {
-  const response = await fetch(`${API_URL}/feed`, {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
-  });
+type FeedItemV2 = {
+  repo_id: string;
+  position: number;
+  repository: Record<string, unknown>;
+};
 
-  if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(errorData.error || 'Failed to fetch feed');
+type FeedResponseV2 = {
+  serve_id: string;
+  feed_version: string;
+  items: FeedItemV2[];
+  next_cursor: string | null;
+};
+
+export async function fetchFeed(token: string, cursor: string | null = null) {
+  const feedRequestId = createUuid();
+  const body = {
+    feed_request_id: feedRequestId,
+    session_id: getAppSessionId(),
+    limit: 10,
+    cursor,
+  };
+
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const { data } = await apiV2Raw<FeedResponseV2>('/feed', {
+        method: 'POST',
+        body: JSON.stringify(body),
+      }, token);
+      return {
+        items: data.items.map((item) => ({
+          ...item.repository,
+          repo_id: item.repo_id,
+          position: item.position,
+          serve_id: data.serve_id,
+          feed_version: data.feed_version,
+        })),
+        nextCursor: data.next_cursor,
+      };
+    } catch (error) {
+      const status = (error as { status?: number }).status;
+      if (status !== 409 || attempt === 2) throw error;
+      const retryAfter = Number((error as { retryAfter?: string }).retryAfter ?? 1);
+      await new Promise((resolve) => setTimeout(resolve, Math.max(100, retryAfter * 1_000)));
+    }
   }
-
-  const json = await response.json();
-  return json.data;
+  throw new Error('Feed retry loop completed without a response.');
 }

@@ -3,7 +3,8 @@ import { ActivityIndicator, FlatList, Pressable, Text, View, useWindowDimensions
 import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
 import { ArrowLeft, Search, UserRound } from 'lucide-react-native';
-import { API_URL } from '@/constants/api';
+import { apiV2 } from '@/api/client';
+import { getStorageItem } from '@/utils/storage';
 
 type Person = {
   username: string;
@@ -16,7 +17,7 @@ type Person = {
 
 export default function ConnectionListScreen({ type }: { type: 'followers' | 'following' }) {
   const { width } = useWindowDimensions();
-  const { username } = useLocalSearchParams<{ username?: string }>();
+  const { username, userId } = useLocalSearchParams<{ username?: string; userId?: string }>();
   const [people, setPeople] = useState<Person[]>([]);
   const [loading, setLoading] = useState(Boolean(username));
   const [error, setError] = useState('');
@@ -24,15 +25,21 @@ export default function ConnectionListScreen({ type }: { type: 'followers' | 'fo
 
   useEffect(() => {
     const controller = new AbortController();
-    if (!username) {
+    if (!userId) {
       return () => controller.abort();
     }
 
-    fetch(`${API_URL}/users/${encodeURIComponent(username)}/${type}`, { signal: controller.signal })
-      .then(async (response) => {
-        const payload = await response.json();
-        if (!response.ok) throw new Error(payload.error ?? `Unable to load ${type}.`);
-        setPeople(payload.data);
+    getStorageItem('access_token')
+      .then((token) => {
+        if (!token) throw new Error('Your session has expired.');
+        return apiV2<{ items: Person[] }>(
+          `/users/${encodeURIComponent(userId)}/${type}`,
+          { signal: controller.signal },
+          token,
+        );
+      })
+      .then((data) => {
+        setPeople(data.items ?? []);
       })
       .catch((caught) => {
         if (caught.name !== 'AbortError') setError(caught.message);
@@ -40,7 +47,7 @@ export default function ConnectionListScreen({ type }: { type: 'followers' | 'fo
       .finally(() => setLoading(false));
 
     return () => controller.abort();
-  }, [type, username]);
+  }, [type, userId]);
 
   return (
     <View style={{ flex: 1, backgroundColor: '#000000', alignItems: 'center' }}>

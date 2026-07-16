@@ -1,0 +1,76 @@
+import crypto from 'node:crypto';
+
+import type { FeedPersistencePort } from '../ports/feedPersistencePort.js';
+import type { RecommendationPort } from '../ports/recommendationPort.js';
+import type { FeedQueuePort } from '../redis/feedQueue.js';
+import { canonicalEntries } from './feedV2Service.js';
+
+export class FeedGenerationService {
+  constructor(
+    private readonly persistence: FeedPersistencePort,
+    private readonly queue: FeedQueuePort,
+    private readonly recommendations: RecommendationPort,
+    private readonly queueTtlSeconds = 600,
+    private readonly lockTtlMs = 15_000,
+  ) {}
+
+  async generate(
+    userId: string,
+    limit = 45,
+    excludeRepoIds: string[] = [],
+    mode: 'live' | 'prewarm' = 'live',
+  ): Promise<'generated' | 'coalesced' | 'stale'> {
+    const feedVersion = await this.persistence.getFeedVersion(userId);
+    const token = crypto.randomUUID();
+    const generationId = crypto.randomUUID();
+    const started = Date.now();
+    if (!await this.queue.acquireGenerationLock(userId, feedVersion, token, this.lockTtlMs)) {
+      await this.persistence.recordGenerationAttempt?.({
+        generation_id: generationId, user_id: userId, feed_version: feedVersion, mode,
+        status: 'coalesced', latency_ms: Date.now() - started, result_count: 0,
+      });
+      return 'coalesced';
+    }
+    try {
+      const response = await this.recommendations.generate({
+        schema_version: 2,
+        generation_id: generationId,
+        user_id: userId,
+        feed_version: Number(feedVersion),
+        limit,
+        exclude_repo_ids: excludeRepoIds,
+        context: { cold_start: false },
+      });
+      if (await this.persistence.getFeedVersion(userId) !== feedVersion) {
+        await this.persistence.recordGenerationAttempt?.({
+          generation_id: generationId, user_id: userId, feed_version: feedVersion, mode,
+          status: 'stale', latency_ms: Date.now() - started, result_count: response.items.length,
+        });
+        return 'stale';
+      }
+      const projections = await this.persistence.listActiveRepositories(response.items.map((item) => item.repo_id));
+      const summaries = new Map(projections.map((repo) => [repo.repo_id, repo.summary_id]));
+      if (projections.length !== response.items.length) throw new Error('ML returned unknown or inactive repositories.');
+      await this.queue.replace(
+        userId,
+        feedVersion,
+        canonicalEntries(response.items, response.model_version, summaries, generationId),
+        this.queueTtlSeconds,
+      );
+      await this.persistence.recordGenerationAttempt?.({
+        generation_id: generationId, user_id: userId, feed_version: feedVersion, mode,
+        status: 'completed', latency_ms: Date.now() - started, result_count: response.items.length,
+      });
+      return 'generated';
+    } catch (error) {
+      await this.persistence.recordGenerationAttempt?.({
+        generation_id: generationId, user_id: userId, feed_version: feedVersion, mode,
+        status: 'failed', latency_ms: Date.now() - started, result_count: 0,
+        error_code: (error instanceof Error ? error.message : String(error)).slice(0, 120),
+      });
+      throw error;
+    } finally {
+      await this.queue.releaseGenerationLock(userId, feedVersion, token);
+    }
+  }
+}

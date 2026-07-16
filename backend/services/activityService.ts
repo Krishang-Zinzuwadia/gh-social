@@ -213,3 +213,5 @@ export async function deleteActivityById(activityId: string) {
     return { data: null, error: null, count: result.length };
   } catch (error) { return { data: null as any, error: error as any, count: 0 }; }
 }
+
+export { processInteractionBatchV2, transitionReaction } from './activityV2Service.js';

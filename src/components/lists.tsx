@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, useWindowDimensions, ActivityIndicator } from "react-native";
+import { View, Text, ActivityIndicator } from "react-native";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import * as SecureStore from "../utils/storage";
 import RecentSaves from "./recentsaves";
@@ -10,9 +10,6 @@ interface ListsProps {
 }
 
 export default function Lists({ userId }: ListsProps) {
-  const { width } = useWindowDimensions();
-  const isTablet = width >= 768;
-
   const fetchBoards = async ({ pageParam = 0 }) => {
     if (!userId) return [];
     const token = await SecureStore.getItemAsync("access_token");

@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useMemo } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -18,7 +18,7 @@ import { REFERENCE_THEME } from '@/constants/theme';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import * as SecureStore from '../../utils/storage';
 import { fetchFeed } from '@/api/feed';
-import { sendBatchedActivity, type FeedbackAction } from '@/api/activity';
+import { sendBatchedActivity, type FeedbackAction, type QueuedActivity } from '@/api/activity';
 import { useAuth } from '@/store/AuthContext';
 
 const WEB_FEED_LIST_STYLE =
@@ -45,10 +45,12 @@ function mapBackendToFrontend(backendItem: any): RepositoryData {
 
   return {
     id: backendItem.repo_id || repoFullName || Math.random().toString(),
+    serveId: backendItem.serve_id ?? null,
+    feedPosition: backendItem.position ?? null,
     title,
     owner,
     description: backendItem.description || '',
-    readmeSummary: backendItem.readme_summary || 'No summary available.',
+    readmeSummary: backendItem.readme_summary || backendItem.summary || 'No summary available.',
     readmeFull: backendItem.readme_md || backendItem.readme || 'No readme available.',
     stats: {
       stars: (backendItem.star_count ?? 0).toString(),
@@ -77,7 +79,7 @@ export default function HomeScreen() {
   const pageWidth = viewport.width;
   const pageHeight = viewport.height;
   
-  const pendingActivityBatch = useRef<{ repo_id: string; action: FeedbackAction; dwell_seconds?: number }[]>([]);
+  const pendingActivityBatch = useRef<QueuedActivity[]>([]);
 
   const flushActivityBatch = useCallback(async () => {
     if (pendingActivityBatch.current.length > 0) {
@@ -103,14 +105,14 @@ export default function HomeScreen() {
     }
   }, []);
 
-  const fetchFeedPage = async () => {
+  const fetchFeedPage = async ({ pageParam }: { pageParam: string | null }) => {
     const token = await SecureStore.getItemAsync('access_token');
     if (!token) throw new Error('No token');
     
     // Flush batched activity before fetching the next page
     await flushActivityBatch();
     
-    return fetchFeed(token);
+    return fetchFeed(token, pageParam);
   };
 
   const {
@@ -126,29 +128,34 @@ export default function HomeScreen() {
     queryKey: ['feed', user?.user_id],
     queryFn: fetchFeedPage,
     enabled: !isPreview,
-    getNextPageParam: (lastPage) => (lastPage && lastPage.length > 0 ? true : undefined),
-    initialPageParam: true,
+    getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
+    initialPageParam: null as string | null,
   });
 
-  const feedItems = isPreview
+  const feedItems = useMemo(() => isPreview
     ? REPOSITORIES.map((repository, index) => ({
         feedId: `preview-${repository.id}-${index}`,
         repository,
       }))
-    : data?.pages.flat().map((item, index) => ({
+    : data?.pages.flatMap((page) => page.items).map((item, index) => ({
         feedId: `${item.repo_id || index}-${index}`,
         repository: mapBackendToFrontend(item),
-      })) || [];
+      })) || [], [data?.pages, isPreview]);
 
   const handleQueueActivity = useCallback((event: { repo_id: string; action: FeedbackAction; dwell_seconds?: number }, flushNow?: boolean) => {
     if (isPreview) return;
 
-    pendingActivityBatch.current.push(event);
+    const item = feedItems.find((feedItem) => feedItem.repository.id === event.repo_id);
+    pendingActivityBatch.current.push({
+      ...event,
+      serve_id: item?.repository.serveId ?? null,
+      position: item?.repository.feedPosition ?? null,
+    });
     
     if (flushNow || pendingActivityBatch.current.length >= 10) {
       flushActivityBatch();
     }
-  }, [flushActivityBatch, isPreview]);
+  }, [feedItems, flushActivityBatch, isPreview]);
 
   const [viewableItems, setViewableItems] = useState<string[]>([]);
   const onViewableItemsChanged = useCallback(({ viewableItems }: any) => {

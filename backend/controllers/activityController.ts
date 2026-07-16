@@ -50,34 +50,37 @@ export async function processBatchedActivity(req: AuthRequest, res: Response): P
     }
   }
 
-  const mlEvents: { user_id: string; repo_id: string; action: any; dwell_seconds?: number }[] = [];
+  const persistEvents: activityService.BatchedActivityEvent[] = [];
   for (const event of events) {
     if (event.action === 'like' || event.action === 'dislike') {
       const { data: currentActivity } = await activityService.getActivityByUserAndRepo(userId, event.repo_id);
       if (event.action === 'like' && currentActivity?.likelihood_count === -1) {
-        mlEvents.push({ user_id: userId, repo_id: event.repo_id, action: 'undislike' });
+        persistEvents.push({ repo_id: event.repo_id, action: 'undislike' });
       } else if (event.action === 'dislike' && currentActivity?.likelihood_count === 1) {
-        mlEvents.push({ user_id: userId, repo_id: event.repo_id, action: 'unlike' });
+        persistEvents.push({ repo_id: event.repo_id, action: 'unlike' });
       }
     }
-    mlEvents.push({
-      user_id: userId,
+    persistEvents.push({
       repo_id: event.repo_id,
       action: event.action,
-      dwell_seconds: event.dwell_seconds
+      dwell_seconds: event.dwell_seconds,
     });
   }
 
-  const { error } = await activityService.processBatchedActivity(userId, events);
+  const { error } = await activityService.processBatchedActivity(userId, persistEvents);
   if (error) {
     return sendDatabaseError(res, error as import('../types/index.js').PostgresError);
   }
 
-  if (shouldInvalidateFeedForEvents(events)) {
+  if (shouldInvalidateFeedForEvents(persistEvents)) {
     void feedService.invalidateUserFeed(userId);
   }
 
-  // Also asynchronously send to ML service
+  // Forward the exact transition sequence committed to the audit log.
+  const mlEvents = persistEvents.map((event) => ({
+    user_id: userId,
+    ...event,
+  }));
   void mlService.sendBatchedActivityFeedback(mlEvents as any);
 
   return sendSuccess(res, 202, { message: 'Batched activity processed' });

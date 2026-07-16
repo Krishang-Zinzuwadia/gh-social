@@ -28,7 +28,7 @@ export default function FeaturedRepoCard({ repo, onPress }: FeaturedRepoCardProp
     >
       <View className="flex-row items-center mb-3" style={{ gap: 10 }}>
         <View className="w-9 h-9 bg-[#142918] rounded-lg items-center justify-center border border-[#1B4322]">
-          <MonitorIcon stroke="#6DA963" width={18} height={18} />
+          <MonitorIcon stroke="#8EFF7A" width={18} height={18} />
         </View>
         <Text className="text-white text-sm flex-1" numberOfLines={1} style={bold}>
           {repo.name}

@@ -1,7 +1,7 @@
 import { Tabs } from 'expo-router';
 import HomeIcon from '../../assets/icons/Vector (1).svg';
 import CompassIcon from '../../assets/icons/material-symbols_explore-outline.svg';
-import UserIcon from '../../assets/icons/Vector (2).svg';
+import UserIcon from '../../assets/icons/Vector (10).svg';
 import { APP_THEME } from '../../constants/theme';
 
 export default function TabsLayout() {
@@ -12,7 +12,10 @@ export default function TabsLayout() {
         headerShown: false,
         tabBarStyle: {
           backgroundColor: APP_THEME.tabBarBackground,
+          borderTopColor: APP_THEME.tabBarBorder,
           borderTopWidth: 0,
+          elevation: 0,
+          shadowOpacity: 0,
           height: 60,
           width: '100%',
         },

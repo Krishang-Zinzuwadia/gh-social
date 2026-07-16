@@ -1,28 +1,26 @@
 import { Request, Response } from 'express'; 
 import { FeedService } from '../services/feedService.js';
+import { type AuthRequest } from '../middlewares/authMiddleware.js';
 
 const feedService = new FeedService();
 
 export const receiveMlRecommendations = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { userId, repoIds } = req.body;
+    const { userId, recommendations } = req.body;
 
-    // Validation check: Make sure Subhro's service sent the correct payload format
-    if (!userId || !Array.isArray(repoIds)) {
+    if (!userId || !Array.isArray(recommendations)) {
        res.status(400).json({ 
         success: false, 
-        message: 'Invalid payload format. Expected "userId" (string) and "repoIds" (array of strings).' 
+        message: 'Invalid payload format. Expected "userId" and "recommendations" array.' 
       });
        return;
     }
 
-    // Trigger your background data stitching and caching pipeline
-    await feedService.processAndCacheBatch(userId, repoIds);
+    await feedService.processAndCacheBatch(userId, recommendations);
 
-    // Respond back to the ML service that the batch was successfully queued
      res.status(200).json({ 
       success: true, 
-      message: `Successfully received and cached ${repoIds.length} repositories for user.` 
+      message: `Successfully received and cached ${recommendations.length} recommendations for user.` 
     });
   } catch (error) {
     console.error('[FeedController] Internal pipeline failure:', error);
@@ -33,16 +31,16 @@ export const receiveMlRecommendations = async (req: Request, res: Response): Pro
   }
 };
 
-export const getFeedForMobile = async (req: Request, res: Response): Promise<void> => {
+export const getFeedForMobile = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const userId = req.query.userId as string; // Just for local-dev
+    const userId = req.user?.userId;
 
     if (!userId) {
-       res.status(400).json({ success: false, message: 'Missing userId parameter.' });
+       res.status(401).json({ success: false, message: 'Authentication required.' });
        return;
     }
 
-    const feed = await feedService.getCachedFeed(userId);
+    const feed = await feedService.getOrGenerateFeed(userId);
 
     res.status(200).json({
       success: true,

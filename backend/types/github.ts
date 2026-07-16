@@ -77,6 +77,7 @@ export interface GitHubRepositoryNode {
     nodes: Array<{ topic: { name: string } }>;
   } | null;
   pullRequests: { totalCount: number } | null;
+  issues: { totalCount: number } | null;
   defaultBranchRef: {
     name: string;
     target: {
@@ -107,4 +108,6 @@ export interface GitHubUserProfile {
   html_url: string;
   bio: string | null;
   name: string | null;
+  followers: number;
+  following: number;
 }

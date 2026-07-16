@@ -1,15 +1,61 @@
-import { router } from "expo-router";
-import { Pressable, ScrollView, View, Text } from "react-native";
+import { useState } from "react";
+import { router, useLocalSearchParams } from "expo-router";
+import { ScrollView, View, Text, Pressable } from "react-native";
+import { useAuth } from "../../store/AuthContext";
+import { useOnboarding } from "../../store/OnboardingContext";
+import * as SecureStore from '../../utils/storage';
+import { setupOnboarding } from "../../api/onboarding";
 
 import ProgressBar from "@/components/onboarding/ProgressBar";
 import PrimaryButton from "@/components/onboarding/PrimaryButton";
-import InterestCard from "@/components/onboarding/InterestCard";
+import TechChip from "@/components/onboarding/TechChip";
 import LogoPlaceholder from "@/components/onboarding/LogoPlaceholder";
 import StepHeader from "@/components/onboarding/StepHeader";
+import { INTEREST_CATEGORIES } from "@/constants/onboarding";
 
 export default function Step3() {
-  const completeOnboarding = () => {
-    router.replace("/(tabs)/home");
+  const { categories } = useLocalSearchParams();
+  const selectedCategoryIds = typeof categories === "string" ? categories.split(",") : [];
+
+  const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
+
+  const { data: onboardingData } = useOnboarding();
+  const { checkOnboardingStatus } = useAuth();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
+
+  const toggleInterest = (keyword: string) => {
+    setSelectedInterests((prev) =>
+      prev.includes(keyword)
+        ? prev.filter((k) => k !== keyword)
+        : [...prev, keyword]
+    );
+  };
+
+  const completeOnboarding = async () => {
+    if (selectedInterests.length >= 5) {
+      setIsSubmitting(true);
+      setErrorMsg("");
+      try {
+        const token = await SecureStore.getItemAsync('access_token');
+        if (!token) throw new Error("No access token found");
+        
+        await setupOnboarding(token, {
+          ...onboardingData,
+          username: onboardingData.username || "",
+          full_name: onboardingData.full_name || "",
+          interests: selectedInterests,
+          skills: selectedCategoryIds // Just putting the categories as skills for now as a placeholder for the multi-step flow
+        });
+        
+        await checkOnboardingStatus();
+        // The _layout.tsx will now automatically redirect to (tabs)
+      } catch (err: any) {
+        setErrorMsg(err.message || 'Failed to save profile');
+      } finally {
+        setIsSubmitting(false);
+      }
+    }
   };
 
   return (
@@ -25,12 +71,12 @@ export default function Step3() {
       }}
       showsVerticalScrollIndicator={false}
     >
-      <Text
+      <View style={{ maxWidth: 450, width: "100%", alignSelf: "center" }}>
+        <Text
         style={{
           color: "#F0F6EB",
           fontSize: 18,
           marginBottom: 12,
-          textAlign: "right",
         }}
       >
         3 / 3
@@ -64,50 +110,57 @@ export default function Step3() {
         CHOOSE YOUR INTERESTS
       </Text>
 
-      <View
-        style={{
-          flexDirection: "row",
-          flexWrap: "wrap",
-          justifyContent: "space-between",
-        }}
-      >
-        <InterestCard icon="⚙️" title="Open Source" selected />
-        <InterestCard icon="✨" title="AI/ML" selected />
+      {INTEREST_CATEGORIES.filter((c) => selectedCategoryIds.includes(c.id)).map((category) => {
+        if (!category.interests || category.interests.length === 0) return null;
 
-        <InterestCard icon="🌐" title="Web Development" selected />
-        <InterestCard icon="📱" title="Mobile Dev" />
+        return (
+          <View key={category.id} style={{ marginBottom: 24 }}>
+            <Text
+              style={{
+                color: "#F0F6EB",
+                fontSize: 16,
+                fontWeight: "600",
+                marginBottom: 12,
+              }}
+            >
+              {category.title}
+            </Text>
+            <View className="flex-row flex-wrap">
+              {category.interests.map((interest) => (
+                <TechChip
+                  key={interest.id}
+                  title={interest.name}
+                  image={interest.icon}
+                  selected={selectedInterests.includes(interest.id)}
+                  onPress={() => toggleInterest(interest.id)}
+                />
+              ))}
+            </View>
+          </View>
+        );
+      })}
 
-        <InterestCard icon="∞" title="DevOps" />
-        <InterestCard icon="🛠️" title="UI/UX Design" />
+      {selectedInterests.length < 5 && (
+        <Text style={{ color: "#E57373", fontSize: 14, marginTop: 4, textAlign: "center" }}>
+          Select at least 5 interests.
+        </Text>
+      )}
 
-        <InterestCard icon="🛡️" title="CyberSecurity" />
-        <InterestCard icon="☁️" title="Cloud Computing" />
+      {errorMsg ? (
+        <Text style={{ color: "#E57373", fontSize: 14, marginTop: 4, textAlign: "center" }}>
+          {errorMsg}
+        </Text>
+      ) : null}
 
-        <InterestCard icon="🎮" title="Gaming" />
-      </View>
-
-      <View style={{ marginTop: 20 }}>
+      <View style={{ marginTop: selectedInterests.length < 5 ? 8 : 20 }}>
         <PrimaryButton
-          title="Finish"
+          title={isSubmitting ? "Saving..." : "Finish"}
           onPress={completeOnboarding}
+          disabled={selectedInterests.length < 5 || isSubmitting}
         />
       </View>
 
-      <Pressable
-        accessibilityRole="button"
-        onPress={completeOnboarding}
-        style={{ marginTop: 12, paddingVertical: 8 }}
-      >
-        <Text
-          style={{
-            color: "#8A8A8A",
-            textAlign: "center",
-            fontSize: 15,
-          }}
-        >
-          Skip for now
-        </Text>
-      </Pressable>
+    </View>
     </ScrollView>
   );
 }

@@ -1,59 +1,84 @@
-import { View, Text, useWindowDimensions } from "react-native"
-import RecentPins from "./recentpins"
-import RecentSaves from "./recentsaves"
+import React from "react";
+import { View, Text, useWindowDimensions, ActivityIndicator } from "react-native";
+import { useInfiniteQuery } from "@tanstack/react-query";
+import * as SecureStore from "../utils/storage";
+import RecentSaves from "./recentsaves";
+import { getUserBoards } from "../api/boards";
 
-export default function Lists() {
+interface ListsProps {
+  userId?: string;
+}
+
+export default function Lists({ userId }: ListsProps) {
   const { width } = useWindowDimensions();
   const isTablet = width >= 768;
 
-  const pinnedLists = [
-    { id: 1, pin: "meal-planner" },
-    { id: 2, pin: "QuickNotes" },
-    { id: 3, pin: "Travel-mate" }
-  ]
+  const fetchBoards = async ({ pageParam = 0 }) => {
+    if (!userId) return [];
+    const token = await SecureStore.getItemAsync("access_token");
+    if (!token) throw new Error("No token");
+    return getUserBoards(userId, token, 10, pageParam);
+  };
 
-  const savedCollections = [
-    { id: 1, name: "Game Development" },
-    { id: 2, name: "UI / UX" },
-    { id: 3, name: "Open Source" },
-    { id: 4, name: "App Development" }
-  ]
+  const {
+    data: boardsData,
+    isLoading: isLoadingBoards,
+  } = useInfiniteQuery({
+    queryKey: ["boards", userId],
+    queryFn: fetchBoards,
+    getNextPageParam: (lastPage, allPages) => lastPage.length === 10 ? allPages.length * 10 : undefined,
+    initialPageParam: 0,
+    enabled: !!userId,
+  });
 
-  if (isTablet) {
+  if (isLoadingBoards) {
     return (
-      <View className="w-full border border-[#6DA963] rounded-[10px] bg-[#191F18] px-4 pt-[32px] pb-[24px] justify-center">
-        <View style={{ width: '100%' }}>
-          {pinnedLists.map((item) => (
-            <RecentPins key={item.id} title={item.pin} isPinned={true} />
-          ))}
-
-          <View className="w-full px-1 mb-3.5 mt-4">
-            <Text className="text-[#6DA963] text-[12px] font-noto-bold relative top-[-2px]">Saved Collections</Text>
-          </View>
-          {savedCollections.map((item) => (
-            <RecentSaves key={item.id} title={item.name} />
-          ))}
-        </View>
+      <View className="w-full border border-[#6DA963] rounded-[10px] bg-[#191F18] px-4 pt-[32px] pb-[24px] justify-center items-center min-h-[200px]">
+        <ActivityIndicator size="large" color="#8EFF7A" />
       </View>
-    )
+    );
   }
 
-  return (
-    // Lists Box
-    <View className="w-full border border-[#6DA963] rounded-[10px] bg-[#191F18] px-4 pt-[32px] pb-[24px] justify-center">
-      <View style={{ width: '100%' }}>
-        {pinnedLists.map((item) => (
-          <RecentPins key={item.id} title={item.pin} isPinned={true} />
-        ))}
+  const savedCollections = boardsData?.pages.flat() || [];
 
-        <View className="w-full px-1 mb-3.5 mt-4">
-          <Text className="text-[#6DA963] text-[12px] font-bold font-noto sans relative top-[-2px]">Saved Collections</Text>
+  const isEmpty = savedCollections.length === 0;
+
+  const content = (
+    <View style={{ width: "100%" }}>
+      {isEmpty ? (
+        <View className="items-center justify-center py-10">
+          <Text className="text-[#8EFF7A] text-[18px] font-noto-bold mb-2">No Collections Yet</Text>
+          <Text className="text-[#8A8A8A] text-[14px] font-noto text-center mb-6">
+            Save repositories to pinned lists or create boards to organize them!
+          </Text>
+          <View className="bg-[#8EFF7A] px-6 py-3 rounded-full">
+            <Text className="text-[#090D0A] font-noto-bold text-[14px] uppercase tracking-wide">
+              Make Collections
+            </Text>
+          </View>
         </View>
-
-        {savedCollections.map((item) => (
-          <RecentSaves key={item.id} title={item.name} />
-        ))}
-      </View>
+      ) : (
+        <>
+          {savedCollections.length > 0 && (
+            <>
+              <View className="w-full px-1 mb-3.5">
+                <Text className="text-[#8EFF7A] text-[12px] font-noto-bold relative top-[-2px]">
+                  Saved Collections
+                </Text>
+              </View>
+              {savedCollections.map((item: any, idx: number) => (
+                <RecentSaves key={`board-${item.board_id || idx}`} title={item.board_name || "Board"} count={item.repos_count} />
+              ))}
+            </>
+          )}
+        </>
+      )}
     </View>
-  )
+  );
+
+  return (
+    <View className="w-full border border-[#6DA963] rounded-[10px] bg-[#191F18] px-4 pt-[32px] pb-[24px] justify-center">
+      {content}
+    </View>
+  );
 }

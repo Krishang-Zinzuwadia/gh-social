@@ -1,9 +1,11 @@
-import React, { useEffect, useState } from "react"
+import React, { useState } from "react"
 import { ActivityIndicator, Modal, Pressable, ScrollView, Text, TextInput, View, useWindowDimensions } from "react-native"
 import { Bookmark, ChevronRight, LogOut, Pin, Square, SquarePen } from "lucide-react-native"
 import { Href, router } from "expo-router"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
-import { API_URL } from "@/constants/api"
+import { API_URL } from "@/api/config"
+import { useAuth } from "@/store/AuthContext"
+import { getStorageItem } from "@/utils/storage"
 
 type TabName = "Lists" | "Repositories"
 
@@ -28,58 +30,24 @@ function requestError(error: unknown, fallback: string) {
   return error instanceof Error ? error.message : fallback
 }
 
-async function refreshSession() {
-  const response = await fetch(`${API_URL}/auth/refresh`, {
-    method: "POST",
-    credentials: "include",
-  })
-  const payload = await response.json().catch(() => ({}))
-  if (!response.ok) throw new Error(payload.error ?? "Your session has expired.")
-  return payload.data
-}
-
 export default function ProfileScreen() {
   const { width, height } = useWindowDimensions()
   const insets = useSafeAreaInsets()
+  const { user, signOut, checkOnboardingStatus } = useAuth()
   const isTablet = width >= 768
   const isCompact = height < 750 || width < 360
   const [editVisible, setEditVisible] = useState(false)
   const [logoutVisible, setLogoutVisible] = useState(false)
   const [loggingOut, setLoggingOut] = useState(false)
   const [logoutError, setLogoutError] = useState("")
-  const [name, setName] = useState("Navyaa Batra")
-  const [job, setJob] = useState("Full stack developer")
-  const [username, setUsername] = useState(DEFAULT_USERNAME)
+  const [savedProfile, setSavedProfile] = useState<{ name: string; job: string; username: string } | null>(null)
+  const name = savedProfile?.name ?? user?.full_name ?? "Navyaa Batra"
+  const job = savedProfile?.job ?? user?.bio ?? "Full stack developer"
+  const username = savedProfile?.username ?? user?.username ?? DEFAULT_USERNAME
   const [draft, setDraft] = useState({ name, job, username })
   const [isSaving, setIsSaving] = useState(false)
   const [editError, setEditError] = useState("")
   const [activeTab, setActiveTab] = useState<TabName>("Lists")
-
-  useEffect(() => {
-    let mounted = true
-    const loadProfile = async () => {
-      try {
-        const profileUrl = `${API_URL}/users/id/${(await refreshSession()).user.id}`
-        const response = await fetch(profileUrl)
-        const payload = await response.json()
-        if (response.ok && mounted) {
-          const next = {
-            name: payload.data.full_name || "Navyaa Batra",
-            job: payload.data.bio || "Full stack developer",
-            username: payload.data.username,
-          }
-          setName(next.name)
-          setJob(next.job)
-          setUsername(next.username)
-          setDraft(next)
-        }
-      } catch {
-        // Keep the visible fallback when no authenticated session exists.
-      }
-    }
-    loadProfile()
-    return () => { mounted = false }
-  }, [])
 
   const openEditor = () => {
     setDraft({ name, job, username })
@@ -96,22 +64,23 @@ export default function ProfileScreen() {
     setIsSaving(true)
     setEditError("")
     try {
-      const session = await refreshSession()
+      const accessToken = await getStorageItem("access_token")
+      if (!accessToken) throw new Error("Your session has expired. Please log in again.")
       const response = await fetch(`${API_URL}/users/me`, {
         method: "PATCH",
         credentials: "include",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${session.accessToken ?? session.token}`,
+          Authorization: `Bearer ${accessToken}`,
         },
         body: JSON.stringify({ username: next.username, full_name: next.name, bio: next.job }),
       })
       const payload = await response.json()
       if (!response.ok) throw new Error(payload.error ?? "Unable to update your profile.")
-      setName(payload.data.full_name)
-      setJob(payload.data.bio)
-      setUsername(payload.data.username)
-      setDraft({ name: payload.data.full_name, job: payload.data.bio, username: payload.data.username })
+      const updatedProfile = { name: payload.data.full_name, job: payload.data.bio, username: payload.data.username }
+      setSavedProfile(updatedProfile)
+      setDraft(updatedProfile)
+      await checkOnboardingStatus()
       setEditVisible(false)
     } catch (error) {
       setEditError(requestError(error, "Unable to update your profile."))
@@ -124,11 +93,9 @@ export default function ProfileScreen() {
     setLoggingOut(true)
     setLogoutError("")
     try {
-      const response = await fetch(`${API_URL}/auth/logout`, { method: "POST", credentials: "include" })
-      const payload = await response.json()
-      if (!response.ok) throw new Error(payload.error ?? "Unable to log out.")
-    } catch {
-      // Logging out locally must not be blocked by server-side token cleanup.
+      await signOut()
+    } catch (error) {
+      setLogoutError(error instanceof Error ? error.message : "Unable to log out.")
     } finally {
       setLoggingOut(false)
       setLogoutVisible(false)
@@ -137,10 +104,10 @@ export default function ProfileScreen() {
   }
 
   const stats = [
-    { value: "1.2K", label: "stars given" },
-    { value: "300", label: "followers", href: { pathname: "/followers", params: { username } } },
-    { value: "156", label: "saved" },
-    { value: "289", label: "following", href: { pathname: "/following", params: { username } } },
+    { value: String(user?.likes_given_count ?? 0), label: "stars given" },
+    { value: String(user?.followers_count ?? 0), label: "followers", href: { pathname: "/followers", params: { username } } },
+    { value: String(user?.saved_repos_count ?? 0), label: "saved" },
+    { value: String(user?.following_count ?? 0), label: "following", href: { pathname: "/following", params: { username } } },
   ]
 
   const cardHeight = isCompact ? 40 : isTablet ? 54 : 50

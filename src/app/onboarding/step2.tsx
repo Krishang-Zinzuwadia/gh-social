@@ -1,4 +1,5 @@
-import { router } from "expo-router";
+import { useState } from "react";
+import { router, useLocalSearchParams } from "expo-router";
 import {
     ScrollView,
     Text,
@@ -7,12 +8,67 @@ import {
     View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useOnboarding } from "../../store/OnboardingContext";
 
 import PrimaryButton from "@/components/onboarding/PrimaryButton";
 import ProgressBar from "@/components/onboarding/ProgressBar";
 import TechChip from "@/components/onboarding/TechChip";
+import LogoPlaceholder from "@/components/onboarding/LogoPlaceholder";
+
+import { SUGGESTED_TECHS, getTechIcon } from "@/constants/onboarding";
+
+const PREDEFINED_TECHS = SUGGESTED_TECHS.map(t => t.name);
 
 export default function Step2() {
+  const { categories } = useLocalSearchParams();
+  const { updateData } = useOnboarding();
+  
+  const [selectedTechs, setSelectedTechs] = useState<string[]>([
+    "React",
+    "MongoDB",
+    "Node.js",
+    "Tailwind CSS",
+    "PostgreSQL",
+  ]);
+  const [customTechs, setCustomTechs] = useState<string[]>([]);
+  const [inputText, setInputText] = useState("");
+
+  const handleAddTech = () => {
+    const tech = inputText.trim();
+    if (!tech) return;
+
+    const allKnownTechs = [...PREDEFINED_TECHS, ...customTechs];
+    const existing = allKnownTechs.find((t) => t.toLowerCase() === tech.toLowerCase());
+
+    if (existing) {
+      if (!selectedTechs.includes(existing)) {
+        setSelectedTechs([...selectedTechs, existing]);
+      }
+    } else {
+      setCustomTechs([...customTechs, tech]);
+      setSelectedTechs([...selectedTechs, tech]);
+    }
+    setInputText("");
+  };
+
+  const toggleTech = (tech: string) => {
+    setSelectedTechs((prev) =>
+      prev.includes(tech) ? prev.filter((t) => t !== tech) : [...prev, tech]
+    );
+  };
+
+  const handleContinue = () => {
+    updateData({ tech_stack: selectedTechs });
+    router.push({
+      pathname: "/onboarding/step3",
+      params: { categories },
+    });
+  };
+
+  const suggestedTechs = [...PREDEFINED_TECHS, ...customTechs].filter(
+    (t) => !selectedTechs.includes(t)
+  );
+
   return (
     <SafeAreaView className="flex-1 bg-black">
       <ScrollView
@@ -23,7 +79,8 @@ export default function Step2() {
           paddingBottom: 40,
         }}
       >
-        {/* Step */}
+        <View style={{ maxWidth: 450, width: "100%", alignSelf: "center" }}>
+          {/* Step */}
         <Text
           style={{
             color: "#F0F6EB",
@@ -34,10 +91,7 @@ export default function Step2() {
           2 / 3
         </Text>
 
-        <ProgressBar
-          step={2}
-          totalSteps={3}
-        />
+        <ProgressBar step={2} totalSteps={3} />
 
         {/* Logo */}
         <View
@@ -47,14 +101,7 @@ export default function Step2() {
             marginBottom: 24,
           }}
         >
-          <View
-            style={{
-              width: 120,
-              height: 120,
-              borderRadius: 60,
-              backgroundColor: "#10391D",
-            }}
-          />
+          <LogoPlaceholder size={120} />
         </View>
 
         {/* Heading */}
@@ -72,7 +119,7 @@ export default function Step2() {
 
           <Text
             style={{
-              color: "#6DA963",
+              color: "#8EFF7A",
               fontSize: 40,
               fontWeight: "700",
               textAlign: "center",
@@ -103,86 +150,103 @@ export default function Step2() {
           </Text>
         </View>
 
-        {/* Search */}
-        <View style={{ marginTop: 16 }}>
+        {/* Custom Tech Input */}
+        <View
+          style={{
+            marginTop: 16,
+            flexDirection: "row",
+            alignItems: "center",
+            backgroundColor: "#151515",
+            borderWidth: 1,
+            borderColor: "#6DA963",
+            borderRadius: 12,
+            paddingHorizontal: 14,
+          }}
+        >
           <TextInput
-            placeholder="Search technologies"
+            value={inputText}
+            onChangeText={setInputText}
+            onSubmitEditing={handleAddTech}
+            placeholder="Add your own tech stack"
             placeholderTextColor="#777"
             style={{
-              backgroundColor: "#151515",
-              borderWidth: 1,
-              borderColor: "#6DA963",
-              borderRadius: 12,
-              padding: 14,
+              flex: 1,
+              paddingVertical: 14,
+              paddingHorizontal: 8,
               color: "white",
             }}
           />
+          <TouchableOpacity onPress={handleAddTech} style={{ padding: 8 }}>
+            <Text style={{ color: "#6DA963", fontSize: 24, fontWeight: "500" }}>
+              +
+            </Text>
+          </TouchableOpacity>
         </View>
 
         {/* Selected */}
-        <Text
-          style={{
-            color: "#AAAAAA",
-            fontSize: 16,
-            marginTop: 16,
-            marginBottom: 10,
-          }}
-        >
-          Your Selection
-        </Text>
+        {selectedTechs.length > 0 && (
+          <>
+            <Text
+              style={{
+                color: "#AAAAAA",
+                fontSize: 16,
+                marginTop: 16,
+                marginBottom: 10,
+              }}
+            >
+              Your Selection
+            </Text>
 
-        <View className="flex-row flex-wrap">
-          <TechChip title="React" selected />
-          <TechChip title="MongoDB" selected />
-          <TechChip title="Node.js" selected />
-          <TechChip title="Tailwind CSS" selected />
-          <TechChip title="PostgreSQL" selected />
-        </View>
+            <View className="flex-row flex-wrap">
+              {selectedTechs.map((tech) => (
+                <TechChip
+                  key={tech}
+                  title={tech}
+                  image={getTechIcon(tech)}
+                  selected
+                  onPress={() => toggleTech(tech)}
+                />
+              ))}
+            </View>
+          </>
+        )}
 
         {/* Suggested */}
-        <Text
-          style={{
-            color: "#AAAAAA",
-            fontSize: 16,
-            marginTop: 10,
-            marginBottom: 10,
-          }}
-        >
-          Suggested for you
-        </Text>
+        {suggestedTechs.length > 0 && (
+          <>
+            <Text
+              style={{
+                color: "#AAAAAA",
+                fontSize: 16,
+                marginTop: 10,
+                marginBottom: 10,
+              }}
+            >
+              Suggested for you
+            </Text>
 
-        <View className="flex-row flex-wrap">
-          <TechChip title="Next.js" />
-          <TechChip title="TypeScript" />
-          <TechChip title="GraphQL" />
-          <TechChip title="Docker" />
-          <TechChip title="Prisma" />
-          <TechChip title="AWS" />
-        </View>
+            <View className="flex-row flex-wrap">
+              {suggestedTechs.map((tech) => (
+                <TechChip
+                  key={tech}
+                  title={tech}
+                  image={getTechIcon(tech)}
+                  selected={false}
+                  onPress={() => toggleTech(tech)}
+                />
+              ))}
+            </View>
+          </>
+        )}
 
         <View style={{ marginTop: 16 }}>
           <PrimaryButton
-  title="Continue"
-  onPress={() => router.push("/onboarding/step3")}
-/>
+            title="Continue"
+            onPress={handleContinue}
+          />
         </View>
 
-        <TouchableOpacity
-          onPress={() => router.push("/onboarding/step3")}
-          style={{
-            alignItems: "center",
-            marginTop: 12,
-          }}
-        >
-          <Text
-            style={{
-              color: "#8A8A8A",
-              fontSize: 18,
-            }}
-          >
-            Skip for now
-          </Text>
-        </TouchableOpacity>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );

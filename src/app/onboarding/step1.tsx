@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { router } from "expo-router";
 import {
     ScrollView,
@@ -10,8 +11,27 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import PrimaryButton from "@/components/onboarding/PrimaryButton";
 import ProgressBar from "@/components/onboarding/ProgressBar";
 import SkillCard from "@/components/onboarding/SkillCard";
+import LogoPlaceholder from "@/components/onboarding/LogoPlaceholder";
+import { SKILL_CATEGORIES } from "@/constants/onboarding";
 
 export default function Step1() {
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+
+  const toggleCategory = (id: string) => {
+    setSelectedCategories((prev) =>
+      prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id]
+    );
+  };
+
+  const handleContinue = () => {
+    if (selectedCategories.length >= 2) {
+      router.push({
+        pathname: "/onboarding/step2",
+        params: { categories: selectedCategories.join(",") }
+      });
+    }
+  };
+
   return (
     <SafeAreaView className="flex-1 bg-black">
       <ScrollView
@@ -22,7 +42,8 @@ export default function Step1() {
           paddingBottom: 40,
         }}
       >
-        {/* Step */}
+        <View style={{ maxWidth: 450, width: "100%", alignSelf: "center" }}>
+          {/* Step */}
         <Text
           style={{
             color: "#F0F6EB",
@@ -46,14 +67,7 @@ export default function Step1() {
             marginBottom: 24,
           }}
         >
-          <View
-            style={{
-              width: 120,
-              height: 120,
-              borderRadius: 60,
-              backgroundColor: "#10391D",
-            }}
-          />
+          <LogoPlaceholder size={120} />
         </View>
 
         {/* Heading */}
@@ -71,7 +85,7 @@ export default function Step1() {
 
           <Text
             style={{
-              color: "#6DA963",
+              color: "#8EFF7A",
               fontSize: 38,
               fontWeight: "700",
               textAlign: "center",
@@ -114,62 +128,37 @@ export default function Step1() {
             marginBottom: 14,
           }}
         >
-          POPULAR SKILLS
+          CATEGORIES
         </Text>
 
         {/* Skills */}
         <View className="flex-row flex-wrap justify-between gap-y-4">
-          <SkillCard icon="JS" title="JavaScript" selected />
-          <SkillCard icon="TS" title="TypeScript" selected />
-          <SkillCard icon="Py" title="Python" selected />
-          <SkillCard icon="⚛" title="React" selected />
-          <SkillCard icon="☕" title="Java" />
-          <SkillCard icon="Go" title="Go" />
+          {SKILL_CATEGORIES.map((category) => (
+            <SkillCard
+              key={category.id}
+              image={category.icon}
+              title={category.title}
+              selected={selectedCategories.includes(category.id)}
+              onPress={() => toggleCategory(category.id)}
+            />
+          ))}
         </View>
 
-        {/* Show More */}
-        <TouchableOpacity
-          style={{
-            alignItems: "center",
-            marginTop: 12,
-          }}
-        >
-          <Text
-            style={{
-              color: "#6DA963",
-              fontSize: 22,
-              fontWeight: "600",
-            }}
-          >
-            + Show more
+        {selectedCategories.length < 2 && (
+          <Text style={{ color: "#E57373", fontSize: 14, marginTop: 16, textAlign: "center" }}>
+            Select at least 2 categories.
           </Text>
-        </TouchableOpacity>
+        )}
 
         {/* Continue */}
-        <View style={{ marginTop: 16 }}>
+        <View style={{ marginTop: selectedCategories.length < 2 ? 8 : 24 }}>
           <PrimaryButton
-  title="Continue"
-  onPress={() => router.push("/onboarding/step2")}
-/>
+            title="Continue"
+            onPress={handleContinue}
+            disabled={selectedCategories.length < 2}
+          />
         </View>
-
-        {/* Skip */}
-        <TouchableOpacity
-          onPress={() => router.push("/onboarding/step2")}
-          style={{
-            alignItems: "center",
-            marginTop: 12,
-          }}
-        >
-          <Text
-            style={{
-              color: "#8A8A8A",
-              fontSize: 18,
-            }}
-          >
-            Skip for now
-          </Text>
-        </TouchableOpacity>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );

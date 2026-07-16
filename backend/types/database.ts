@@ -25,6 +25,7 @@ export type UserUpdate = Partial<UserInsert>;
 
 export type UserProfile = Pick<
   UserRow,
+  | 'user_id'
   | 'username'
   | 'full_name'
   | 'date_of_birth'

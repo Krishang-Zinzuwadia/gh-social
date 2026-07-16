@@ -5,6 +5,7 @@ import {
   importRepo,
   viewRepo,
   syncRepo,
+  getTrendingRepos,
 } from '../controllers/repoController.js';
 
 const router: Router = Router();
@@ -13,6 +14,9 @@ const router: Router = Router();
 
 // Get all repository records.
 router.get('/', getAllRepos);
+
+// Get trending repositories.
+router.get('/trending', getTrendingRepos);
 
 // Import one repository from GitHub.
 router.post('/import', importRepo);

@@ -10,12 +10,19 @@ import {
   updateActivityById,
   deleteActivityById,
   likeRepo,
+  dislikeRepo,
   saveRepo,
+  processBatchedActivity,
 } from '../controllers/activityController.js';
+
+import { requireAuth } from '../middlewares/authMiddleware.js';
 
 const router: Router = Router();
 
 // Routes only connect URLs to controller functions.
+
+// Process batched activity events
+router.post('/batch', requireAuth, processBatchedActivity);
 
 // Get all activity records.
 router.get('/', getAllActivity);
@@ -45,9 +52,12 @@ router.patch('/:activityId', updateActivityById);
 router.delete('/:activityId', deleteActivityById);
 
 // Toggle like for a user/repo pair.
-router.post('/user/:userId/repo/:repoId/like', likeRepo);
+router.post('/user/:userId/repo/:repoId/like', requireAuth, likeRepo);
+
+// Toggle dislike for a user/repo pair.
+router.post('/user/:userId/repo/:repoId/dislike', requireAuth, dislikeRepo);
 
 // Toggle save for a user/repo pair.
-router.post('/user/:userId/repo/:repoId/save', saveRepo);
+router.post('/user/:userId/repo/:repoId/save', requireAuth, saveRepo);
 
 export default router;

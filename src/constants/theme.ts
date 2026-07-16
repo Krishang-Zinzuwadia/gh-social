@@ -69,6 +69,6 @@ export const APP_THEME = {
   activeAccent: '#F7F7F8',
   inactiveAccent: '#77767C',
   borderDark: '#242524',
-  tabBarBackground: '#0D0E0D',
+  tabBarBackground: '#0A0C09',
+  tabBarBorder: '#0A0C09',
 } as const;
-

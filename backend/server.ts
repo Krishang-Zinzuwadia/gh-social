@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import app from './app.js';
 
-const port: number = parseInt(process.env.PORT ?? '5050', 10);
+const port: number = parseInt(process.env.PORT ?? '5001', 10);
 
 const server = app.listen(port, () => {
   console.log(`Backend running on port ${port}`);

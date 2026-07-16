@@ -1,27 +1,45 @@
-import { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, Platform } from "react-native";
+import React, { useState } from "react";
+import { View, Text, TextInput, TouchableOpacity } from "react-native";
 import { CalendarIcon } from "./icons";
+import CustomCalendar from "./CustomCalendar";
 
-let DateTimePicker: any = null;
-if (Platform.OS !== 'web') {
-  // The native picker must not be loaded into the web bundle.
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  DateTimePicker = require('@react-native-community/datetimepicker').default;
-}
+const MONTHS = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December"
+];
 
-export default function ProfileDateInput() {
-  const [date, setDate] = useState(new Date());
+type ProfileDateInputProps = {
+  value: string;
+  onChangeText: (text: string) => void;
+};
+
+export default function ProfileDateInput({ value, onChangeText }: ProfileDateInputProps) {
   const [show, setShow] = useState(false);
-  const [textValue, setTextValue] = useState("");
-
-  const onChange = (event: any, selectedDate?: Date) => {
-    const currentDate = selectedDate || date;
-    setShow(Platform.OS === 'ios');
-    if (selectedDate) {
-        setDate(currentDate);
-        const formatted = `${currentDate.getDate().toString().padStart(2, '0')}/${(currentDate.getMonth() + 1).toString().padStart(2, '0')}/${currentDate.getFullYear().toString().slice(-2)}`;
-        setTextValue(formatted);
+  
+  // Parse the current string value YYYY-MM-DD back to a Date object (if valid)
+  const parseDate = (dateStr: string) => {
+    if (!dateStr) return new Date();
+    const parts = dateStr.split("-");
+    if (parts.length === 3) {
+      const y = parseInt(parts[0], 10);
+      const m = parseInt(parts[1], 10) - 1;
+      const d = parseInt(parts[2], 10);
+      return new Date(y, m, d);
     }
+    return new Date();
+  };
+
+  const selectedDate = parseDate(value);
+  const isValid = !isNaN(selectedDate.getTime());
+  const displayValue = value 
+    ? (isValid ? `${selectedDate.getDate().toString().padStart(2, '0')} ${MONTHS[selectedDate.getMonth()]} ${selectedDate.getFullYear()}` : value) 
+    : "";
+
+  const handleSelectDate = (date: Date) => {
+    const y = date.getFullYear();
+    const m = (date.getMonth() + 1).toString().padStart(2, '0');
+    const d = date.getDate().toString().padStart(2, '0');
+    onChangeText(`${y}-${m}-${d}`);
   };
 
   return (
@@ -32,12 +50,14 @@ export default function ProfileDateInput() {
         Date of Birth
       </Text>
 
-      <View
+      <TouchableOpacity
+        activeOpacity={0.8}
+        onPress={() => setShow(true)}
         className="
           w-full
           h-[56px]
           bg-[#191F18]
-          border border-[#6DA963]
+          border border-[#8EFF7A]
           rounded-xl
           px-5
           flex-row
@@ -46,27 +66,25 @@ export default function ProfileDateInput() {
         "
       >
         <TextInput
-          placeholder="DD/MM/YY"
+          placeholder="DD Month YYYY"
           placeholderTextColor="#666"
           className="text-white text-[15px] font-nata flex-1 outline-none"
-          value={textValue}
-          onChangeText={setTextValue}
-          keyboardType="numeric"
+          value={displayValue}
+          editable={false}
+          pointerEvents="none"
         />
-        <TouchableOpacity onPress={() => setShow(true)} className="p-2 -mr-2">
+        <View className="p-2 -mr-2">
           <CalendarIcon size={20} color="#727272" />
-        </TouchableOpacity>
-      </View>
+        </View>
+      </TouchableOpacity>
 
-      {show && Platform.OS !== 'web' && DateTimePicker && (
-        <DateTimePicker
-          testID="dateTimePicker"
-          value={date}
-          mode="date"
-          display="default"
-          onChange={onChange}
-        />
-      )}
+      <CustomCalendar
+        visible={show}
+        onClose={() => setShow(false)}
+        selectedDate={isValid ? selectedDate : new Date()}
+        onSelectDate={handleSelectDate}
+        maxDate={new Date()}
+      />
     </View>
   );
 }

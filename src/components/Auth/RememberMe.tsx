@@ -12,7 +12,7 @@ export default function RememberMe() {
         onPress={() => setIsChecked(!isChecked)}
         className="flex-row items-center"
       >
-        <View className={`w-4 h-4 border border-[#6DA963] rounded-[3px] justify-center items-center ${isChecked ? 'bg-[#6DA963]' : ''}`}>
+        <View className={`w-4 h-4 border border-[#8EFF7A] rounded-[3px] justify-center items-center ${isChecked ? 'bg-[#8EFF7A]' : ''}`}>
           {isChecked && (
             <Svg width="10" height="10" viewBox="0 0 24 24" fill="none">
               <Path d="M20 6L9 17l-5-5" stroke="#0A0C09" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />

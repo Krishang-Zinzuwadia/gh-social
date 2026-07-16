@@ -20,13 +20,41 @@
       "idx": 2,
       "version": "7",
       "when": 1781647983015,
-      "tag": "0002_add_indexes",
+      "tag": "0002_add_indexes"
     },
     {
       "idx": 3,
       "version": "7",
       "when": 1781648000000,
       "tag": "0003_container_boards_rls",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1782479538237,
+      "tag": "0004_wonderful_bullseye",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1782760223570,
+      "tag": "0005_wise_skrulls",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1782915521894,
+      "tag": "0006_sad_cobalt_man",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1783555200000,
+      "tag": "0007_add_user_feedback",
       "breakpoints": true
     }
   ]

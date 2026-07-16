@@ -1,15 +1,16 @@
+import React from "react";
 import { Text, TouchableOpacity, View } from "react-native";
 
 type Props = {
   title: string;
-  icon: string;
+  image: React.ReactNode;
   selected?: boolean;
   onPress?: () => void;
 };
 
 export default function InterestCard({
   title,
-  icon,
+  image,
   selected = false,
   onPress,
 }: Props) {
@@ -22,7 +23,7 @@ export default function InterestCard({
         backgroundColor: "#181E18",
         borderRadius: 14,
         borderWidth: 1,
-        borderColor: selected ? "#6DA963" : "#303030",
+        borderColor: selected ? "#8EFF7A" : "#303030",
         flexDirection: "row",
         alignItems: "center",
         paddingHorizontal: 12,
@@ -41,13 +42,7 @@ export default function InterestCard({
           marginRight: 10,
         }}
       >
-        <Text
-          style={{
-            fontSize: 18,
-          }}
-        >
-          {icon}
-        </Text>
+        {image}
       </View>
 
       <Text
@@ -65,7 +60,7 @@ export default function InterestCard({
       {selected && (
         <Text
           style={{
-            color: "#6DA963",
+            color: "#8EFF7A",
             fontSize: 22,
             fontWeight: "700",
           }}

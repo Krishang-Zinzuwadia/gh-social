@@ -1,8 +1,11 @@
 import type { Request, Response } from 'express';
 import type { AuthRequest } from '../middlewares/authMiddleware.js'; // Bring in your custom type
 import * as userService from '../services/userService.js';
+import { FeedService } from '../services/feedService.js';
 import { sendError, sendSuccess, sendDatabaseError } from '../utils/response.js';
 import { isValidUuid } from '../utils/validators.js'; // You might not need this anymore for the follower, but keep it if you use it elsewhere
+
+const feedService = new FeedService();
 
 // Fetch a user's public profile (Remains standard Request as it is a public route)
 export async function getUserProfile(req: Request, res: Response): Promise<void> {
@@ -97,6 +100,8 @@ export async function followUser(req: AuthRequest, res: Response): Promise<void>
     });
   }
 
+  void feedService.invalidateUserFeed(followerId);
+
   return sendSuccess(res, 200, { message: `Successfully followed ${username}` });
 }
 
@@ -137,6 +142,8 @@ export async function unfollowUser(req: AuthRequest, res: Response): Promise<voi
   if (count === 0) {
     return sendError(res, 400, 'You are not following this user.');
   }
+
+  void feedService.invalidateUserFeed(followerId);
 
   return sendSuccess(res, 200, { message: `Successfully unfollowed ${username}` });
 }

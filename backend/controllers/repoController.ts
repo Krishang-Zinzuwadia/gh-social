@@ -2,6 +2,7 @@ import type { Request, Response } from "express";
 import * as githubService from "../services/githubService.js";
 import * as repoService from "../services/repoService.js";
 import * as summaryService from "../services/summaryService.js";
+import { buildMlEmbedRepositoryPayload, mlService } from "../services/mlService.js";
 import {
   sendControllerError,
   sendError,
@@ -48,6 +49,7 @@ async function buildRepoPayload(body: RepoBodyInput): Promise<RepoInsert> {
     language_used: githubRepo.language_breakdown || [],
     topics: githubRepo.topics || [],
     readme_summary: summaryService.summarizeReadme(githubRepo.readme),
+    star_count: githubRepo.stars_count || 0,
     forks_count: githubRepo.forks_count || 0,
     pr_count: githubRepo.pr_count || 0,
   };
@@ -67,6 +69,25 @@ export async function getAllRepos(req: Request, res: Response): Promise<void> {
   }
 
   const { data, error } = await repoService.getAllRepos(pagination);
+
+  if (error) {
+    return sendRepoDatabaseError(res, error);
+  }
+
+  return sendSuccess(res, 200, data);
+}
+
+export async function getTrendingRepos(req: Request, res: Response): Promise<void> {
+  let limit = 10;
+  if (req.query.limit) {
+    const parsedLimit = parseInt(req.query.limit as string, 10);
+    if (!isNaN(parsedLimit) && parsedLimit > 0) {
+      // Enforce a maximum limit of 30 to prevent unbounded DB/Redis pressure attacks
+      limit = Math.min(parsedLimit, 30);
+    }
+  }
+
+  const { data, error } = await repoService.getTrendingRepos(limit);
 
   if (error) {
     return sendRepoDatabaseError(res, error);
@@ -106,6 +127,8 @@ export async function importRepo(req: Request, res: Response): Promise<void> {
     if (error) {
       return sendRepoDatabaseError(res, error);
     }
+
+    void mlService.embedRepositoryBestEffort(buildMlEmbedRepositoryPayload(data));
 
     return sendSuccess(res, 201, data);
   } catch (err) {
@@ -156,6 +179,8 @@ export async function syncRepo(req: Request, res: Response): Promise<void> {
     if (error) {
       return sendRepoDatabaseError(res, error);
     }
+
+    void mlService.embedRepositoryBestEffort(buildMlEmbedRepositoryPayload(data));
 
     return sendSuccess(res, 200, data);
   } catch (err) {

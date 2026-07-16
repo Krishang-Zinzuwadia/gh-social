@@ -1,7 +1,7 @@
 import { Calendar, Camera, User, Mail, ChevronRight, Eye } from 'lucide-react-native';
 import Svg, { Path } from "react-native-svg";
 
-export function ChevronRightIcon({ size = 20, color = "#8EFF7A" }) {
+export function ChevronRightIcon({ size = 20, color = "#63E08A" }) {
   return <ChevronRight size={size} color={color} />;
 }
 
@@ -36,26 +36,26 @@ export function GithubIcon({ size = 20, color = "#ffffff" }) {
   );
 }
 
-export function MailIcon({ size = 20, color = "#8EFF7A" }) {
+export function MailIcon({ size = 20, color = "#63E08A" }) {
   return <Mail size={size} color={color} />;
 }
 
-export function CalendarIcon({ size = 20, color = "#8EFF7A" }) {
+export function CalendarIcon({ size = 20, color = "#63E08A" }) {
   return <Calendar size={size} color={color} />;
 }
 
-export function CameraIcon({ size = 24, color = "#8EFF7A" }) {
+export function CameraIcon({ size = 24, color = "#63E08A" }) {
   return <Camera size={size} color={color} />;
 }
 
-export function SilhouetteIcon({ size = 80, color = "#3A5A40" }) {
+export function SilhouetteIcon({ size = 80, color = "rgba(235,235,245,0.45)" }) {
   return <User size={size} color={color} />;
 }
 
-export function UserIcon({ size = 16, color = "#727272" }) {
+export function UserIcon({ size = 16, color = "rgba(235,235,245,0.45)" }) {
   return <User size={size} color={color} />;
 }
 
-export function EyeIcon({ size = 16, color = "#727272" }) {
+export function EyeIcon({ size = 16, color = "rgba(235,235,245,0.45)" }) {
   return <Eye size={size} color={color} />;
 }

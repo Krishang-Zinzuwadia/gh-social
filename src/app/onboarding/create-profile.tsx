@@ -49,7 +49,7 @@ export default function CreateProfile() {
 
   return (
     <ScrollView
-      className="flex-1 bg-[#0A0C09]"
+      className="flex-1 bg-[#000000]"
       showsVerticalScrollIndicator={false}
       contentContainerStyle={{ paddingBottom: 50 }}
     >
@@ -65,14 +65,16 @@ export default function CreateProfile() {
             className="text-white text-[32px] text-center font-nataBold"
           >
             Create your{" "}
-            <Text className="text-[#8EFF7A] font-nataBold">
-              Weave account
+            <Text className="text-white font-nataBold">
+              Wea<Text className="text-[#63E08A]">v</Text>e
             </Text>
+            {" "}
+            <Text className="text-[#63E08A] font-nataBold">account</Text>
           </Text>
 
           <Text
             
-            className="text-[#8A8A8A] text-[14px] text-center mt-3 font-nata"
+            className="text-[rgba(235,235,245,0.6)] text-[14px] text-center mt-3 font-nata"
           >
             Let&apos;s set up your profile.
           </Text>
@@ -94,7 +96,7 @@ export default function CreateProfile() {
         <View className="mt-4">
           <ProfileDateInput value={dob} onChangeText={setDob} />
           {dob.trim().length > 0 && !isDobValid && (
-            <Text className="text-[#E57373] text-[13px] font-nata mt-1 ml-1">
+            <Text className="text-[#FF453A] text-[13px] font-nata mt-1 ml-1">
               Please enter a valid date in YYYY-MM-DD format.
             </Text>
           )}
@@ -110,7 +112,6 @@ export default function CreateProfile() {
           <PrimaryButton
             label="Create Account"
             onPress={handleCreateAccount}
-            style={{ opacity: isFormValid ? 1 : 0.5 }}
             disabled={!isFormValid}
           />
         </View>

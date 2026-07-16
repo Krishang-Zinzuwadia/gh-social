@@ -14,12 +14,11 @@ export function useOAuth() {
     setError(null);
 
     try {
-      // 1. Get the OAuth URL from our backend
-      const oauthUrl = await getOAuthUrl(provider);
-
-      // 2. The redirect URI the backend will redirect back to after OAuth completes.
-      //    Must match CLIENT_URL in backend/.env (e.g. "ghsocial://callback")
+      // Build the callback first so the backend returns to this exact Expo runtime.
       const redirectUri = Linking.createURL('callback');
+
+      // Get the OAuth URL from our backend, including the current runtime callback.
+      const oauthUrl = await getOAuthUrl(provider, redirectUri);
       
       // 3. Open the in-app browser — it will intercept the redirect automatically
       const result = await WebBrowser.openAuthSessionAsync(oauthUrl, redirectUri);

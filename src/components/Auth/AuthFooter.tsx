@@ -13,12 +13,12 @@ export default function AuthFooter({
 }: AuthFooterProps) {
   return (
     <View className="flex-row items-center justify-center gap-1 mt-6">
-      <Text className="font-nata text-white opacity-50 text-[16px]">
+      <Text className="font-nata text-[rgba(235,235,245,0.6)] text-[16px]">
         {prompt}
       </Text>
 
       <TouchableOpacity onPress={onPress} activeOpacity={0.7}>
-        <Text className="font-nataSemiBold text-[#8EFF7A] text-[16px]">
+        <Text className="font-nataSemiBold text-[#63E08A] text-[16px]">
           {linkLabel}
         </Text>
       </TouchableOpacity>

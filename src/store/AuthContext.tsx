@@ -19,11 +19,16 @@ interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   setSession: (token: string, user: any) => Promise<void>;
+  enterOnboardingPreview: () => Promise<void>;
+  completeOnboardingPreview: () => void;
   signOut: () => Promise<void>;
   checkOnboardingStatus: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+export const isDemoModeEnabled =
+  __DEV__ && process.env.EXPO_PUBLIC_DEMO_MODE === 'true';
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -114,7 +119,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     await setStorageItem('access_token', token);
+
+    // Let routing move a newly-created account into onboarding immediately,
+    // then replace this optimistic value with the canonical backend profile.
+    setUser({
+      ...authUser,
+      user_id: authUser?.user_id ?? authUser?.id,
+      username:
+        authUser?.username ??
+        authUser?.user_metadata?.user_name ??
+        'new-user',
+      onboarding_completed: false,
+    });
     await fetchUserProfile(token);
+  };
+
+  const enterOnboardingPreview = async () => {
+    if (!isDemoModeEnabled) return;
+
+    // This preview is intentionally local-only: no auth or backend request.
+    await removeStorageItem('access_token').catch(() => undefined);
+    setUser({
+      user_id: 'local-onboarding-preview',
+      username: 'preview_user',
+      full_name: 'Preview User',
+      onboarding_completed: false,
+      isPreview: true,
+    });
+  };
+
+  const completeOnboardingPreview = () => {
+    setUser((currentUser) =>
+      currentUser?.isPreview
+        ? { ...currentUser, onboarding_completed: true }
+        : currentUser,
+    );
   };
 
   const signOut = async () => {
@@ -152,7 +191,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [loadSession]);
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, setSession, signOut, checkOnboardingStatus }}>
+    <AuthContext.Provider value={{ user, isLoading, setSession, enterOnboardingPreview, completeOnboardingPreview, signOut, checkOnboardingStatus }}>
       {children}
     </AuthContext.Provider>
   );

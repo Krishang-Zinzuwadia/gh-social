@@ -1,5 +1,16 @@
 import { API_URL } from './config';
 
+const readJson = async (response: Response) => {
+  const text = await response.text();
+  if (!text) return {};
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    throw new Error(`Auth service returned an invalid response (${response.status})`);
+  }
+};
+
 export const register = async (email: string, password: string, fullName: string) => {
   const response = await fetch(`${API_URL}/auth/signup`, {
     method: 'POST',
@@ -13,7 +24,7 @@ export const register = async (email: string, password: string, fullName: string
     }),
   });
 
-  const data = await response.json();
+  const data = await readJson(response);
   if (!response.ok) {
     throw new Error(data.error || 'Failed to register');
   }
@@ -28,7 +39,7 @@ export const login = async (email: string, password: string) => {
     body: JSON.stringify({ email, password }),
   });
 
-  const data = await response.json();
+  const data = await readJson(response);
   if (!response.ok) {
     throw new Error(data.error || 'Failed to login');
   }
@@ -42,16 +53,20 @@ export const logout = async () => {
     credentials: 'include',
   });
 
-  const data = await response.json();
+  const data = await readJson(response);
   if (!response.ok) {
     throw new Error(data.error || 'Failed to logout');
   }
   return data;
 };
 
-export const getOAuthUrl = async (provider: 'github' | 'google'): Promise<string> => {
-  const response = await fetch(`${API_URL}/auth/oauth/${provider}`);
-  const data = await response.json();
+export const getOAuthUrl = async (
+  provider: 'github' | 'google',
+  redirectUri: string,
+): Promise<string> => {
+  const params = new URLSearchParams({ redirect_uri: redirectUri });
+  const response = await fetch(`${API_URL}/auth/oauth/${provider}?${params}`);
+  const data = await readJson(response);
   if (!response.ok) {
     throw new Error(data.error || `Failed to get ${provider} OAuth URL`);
   }
@@ -65,7 +80,7 @@ export const exchangeCode = async (code: string): Promise<{ accessToken: string;
     credentials: 'include',
     body: JSON.stringify({ code }),
   });
-  const data = await response.json();
+  const data = await readJson(response);
   if (!response.ok) {
     throw new Error(data.error || 'Failed to exchange authorization code');
   }

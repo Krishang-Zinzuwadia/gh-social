@@ -56,8 +56,8 @@ export default function ProfileDateInput({ value, onChangeText }: ProfileDateInp
         className="
           w-full
           h-[56px]
-          bg-[#191F18]
-          border border-[#8EFF7A]
+          bg-[#1C1C1E]
+          border border-[rgba(255,255,255,0.14)]
           rounded-xl
           px-5
           flex-row
@@ -67,14 +67,14 @@ export default function ProfileDateInput({ value, onChangeText }: ProfileDateInp
       >
         <TextInput
           placeholder="DD Month YYYY"
-          placeholderTextColor="#666"
+          placeholderTextColor="rgba(235,235,245,0.3)"
           className="text-white text-[15px] font-nata flex-1 outline-none"
           value={displayValue}
           editable={false}
           pointerEvents="none"
         />
         <View className="p-2 -mr-2">
-          <CalendarIcon size={20} color="#727272" />
+          <CalendarIcon size={20} color="rgba(235,235,245,0.45)" />
         </View>
       </TouchableOpacity>
 

@@ -77,26 +77,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
         }
       }
-    });
-
-    if (response.ok) {
-      const responseData = await response.json();
-      const { isComplete, profile } = responseData.data;
-      setUser({
-        ...profile,
-        onboarding_completed: isComplete
-      }); // backend returns { success: true, data: { isComplete, profile } }
-      return;
+    } catch (error) {
+      console.error('Failed to fetch user profile', error);
     }
+  }, []);
 
-    if (response.status === 401) {
-      await removeStorageItem('access_token');
-      setUser(null);
-      throw new Error('Your session expired. Please start the demo again.');
+  const loadSession = useCallback(async () => {
+    try {
+      if (AUTH_BYPASS_ENABLED) {
+        setUser(await loadBypassUser());
+        return;
+      }
+
+      const token = await getStorageItem('access_token');
+      if (token) {
+        await fetchUserProfile(token);
+      }
+    } catch (e) {
+      console.error('Failed to load session', e);
+    } finally {
+      setIsLoading(false);
     }
-
-    throw new Error(`Could not load your profile (${response.status}).`);
-  };
+  }, [fetchUserProfile, loadBypassUser]);
 
   const checkOnboardingStatus = async () => {
     if (AUTH_BYPASS_ENABLED) {

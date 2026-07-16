@@ -8,10 +8,7 @@ import * as repoService from '../services/repoService.js';
 import { db } from '../db/index.js';
 import { repos } from '../db/schema.js';
 import { eq } from 'drizzle-orm';
-import { FeedService } from '../services/feedService.js';
-import { recordAndForwardFeedbackEvents } from '../services/feedbackEventService.js';
-
-const feedService = new FeedService();
+import { mlService } from '../services/mlService.js';
 
 async function resolveRepoId(repoIdOrFullName: string): Promise<string | null> {
   if (isValidUuid(repoIdOrFullName)) return repoIdOrFullName;
@@ -160,12 +157,11 @@ export async function saveRepoToBoard(req: AuthRequest, res: Response): Promise<
     }
     
     // Emit 'save' only after atomic board mutation succeeds
-    await recordAndForwardFeedbackEvents([{
+    void mlService.sendBatchedActivityFeedback([{
       user_id: authUserId,
       repo_id: repoId,
       action: 'save'
     }]);
-    void feedService.invalidateUserFeed(authUserId);
 
     return sendSuccess(res, 201, data);
   } catch (err) {

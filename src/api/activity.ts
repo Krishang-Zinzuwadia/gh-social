@@ -1,9 +1,5 @@
-import { fetch } from 'expo/fetch';
 import { API_URL } from './config';
-import {
-  normalizeFeedbackAction,
-  type FeedbackEventInput,
-} from '../constants/feedbackActions';
+import type { FeedbackAction } from '../constants/feedbackActions';
 
 export type { FeedbackAction } from '../constants/feedbackActions';
 
@@ -43,36 +39,16 @@ export async function toggleSaveRepo(userId: string, repoId: string, token: stri
   return json.data;
 }
 
-export async function sendBatchedActivity(events: FeedbackEventInput[], token: string) {
+export async function sendBatchedActivity(events: { repo_id: string; action: FeedbackAction; dwell_seconds?: number }[], token: string) {
   if (events.length === 0) return;
-
-  const canonicalEvents = events.map((event) => {
-    const action = normalizeFeedbackAction(event.action);
-    if (!action) {
-      throw new Error(`Unsupported feedback action: ${String(event.action)}`);
-    }
-    if (action === 'dwell' && (
-      typeof event.dwell_seconds !== 'number'
-      || !Number.isFinite(event.dwell_seconds)
-      || event.dwell_seconds <= 0
-    )) {
-      throw new Error('dwell_seconds must be positive for dwell events');
-    }
-
-    return {
-      repo_id: event.repo_id,
-      action,
-      ...(action === 'dwell' ? { dwell_seconds: event.dwell_seconds } : {}),
-    };
-  });
-
+  
   const response = await fetch(`${API_URL}/activity/batch`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${token}`,
     },
-    body: JSON.stringify({ events: canonicalEvents }),
+    body: JSON.stringify({ events }),
   });
 
   if (!response.ok) {

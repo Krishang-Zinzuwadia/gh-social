@@ -11,6 +11,7 @@ export type RepositoryData = {
     bugs: string;
     forks: string;
     likes?: string;
+    comments?: string;
   };
   updatedText: string;
   techStack?: string[];

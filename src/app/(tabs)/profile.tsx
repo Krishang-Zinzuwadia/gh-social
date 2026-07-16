@@ -1,393 +1,263 @@
-import React, { useEffect, useState } from "react"
-import { View, Pressable, Text, Modal, TextInput, ScrollView, useWindowDimensions } from "react-native"
-import Svg, { Path } from "react-native-svg"
-import { SafeAreaView } from "react-native-safe-area-context"
-import Repositories from "@/components/home/repositories"
-import Lists from "@/components/lists"
+import React, { useState } from "react"
+import { ActivityIndicator, Modal, Pressable, ScrollView, Text, TextInput, View, useWindowDimensions } from "react-native"
+import { Bookmark, ChevronRight, LogOut, Pin, Square, SquarePen } from "lucide-react-native"
+import { Href, router } from "expo-router"
+import { useSafeAreaInsets } from "react-native-safe-area-context"
+import { API_URL } from "@/api/config"
 import { useAuth } from "@/store/AuthContext"
-import {
-  HeartIcon,
-  FollowerUserIcon,
-  BookmarkIcon,
-  GroupFollowersIcon,
-  PencilIcon,
-  ProfileAvatarIcon,
-} from "@/components/icons"
+import { AUTH_BYPASS_ENABLED, AUTH_BYPASS_PROFILE_STORAGE_KEY } from "@/constants/auth"
+import { getStorageItem, setStorageItem } from "@/utils/storage"
+import { formatCompactCount } from "@/utils/format-count"
 
 type TabName = "Lists" | "Repositories"
 
+const DEFAULT_USERNAME = "navyaabatra"
+const COLORS = { background: "#000000", card: "#151515", selected: "#68686B", white: "#F7F7F8", muted: "#77767C", green: "#63E08A", purple: "#9B4FE4" }
+const pinnedLists = ["meal-planner", "QuickNotes", "Travel-mate"]
+const collections = [
+  { name: "Game development", count: 24, color: "#A849D8" },
+  { name: "Design and UI", count: 61, color: "#F04C70" },
+  { name: "Open source", count: 71, color: "#38AAE1" },
+]
+const pinnedRepositories = ["github-social-mobileapp", "weather-app", "task-manager"]
+const repositories = [
+  { name: "notes-app", stars: 128 },
+  { name: "calculator-app", stars: 54 },
+  { name: "no-name-app", stars: 12 },
+  { name: "stocks-app", stars: 86 },
+]
+
+function requestError(error: unknown, fallback: string) {
+  if (error instanceof TypeError) return `Unable to connect to the local backend at ${API_URL}.`
+  return error instanceof Error ? error.message : fallback
+}
+
 export default function ProfileScreen() {
-  const { width } = useWindowDimensions()
-  const { user, signOut } = useAuth();
-
-  // Responsive breakpoints
+  const { width, height } = useWindowDimensions()
+  const insets = useSafeAreaInsets()
+  const { user, signOut, checkOnboardingStatus } = useAuth()
   const isTablet = width >= 768
-  const isSmallPhone = width < 360
+  const isCompact = height < 750 || width < 360
+  const [editVisible, setEditVisible] = useState(false)
+  const [logoutVisible, setLogoutVisible] = useState(false)
+  const [loggingOut, setLoggingOut] = useState(false)
+  const [logoutError, setLogoutError] = useState("")
+  const [savedProfile, setSavedProfile] = useState<{ name: string; job: string; username: string } | null>(null)
+  const name = savedProfile?.name ?? user?.full_name ?? "Navyaa Batra"
+  const job = savedProfile?.job ?? user?.bio ?? "Full stack developer"
+  const username = savedProfile?.username ?? user?.username ?? DEFAULT_USERNAME
+  const [draft, setDraft] = useState({ name, job, username })
+  const [isSaving, setIsSaving] = useState(false)
+  const [editError, setEditError] = useState("")
+  const [activeTab, setActiveTab] = useState<TabName>("Lists")
 
-  const contentMaxWidth = isTablet ? 680 : width
+  const openEditor = () => {
+    setDraft({ name, job, username })
+    setEditError("")
+    setEditVisible(true)
+  }
 
-  const [modal, setModal] = useState(false)
-  const [name, setName] = useState(user?.full_name || "New User")
-  const [job, setJob] = useState(user?.bio || "No bio available")
-  const [username, setUsername] = useState(user?.username || "newuser")
-  const [activetab, setActivetab] = useState<TabName>("Lists")
+  const saveDetails = async () => {
+    const next = { name: draft.name.trim(), job: draft.job.trim(), username: draft.username.trim() }
+    if (!next.name) return setEditError("Name is required.")
+    if (!next.job) return setEditError("Job role is required.")
+    if (!/^[a-zA-Z0-9_]+$/.test(next.username)) return setEditError("Username can only contain letters, numbers, or underscores.")
 
-  useEffect(() => {
-    if (!user) return
+    setIsSaving(true)
+    setEditError("")
+    try {
+      if (AUTH_BYPASS_ENABLED) {
+        await setStorageItem(AUTH_BYPASS_PROFILE_STORAGE_KEY, JSON.stringify({
+          username: next.username,
+          full_name: next.name,
+          bio: next.job,
+        }))
+        setSavedProfile(next)
+        setDraft(next)
+        await checkOnboardingStatus()
+        setEditVisible(false)
+        return
+      }
 
-    // Profile data is hydrated asynchronously by AuthContext after this screen mounts.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setName(user.full_name || "New User")
-    setJob(user.bio || "No bio available")
-    setUsername(user.username || "newuser")
-  }, [user])
-
-  const stats = [
-    { id: "likes", value: user?.likes_given_count?.toString() || "0", label: "Likes given" },
-    { id: "followers", value: user?.followers_count?.toString() || "0", label: "Followers" },
-    { id: "saved", value: user?.saved_repos_count?.toString() || "0", label: "Saved" },
-    { id: "following", value: user?.following_count?.toString() || "0", label: "Following" },
-  ]
-
-  const getStatIcon = (id: string) => {
-    const iconSize = isTablet ? 26 : isSmallPhone ? 18 : 22
-    switch (id) {
-      case "likes":
-        return <HeartIcon width={iconSize} height={iconSize - 3} fill="#8EFF7A" />
-      case "followers":
-        return <GroupFollowersIcon width={iconSize} height={iconSize - 3} fill="#8EFF7A" />
-      case "saved":
-        return <BookmarkIcon width={iconSize - 7} height={iconSize - 3} fill="#8EFF7A" />
-      case "following":
-        return <FollowerUserIcon width={iconSize} height={iconSize} fill="#8EFF7A" />
-      default:
-        return null
+      const accessToken = await getStorageItem("access_token")
+      if (!accessToken) throw new Error("Your session has expired. Please log in again.")
+      const response = await fetch(`${API_URL}/users/me`, {
+        method: "PATCH",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({ username: next.username, full_name: next.name, bio: next.job }),
+      })
+      const payload = await response.json()
+      if (!response.ok) throw new Error(payload.error ?? "Unable to update your profile.")
+      const updatedProfile = { name: payload.data.full_name, job: payload.data.bio, username: payload.data.username }
+      setSavedProfile(updatedProfile)
+      setDraft(updatedProfile)
+      await checkOnboardingStatus()
+      setEditVisible(false)
+    } catch (error) {
+      setEditError(requestError(error, "Unable to update your profile."))
+    } finally {
+      setIsSaving(false)
     }
   }
 
-  const avatarSize = isTablet ? 110 : isSmallPhone ? 72 : 92
-  const nameFontSize = isTablet ? 22 : isSmallPhone ? 15 : 18
-  const jobFontSize = isTablet ? 14 : 12
-  const statValueSize = isTablet ? 16 : isSmallPhone ? 12 : 14
-  const statLabelSize = isTablet ? 11 : isSmallPhone ? 9 : 10
-  const tabFontSize = isTablet ? 16 : 14
-  const tabGap = isTablet ? 96 : isSmallPhone ? 48 : 72
-  const topMargin = isTablet ? 40 : isSmallPhone ? 20 : 32
+  const confirmLogout = async () => {
+    setLoggingOut(true)
+    setLogoutError("")
+    try {
+      await signOut()
+    } catch (error) {
+      setLogoutError(error instanceof Error ? error.message : "Unable to log out.")
+    } finally {
+      setLoggingOut(false)
+      setLogoutVisible(false)
+      router.replace("/(auth)/login")
+    }
+  }
+
+  const stats = [
+    { value: formatCompactCount(user?.likes_given_count), label: "likes given", href: { pathname: "/likes-given", params: { username } } },
+    { value: String(user?.followers_count ?? 0), label: "followers", href: { pathname: "/followers", params: { username } } },
+    { value: String(user?.saved_repos_count ?? 0), label: "saved" },
+    { value: String(user?.following_count ?? 0), label: "following", href: { pathname: "/following", params: { username } } },
+  ]
+
+  const cardHeight = isCompact ? 40 : isTablet ? 54 : 50
+  const contentGap = isCompact ? 10 : isTablet ? 16 : 13
+  const sectionGap = isCompact ? 10 : isTablet ? 14 : 12
+  const sectionLabelHeight = isCompact ? 17 : 21
+  // Repositories is the taller tab (3 pinned + 4 regular rows). Reserving its
+  // height for both tabs prevents the vertically-centered page from jumping.
+  const tabContentHeight = (cardHeight * 7) + (contentGap * 5) + (sectionGap * 2) + sectionLabelHeight
+  const avatarLetter = username.trim().charAt(0).toUpperCase() || name.charAt(0).toUpperCase() || "U"
+  const usernameText = `@${username}`
+  const horizontalPadding = isTablet ? 48 : 24
+  const contentWidth = Math.min(Math.max(width - (horizontalPadding * 2), 0), isTablet ? 760 : 600)
+  const avatarWidth = Math.min(contentWidth * (isTablet ? 0.31 : 0.25), 116)
+  const headerGapWidth = contentWidth * 0.08
+  const actionIconWidth = isCompact ? 21 : 26
+  const detailsWidth = Math.max(contentWidth - avatarWidth - headerGapWidth - actionIconWidth, 1)
+  const usernameWidth = Math.max(detailsWidth - (detailsWidth * 0.03) - (isCompact ? 17 : 20), 1)
+  const fitSingleLineText = (value: string, baseSize: number, availableWidth: number) => {
+    const widthUnits = Array.from(value).reduce((total, character) => {
+      if (character === " ") return total + 0.32
+      if (/[ilI1.,'`]/.test(character)) return total + 0.3
+      if (/[MW@#%&]/.test(character)) return total + 0.9
+      return total + 0.58
+    }, 0)
+    return Math.max(1, Math.min(baseSize, Math.floor((availableWidth * 0.94) / Math.max(widthUnits, 1))))
+  }
+  const primaryFontSize = fitSingleLineText(usernameText, isCompact ? 17 : isTablet ? 23 : 21, usernameWidth)
+  const jobFontSize = fitSingleLineText(job, isCompact ? 12 : 15, detailsWidth)
+  const fullNameFontSize = fitSingleLineText(name, isCompact ? 11 : 14, detailsWidth)
+
+  const listContent = activeTab === "Lists" ? <View key="lists" style={{ minHeight: tabContentHeight, gap: sectionGap }}>
+    <View style={{ gap: contentGap }}>
+      {pinnedLists.map((item) => <View key={item} className="w-full flex-row items-center bg-[#151515]" style={{ height: cardHeight, paddingHorizontal: "5%", borderRadius: 16, gap: "4%", borderCurve: "continuous" }}>
+        <Square size={isCompact ? 15 : 18} color="#B8B7BD" />
+        <Text numberOfLines={1} className="flex-1 text-white font-nata" style={{ fontSize: isCompact ? 13 : 16 }}>{item}</Text>
+        <Pin size={isCompact ? 14 : 17} color="#1EE15B" />
+      </View>)}
+    </View>
+    <Text className="text-[#63E08A] font-nataMedium" style={{ fontSize: isCompact ? 13 : 16 }}>Saved Collections</Text>
+    <View style={{ gap: contentGap }}>
+      {collections.map((item) => <View key={item.name} className="w-full flex-row items-center bg-[#151515]" style={{ height: cardHeight, paddingHorizontal: "4%", borderRadius: 16, gap: "4%", borderCurve: "continuous" }}>
+        <View className="items-center justify-center" style={{ height: "70%", aspectRatio: 1, borderRadius: 9, backgroundColor: item.color, borderCurve: "continuous" }}><Bookmark size={isCompact ? 13 : 16} color="white" /></View>
+        <Text numberOfLines={1} className="flex-1 text-white font-nata" style={{ fontSize: isCompact ? 13 : 16 }}>{item.name}</Text>
+        <Text className="text-[#67666C] font-nata" style={{ fontVariant: ["tabular-nums"] }}>{item.count}</Text>
+        <ChevronRight size={isCompact ? 14 : 17} color="#4F4E54" />
+      </View>)}
+    </View>
+  </View> : <View key="repositories" style={{ minHeight: tabContentHeight, gap: sectionGap }}>
+    <View style={{ gap: contentGap }}>
+      {pinnedRepositories.map((item) => <View key={item} className="w-full flex-row items-center bg-[#151515]" style={{ height: cardHeight, paddingHorizontal: "5%", borderRadius: 16, gap: "4%", borderCurve: "continuous" }}>
+        <Square size={isCompact ? 15 : 18} color="#B8B7BD" />
+        <Text numberOfLines={1} className="flex-1 text-white font-nata" style={{ fontSize: isCompact ? 13 : 16 }}>{item}</Text>
+        <Pin size={isCompact ? 14 : 17} color="#1EE15B" />
+      </View>)}
+    </View>
+    <Text className="text-[#63E08A] font-nataMedium" style={{ fontSize: isCompact ? 13 : 16 }}>All Repositories</Text>
+    <View style={{ gap: contentGap }}>
+      {repositories.map((item) => <View key={item.name} className="w-full flex-row items-center bg-[#151515]" style={{ height: cardHeight, paddingHorizontal: "5%", borderRadius: 16, gap: "4%", borderCurve: "continuous" }}>
+        <Square size={isCompact ? 15 : 18} color="#B8B7BD" />
+        <Text numberOfLines={1} className="flex-1 text-white font-nata" style={{ fontSize: isCompact ? 13 : 16 }}>{item.name}</Text>
+        <Text className="text-[#FFD600] font-nata" style={{ fontSize: isCompact ? 11 : 13 }}>★ <Text className="text-[#77767C]">{item.stars}</Text></Text>
+      </View>)}
+    </View>
+  </View>
 
   return (
-    <View style={{ flex: 1, backgroundColor: "#090D0A" }}>
-      <SafeAreaView style={{ flex: 1, backgroundColor: "#090D0A" }}>
-        <ScrollView
-          contentContainerStyle={{
-            flexGrow: 1,
-            alignItems: "center",
-            paddingBottom: 20,
-          }}
-        >
-          {/* ── Main Layout Container ── */}
-          <View
-            style={{
-              width: "100%",
-              maxWidth: contentMaxWidth,
-              paddingHorizontal: isTablet ? 32 : 20,
-              flexDirection: "column",
-              flex: 1,
-            }}
-          >
-            <View
-              style={{
-                width: "100%",
-                paddingTop: topMargin,
-              }}
-            >
-              {/* Top Action Bar */}
-              <View style={{ width: "100%", flexDirection: "row", justifyContent: "flex-end", marginBottom: 16 }}>
-                <Pressable
-                  onPress={signOut}
-                  hitSlop={12}
-                  style={{
-                    paddingVertical: 6,
-                    paddingHorizontal: 12,
-                    borderRadius: 8,
-                    backgroundColor: "rgba(255, 59, 48, 0.15)",
-                    borderWidth: 1,
-                    borderColor: "rgba(255, 59, 48, 0.3)",
-                  }}
-                >
-                  <Text style={{ color: "#FF3B30", fontSize: 13, fontWeight: "600", fontFamily: "NotoSans_400Regular" }}>
-                    Log Out
-                  </Text>
-                </Pressable>
-              </View>
-
-              {/* Header: Avatar + Name/Job/Username */}
-              <View
-                style={{
-                  flexDirection: isTablet ? "column" : "row",
-                  alignItems: "center",
-                }}
-              >
-                <View
-                  style={{
-                    width: avatarSize,
-                    height: avatarSize,
-                    justifyContent: "center",
-                    alignItems: "center",
-                  }}
-                >
-                  <ProfileAvatarIcon width={avatarSize} height={avatarSize} />
+    <ScrollView
+      className="flex-1 bg-black"
+      contentInsetAdjustmentBehavior="automatic"
+      showsVerticalScrollIndicator={false}
+      contentContainerClassName="w-full items-center"
+      contentContainerStyle={{ flexGrow: 1, justifyContent: "center", paddingHorizontal: isTablet ? 48 : 24, paddingTop: Math.max(insets.top, 20) + (isTablet ? 28 : 16), paddingBottom: Math.max(insets.bottom, 20) + (isTablet ? 28 : 16) }}
+    >
+      <View className="w-full" style={{ maxWidth: isTablet ? 760 : 600, gap: isTablet ? 34 : 28 }}>
+        <View className="w-full" style={{ gap: isTablet ? 34 : 28 }}>
+          <View className="w-full" style={{ gap: isTablet ? 30 : 25 }}>
+            <View className="w-full flex-row items-center" style={{ minHeight: isCompact ? 74 : isTablet ? 128 : 96, gap: "4%" }}>
+              <View className="items-center justify-center bg-[#9B4FE4]" style={{ width: isTablet ? "31%" : "25%", maxWidth: 116, aspectRatio: 1, borderRadius: 999 }}><Text className="text-white font-nataBold" style={{ fontSize: isCompact ? 25 : isTablet ? 38 : 32 }}>{avatarLetter}</Text></View>
+              <View className="flex-1 justify-center" style={{ minWidth: 0 }}>
+                <View className="w-full flex-row items-start" style={{ gap: "3%" }}>
+                  <Text selectable numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.05} className="flex-1 text-white font-nataBold" style={{ flexShrink: 1, fontSize: primaryFontSize, lineHeight: Math.ceil(primaryFontSize * 1.2) }}>{usernameText}</Text>
+                  <Pressable accessibilityLabel="Edit profile" onPress={openEditor} hitSlop={12} className="items-center justify-center"><SquarePen size={isCompact ? 17 : 20} color="#97969C" /></Pressable>
                 </View>
-
-                <View
-                  style={{
-                    marginLeft: isTablet ? 0 : 16,
-                    marginTop: isTablet ? 16 : 0,
-                    flex: isTablet ? undefined : 1,
-                    alignItems: isTablet ? "center" : "flex-start",
-                  }}
-                >
-                  <View style={{ flexDirection: "row", alignItems: "center" }}>
-                    <Text
-                      style={{
-                        color: "white",
-                        fontSize: nameFontSize,
-                        fontWeight: "700",
-                        letterSpacing: 0.5,
-                        fontFamily: "NotoSans_400Regular",
-                      }}
-                    >
-                      {name}
-                    </Text>
-                    <Pressable
-                      style={{ marginLeft: 8, padding: 4 }}
-                      onPress={() => setModal(true)}
-                      hitSlop={8}
-                    >
-                      <PencilIcon size={isTablet ? 14 : 11} fill="#8EFF7A" />
-                    </Pressable>
-                  </View>
-
-                  <Text
-                    style={{
-                      color: "#8EFF7A",
-                      fontSize: jobFontSize,
-                      fontWeight: "600",
-                      marginTop: 2,
-                      fontFamily: "NotoSans_400Regular",
-                    }}
-                  >
-                    {job}
-                  </Text>
-                  <Text
-                    style={{
-                      color: "white",
-                      fontSize: jobFontSize,
-                      marginTop: 2,
-                      fontFamily: "NotoSans_400Regular",
-                    }}
-                  >
-                    @{username}
-                  </Text>
-                </View>
+                <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.05} className="text-[#8A898F] font-nata" style={{ flexShrink: 1, fontSize: jobFontSize, lineHeight: Math.ceil(jobFontSize * 1.25) }}>{job}</Text>
+                <Text selectable numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.05} className="text-[#68676D] font-nata" style={{ flexShrink: 1, fontSize: fullNameFontSize, lineHeight: Math.ceil(fullNameFontSize * 1.25) }}>{name}</Text>
               </View>
-
-              {/* Stats Row */}
-              <View
-                style={{
-                  flexDirection: "row",
-                  justifyContent: "space-between",
-                  marginTop: isTablet ? 32 : 24,
-                  alignItems: "center",
-                }}
-              >
-                {stats.map((stat, index) => (
-                  <React.Fragment key={stat.id}>
-                    {index !== 0 && (
-                      <Svg width={1} height={isTablet ? 72 : 62} viewBox="0 0 1 62" fill="none">
-                        <Path
-                          opacity={0.4}
-                          d="M0.5 0C0.466667 1.03333 0.435 2.06667 0.405 3.1C0.135 12.4 0 21.7 0 31C0 40.3 0.135 49.6 0.405 58.9C0.435 59.9333 0.466667 60.9667 0.5 62C0.533333 60.9667 0.565 59.9333 0.595 58.9C0.865 49.6 1 40.3 1 31C1 21.7 0.865 12.4 0.595 3.1C0.565 2.06667 0.533333 1.03333 0.5 0Z"
-                          fill="white"
-                        />
-                      </Svg>
-                    )}
-                    <View style={{ alignItems: "center", flex: 1 }}>
-                      <View style={{ height: isTablet ? 32 : 28, justifyContent: "center", alignItems: "center" }}>
-                        {getStatIcon(stat.id)}
-                      </View>
-                      <Text
-                        style={{
-                          color: "white",
-                          fontSize: statValueSize,
-                          fontWeight: "700",
-                          marginTop: 4,
-                          fontFamily: "NotoSans_400Regular",
-                        }}
-                      >
-                        {stat.value}
-                      </Text>
-                      <Text
-                        style={{
-                          color: "rgba(255,255,255,0.8)",
-                          fontSize: statLabelSize,
-                          marginTop: 2,
-                          textAlign: "center",
-                          fontWeight: "500",
-                          fontFamily: "NotoSans_400Regular",
-                        }}
-                      >
-                        {stat.label}
-                      </Text>
-                    </View>
-                  </React.Fragment>
-                ))}
-              </View>
+              <Pressable accessibilityLabel="Log out" onPress={() => { setLogoutError(""); setLogoutVisible(true) }} hitSlop={12} className="self-start items-center justify-center" style={{ paddingTop: "3%" }}><LogOut size={isCompact ? 21 : 26} color="#96959B" /></Pressable>
             </View>
 
-            {/* ── Right Column (Tabs & Content) ── */}
-            <View
-              style={{
-                width: "100%",
-                paddingTop: 12,
-              }}
-            >
-              {/* Navigation Tabs */}
-              <View
-                style={{
-                  flexDirection: "row",
-                  justifyContent: "center",
-                  gap: tabGap,
-                  marginTop: isTablet ? 40 : 48,
-                  marginBottom: 24,
-                  paddingBottom: 2,
-                }}
-              >
-                <Pressable onPress={() => setActivetab("Lists")} hitSlop={8}>
-                  <Text
-                    style={{
-                      fontSize: tabFontSize,
-                      fontWeight: "600",
-                      letterSpacing: 0.5,
-                      paddingBottom: 4,
-                      fontFamily: "NotoSans_400Regular",
-                      color: activetab === "Lists" ? "#6DA963" : "white",
-                      borderBottomWidth: activetab === "Lists" ? 2 : 0,
-                      borderBottomColor: "#6DA963",
-                    }}
-                  >
-                    Lists
-                  </Text>
-                </Pressable>
-
-                <Pressable onPress={() => setActivetab("Repositories")} hitSlop={8}>
-                  <Text
-                    style={{
-                      fontSize: tabFontSize,
-                      fontWeight: "600",
-                      letterSpacing: 0.5,
-                      paddingBottom: 4,
-                      fontFamily: "NotoSans_400Regular",
-                      color: activetab === "Repositories" ? "#8EFF7A" : "white",
-                      borderBottomWidth: activetab === "Repositories" ? 2 : 0,
-                      borderBottomColor: "#8EFF7A",
-                    }}
-                  >
-                    Repositories
-                  </Text>
-                </Pressable>
-              </View>
-
-              {/* Tab Content */}
-              <View style={{ width: "100%" }}>
-                {activetab === "Lists" && <Lists userId={user?.user_id} />}
-                {activetab === "Repositories" && <Repositories userId={user?.user_id} />}
-              </View>
+            <View className="w-full flex-row justify-between" style={{ paddingVertical: isTablet ? 14 : 10 }}>
+              {stats.map((stat) => <Pressable key={stat.label} disabled={!stat.href} onPress={() => stat.href && router.push(stat.href as Href)} className="items-center" style={{ width: "24%" }}>
+                <Text className="text-white font-nataBold" style={{ fontSize: isCompact ? 15 : 19, fontVariant: ["tabular-nums"] }}>{stat.value}</Text>
+                <Text numberOfLines={1} className="text-[#77767C] font-nata" style={{ fontSize: isCompact ? 9 : 12 }}>{stat.label}</Text>
+              </Pressable>)}
             </View>
           </View>
+
+          <View className="w-full" style={{ gap: isTablet ? 22 : 18 }}>
+            <View className="w-full flex-row bg-[#151515]" style={{ borderRadius: 13, padding: 3, borderCurve: "continuous" }}>
+              {(["Lists", "Repositories"] as const).map((tab) => <Pressable key={tab} onPress={() => setActiveTab(tab)} className="w-1/2 items-center justify-center" style={{ height: isCompact ? 34 : 42, borderRadius: 10, backgroundColor: activeTab === tab ? COLORS.selected : "transparent", borderCurve: "continuous" }}><Text className={activeTab === tab ? "text-white font-nataSemiBold" : "text-[#99989E] font-nataSemiBold"} style={{ fontSize: isCompact ? 12 : 14 }}>{tab}</Text></Pressable>)}
+            </View>
+            {listContent}
+          </View>
+        </View>
+      </View>
+
+      <Modal visible={editVisible} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setEditVisible(false)}>
+        <ScrollView contentInsetAdjustmentBehavior="automatic" keyboardShouldPersistTaps="handled" className="bg-[#080808]" contentContainerStyle={{ flexGrow: 1, justifyContent: "center", paddingHorizontal: "8%", paddingVertical: "10%", gap: 16 }}>
+          <Text className="text-white font-nataBold text-[27px]">Edit profile</Text>
+          {[
+            { key: "username" as const, label: "Username" },
+            { key: "job" as const, label: "Job role" },
+            { key: "name" as const, label: "Name" },
+          ].map((field) => <View key={field.key} className="gap-2"><Text className="text-[#63E08A] font-nataMedium">{field.label}</Text><TextInput value={draft[field.key]} onChangeText={(value) => setDraft((current) => ({ ...current, [field.key]: value }))} autoCapitalize={field.key === "username" ? "none" : "sentences"} className="min-h-[54px] text-white bg-[#151515] rounded-[14px] px-[5%] font-nata text-base" /></View>)}
+          {editError ? <Text selectable className="text-[#FF6878] font-nata">{editError}</Text> : null}
+          <Pressable disabled={isSaving} onPress={saveDetails} className="min-h-[54px] rounded-[14px] bg-[#63E08A] items-center justify-center" style={{ opacity: isSaving ? 0.7 : 1 }}>{isSaving ? <ActivityIndicator color="#071009" /> : <Text className="text-[#071009] font-nataBold text-base">Save changes</Text>}</Pressable>
+          <Pressable disabled={isSaving} onPress={() => setEditVisible(false)} className="items-center p-[3%]"><Text className="text-[#77767C] font-nataMedium">Cancel</Text></Pressable>
         </ScrollView>
-      </SafeAreaView>
+      </Modal>
 
-      {/* ── Edit Profile Modal ── */}
-      <Modal visible={modal} animationType="slide" transparent={false}>
-        <View style={{ flex: 1, backgroundColor: "#090D0A", justifyContent: "center", alignItems: "center", padding: 24 }}>
-          <View style={{ width: "100%", maxWidth: isTablet ? 480 : 360 }}>
-            <Text
-              style={{
-                color: "white",
-                fontSize: isTablet ? 24 : 20,
-                fontWeight: "700",
-                marginBottom: 24,
-                borderBottomWidth: 1,
-                borderBottomColor: "#232D25",
-                paddingBottom: 8,
-                textAlign: "center",
-                fontFamily: "NotoSans_400Regular",
-              }}
-            >
-              Edit Profile
-            </Text>
-
-            {[
-              { label: "Full Name", value: name, setter: setName },
-              { label: "Job Role", value: job, setter: setJob },
-              { label: "Username", value: username, setter: setUsername },
-            ].map((field, i, arr) => (
-              <View key={field.label}>
-                <Text
-                  style={{
-                    color: "#8EFF7A",
-                    fontSize: 12,
-                    fontWeight: "700",
-                    marginBottom: 6,
-                    textTransform: "uppercase",
-                    fontFamily: "NotoSans_400Regular",
-                  }}
-                >
-                  {field.label}
-                </Text>
-                <TextInput
-                  style={{
-                    backgroundColor: "#141915",
-                    color: "white",
-                    borderRadius: 12,
-                    padding: isTablet ? 16 : 14,
-                    borderWidth: 1,
-                    borderColor: "#232D25",
-                    marginBottom: i === arr.length - 1 ? 32 : 16,
-                    fontSize: isTablet ? 16 : 14,
-                    fontFamily: "NotoSans_400Regular",
-                  }}
-                  value={field.value}
-                  onChangeText={field.setter}
-                  placeholderTextColor="#444"
-                />
-              </View>
-            ))}
-
-            <Pressable
-              style={{ backgroundColor: "#8EFF7A", paddingVertical: isTablet ? 18 : 16, borderRadius: 12, alignItems: "center" }}
-              onPress={() => setModal(false)}
-            >
-              <Text
-                style={{
-                  fontWeight: "700",
-                  color: "#090D0A",
-                  textTransform: "uppercase",
-                  letterSpacing: 1,
-                  fontSize: 12,
-                  fontFamily: "NotoSans_400Regular",
-                }}
-              >
-                Save Details
-              </Text>
-            </Pressable>
-
-            <Pressable style={{ marginTop: 16, alignItems: "center" }} onPress={() => setModal(false)}>
-              <Text style={{ color: "#8EFF7A", fontSize: 14, fontFamily: "NotoSans_400Regular" }}>Cancel</Text>
-            </Pressable>
+      <Modal visible={logoutVisible} transparent animationType="fade" onRequestClose={() => setLogoutVisible(false)}>
+        <View className="flex-1 bg-black/80 items-center justify-center px-[8%]">
+          <View className="w-full max-w-[420px] bg-[#151515] rounded-[22px] p-[7%] items-center gap-4" style={{ borderCurve: "continuous", boxShadow: "0 12px 40px rgba(0,0,0,0.55)" }}>
+            <View className="w-[18%] max-w-[68px] aspect-square rounded-full bg-[#232323] items-center justify-center"><LogOut size={27} color="#63E08A" /></View>
+            <Text className="text-white font-nataBold text-xl text-center">Log out?</Text>
+            <Text className="text-[#8A898F] font-nata text-sm text-center">Are you sure you want to log out of your account?</Text>
+            {logoutError ? <Text selectable className="text-[#FF6878] font-nata text-sm text-center">{logoutError}</Text> : null}
+            <View className="w-full flex-row gap-3">
+              <Pressable disabled={loggingOut} onPress={() => setLogoutVisible(false)} className="flex-1 min-h-[48px] rounded-[13px] bg-[#292929] items-center justify-center"><Text className="text-white font-nataSemiBold">Cancel</Text></Pressable>
+              <Pressable disabled={loggingOut} onPress={confirmLogout} className="flex-1 min-h-[48px] rounded-[13px] bg-[#63E08A] items-center justify-center">{loggingOut ? <ActivityIndicator color="#071009" /> : <Text className="text-[#071009] font-nataBold">Log out</Text>}</Pressable>
+            </View>
           </View>
         </View>
       </Modal>
-    </View>
+    </ScrollView>
   )
 }

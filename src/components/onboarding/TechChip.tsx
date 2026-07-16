@@ -20,8 +20,8 @@ export default function TechChip({
       onPress={onPress}
       className={`rounded-xl px-3 py-2 mr-2 mb-2 flex-row items-center ${
         selected
-          ? "bg-[#152418] border border-[#8EFF7A]"
-          : "bg-[#1A1A1A] border border-[#333]"
+          ? "bg-[#2C2C2E] border border-[#63E08A]"
+          : "bg-[#1C1C1E] border border-[rgba(255,255,255,0.14)]"
       }`}
     >
       {image && <View className="mr-2">{image}</View>}
@@ -32,8 +32,8 @@ export default function TechChip({
       <Text
         className={`ml-2 text-base ${
           selected
-            ? "text-[#8EFF7A]"
-            : "text-[#8A8A8A]"
+            ? "text-[#63E08A]"
+            : "text-[rgba(235,235,245,0.45)]"
         }`}
       >
         {selected ? "×" : "+"}

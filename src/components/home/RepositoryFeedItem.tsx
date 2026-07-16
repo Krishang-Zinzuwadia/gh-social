@@ -1,19 +1,23 @@
-import React, { useState, useCallback, useMemo, useRef } from 'react';
-import { Animated, Easing, PanResponder, Platform, StyleSheet, View, type ViewStyle, GestureResponderEvent } from 'react-native';
-import { RepositoryData } from '../../data/repositories';
-import { RepositoryScreen } from './RepositoryScreen';
-import { SavePopup } from './save-popup';
-import { ReadmePopup } from './ReadmePopup';
+import React, { useRef, useState } from 'react';
+import {
+  Platform,
+  StyleSheet,
+  View,
+  type GestureResponderEvent,
+  type ViewStyle,
+} from 'react-native';
+
+import type { RepositoryData } from '../../data/repositories';
 import type { FeedbackAction } from '../../api/activity';
 import {
   DWELL_VISIBILITY_THRESHOLD_MS,
   FEEDBACK_ACTIONS,
   IMPRESSION_VISIBILITY_THRESHOLD_MS,
 } from '../../constants/feedbackActions';
-
-function clampNumber(value: number, minimum: number, maximum: number) {
-  return Math.min(Math.max(value, minimum), maximum);
-}
+import { CommentSheet } from './CommentSheet';
+import { ReadmePopup } from './ReadmePopup';
+import { RepositoryScreen } from './RepositoryScreen';
+import { SavePopup } from './save-popup';
 
 const WEB_FEED_ITEM_STYLE =
   Platform.OS === 'web'
@@ -24,36 +28,37 @@ export function RepositoryFeedItem({
   repository,
   pageWidth,
   pageHeight,
-  isViewable,
+  isViewable = false,
   onQueueActivity,
 }: {
   repository: RepositoryData;
   pageWidth: number;
   pageHeight: number;
   isViewable?: boolean;
-  onQueueActivity?: (event: { repo_id: string; action: FeedbackAction; dwell_seconds?: number }, flushNow?: boolean) => void;
+  onQueueActivity?: (
+    event: { repo_id: string; action: FeedbackAction; dwell_seconds?: number },
+    flushNow?: boolean
+  ) => void;
 }) {
-  const [isPopupVisible, setIsPopupVisible] = useState(false);
+  const [isSaveVisible, setIsSaveVisible] = useState(false);
   const [isReadmeVisible, setIsReadmeVisible] = useState(false);
-  const panelWidth = Math.min(pageWidth * 0.82, 320);
-  const edgeSwipeWidth = 36;
-  const drawerTranslateX = useMemo(() => new Animated.Value(-panelWidth), [panelWidth]);
-  const drawerOverlayOpacity = useMemo(() => new Animated.Value(0), []);
+  const [isCommentsVisible, setIsCommentsVisible] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
+  const [commentCount, setCommentCount] = useState(
+    Number(repository.stats.comments || 0) || 0
+  );
 
-  const isDraggingRef = useRef(false);
   const visibleStartTime = useRef<number | null>(null);
   const impressionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const impressionSentRef = useRef(false);
-  const userActionTaken = useRef(false);
+  const touchStartRef = useRef({ x: 0, y: 0 });
+  const saveSwipeRef = useRef(false);
 
   React.useEffect(() => {
     if (isViewable) {
       visibleStartTime.current = Date.now();
       impressionSentRef.current = false;
-      userActionTaken.current = false;
-      if (impressionTimeoutRef.current) {
-        clearTimeout(impressionTimeoutRef.current);
-      }
+      if (impressionTimeoutRef.current) clearTimeout(impressionTimeoutRef.current);
       impressionTimeoutRef.current = setTimeout(() => {
         if (visibleStartTime.current !== null && !impressionSentRef.current) {
           impressionSentRef.current = true;
@@ -84,177 +89,81 @@ export function RepositoryFeedItem({
     };
   }, [isViewable, onQueueActivity, repository.id]);
 
-  const openSaveDrawer = useCallback(() => {
-    setIsPopupVisible(true);
-    Animated.parallel([
-      Animated.spring(drawerTranslateX, {
-        toValue: 0,
-        tension: 85,
-        friction: 12,
-        useNativeDriver: true,
-      }),
-      Animated.timing(drawerOverlayOpacity, {
-        toValue: 1,
-        duration: 160,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, [drawerOverlayOpacity, drawerTranslateX]);
+  const overlaysOpen = isSaveVisible || isReadmeVisible || isCommentsVisible;
 
-  const [isEdgeGestureActive, setIsEdgeGestureActive] = useState(false);
-
-  const closeSaveDrawer = useCallback(() => {
-    Animated.parallel([
-      Animated.timing(drawerTranslateX, {
-        toValue: -panelWidth,
-        duration: 220,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: true,
-      }),
-      Animated.timing(drawerOverlayOpacity, {
-        toValue: 0,
-        duration: 180,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: true,
-      }),
-    ]).start(({ finished }) => {
-      if (finished) {
-        setIsPopupVisible(false);
-        setIsEdgeGestureActive(false);
-      }
-    });
-  }, [drawerOverlayOpacity, drawerTranslateX, panelWidth]);
-
-  const [touchActive, setTouchActive] = useState(false);
-  const touchStartXRef = useRef(0);
-  const touchStartYRef = useRef(0);
-
-  const edgePanResponder = useMemo(
-    () =>
-      PanResponder.create({
-        onStartShouldSetPanResponder: () => true,
-        onStartShouldSetPanResponderCapture: () => true,
-        onMoveShouldSetPanResponder: (_, gestureState) =>
-          gestureState.dx > 2 && Math.abs(gestureState.dx) > Math.abs(gestureState.dy),
-        onMoveShouldSetPanResponderCapture: (_, gestureState) =>
-          gestureState.dx > 2 && Math.abs(gestureState.dx) > Math.abs(gestureState.dy),
-        onShouldBlockNativeResponder: () => true,
-        onPanResponderGrant: () => {
-          setIsEdgeGestureActive(true);
-          setIsPopupVisible(true);
-          drawerTranslateX.stopAnimation();
-          drawerOverlayOpacity.stopAnimation();
-          drawerTranslateX.setValue(-panelWidth);
-          drawerOverlayOpacity.setValue(0);
-        },
-        onPanResponderMove: (_, gestureState) => {
-          if (gestureState.dx <= 0 || Math.abs(gestureState.dx) < Math.abs(gestureState.dy)) return;
-          const nextPanelX = clampNumber(-panelWidth + gestureState.dx, -panelWidth, 0);
-          const openProgress = (nextPanelX + panelWidth) / panelWidth;
-          drawerTranslateX.setValue(nextPanelX);
-          drawerOverlayOpacity.setValue(openProgress);
-        },
-        onPanResponderRelease: (_, gestureState) => {
-          setIsEdgeGestureActive(false);
-          if (gestureState.dx > panelWidth * 0.4) {
-            openSaveDrawer();
-          } else {
-            closeSaveDrawer();
-          }
-        },
-        onPanResponderTerminate: () => {
-          closeSaveDrawer();
-        },
-      }),
-    [drawerTranslateX, drawerOverlayOpacity, panelWidth, openSaveDrawer, closeSaveDrawer]
-  );
-
-  const handleTouchStart = (e: GestureResponderEvent) => {
-    if (isReadmeVisible || isPopupVisible) return;
-    const pageX = e.nativeEvent.pageX ?? e.nativeEvent.touches?.[0]?.pageX ?? 0;
-    const pageY = e.nativeEvent.pageY ?? e.nativeEvent.touches?.[0]?.pageY ?? 0;
-    touchStartXRef.current = pageX;
-    touchStartYRef.current = pageY;
-    setTouchActive(true);
-    isDraggingRef.current = false;
+  const handleTouchStart = (event: GestureResponderEvent) => {
+    if (overlaysOpen) return;
+    const touch = event.nativeEvent.touches?.[0];
+    touchStartRef.current = {
+      x: event.nativeEvent.pageX ?? touch?.pageX ?? 0,
+      y: event.nativeEvent.pageY ?? touch?.pageY ?? 0,
+    };
+    saveSwipeRef.current = false;
   };
 
-  const handleTouchMove = (e: GestureResponderEvent) => {
-    if (!touchActive) return;
-    const pageX = e.nativeEvent.pageX ?? e.nativeEvent.touches?.[0]?.pageX ?? 0;
-    const pageY = e.nativeEvent.pageY ?? e.nativeEvent.touches?.[0]?.pageY ?? 0;
-    const diffX = pageX - touchStartXRef.current;
-    const diffY = pageY - touchStartYRef.current;
-
-    if (Math.abs(diffX) > 12 && Math.abs(diffX) > Math.abs(diffY)) {
-      if (diffX < 0) {
-        // Swipe Left: trigger opening the Save Repository bottom sheet
-        isDraggingRef.current = true;
-      }
+  const handleTouchMove = (event: GestureResponderEvent) => {
+    if (overlaysOpen) return;
+    const touch = event.nativeEvent.touches?.[0];
+    const x = event.nativeEvent.pageX ?? touch?.pageX ?? 0;
+    const y = event.nativeEvent.pageY ?? touch?.pageY ?? 0;
+    const deltaX = x - touchStartRef.current.x;
+    const deltaY = y - touchStartRef.current.y;
+    if (deltaX < -56 && Math.abs(deltaX) > Math.abs(deltaY) * 1.2) {
+      saveSwipeRef.current = true;
     }
   };
 
   const handleTouchEnd = () => {
-    if (!touchActive) return;
-    setTouchActive(false);
-
-    if (isDraggingRef.current) {
-      isDraggingRef.current = false;
-      openSaveDrawer();
-    }
+    if (saveSwipeRef.current && !overlaysOpen) setIsSaveVisible(true);
+    saveSwipeRef.current = false;
   };
 
   return (
     <View
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
       onTouchCancel={handleTouchEnd}
+      onTouchEnd={handleTouchEnd}
+      onTouchMove={handleTouchMove}
+      onTouchStart={handleTouchStart}
       style={[styles.feedItem, { width: pageWidth, height: pageHeight }, WEB_FEED_ITEM_STYLE]}
     >
-      <View style={{ width: pageWidth, height: pageHeight }}>
-        <RepositoryScreen
-          repository={repository}
-          pageWidth={pageWidth}
-          pageHeight={pageHeight}
-          onReadFullPress={() => {
-            userActionTaken.current = true;
-            onQueueActivity?.({ repo_id: repository.id, action: FEEDBACK_ACTIONS.readmeOpen }, true);
-            setIsReadmeVisible(true);
-          }}
-          onQueueActivity={(e, flushNow) => {
-            userActionTaken.current = true;
-            onQueueActivity?.(e, flushNow);
-          }}
-        />
-      </View>
-
-      <View
-        {...edgePanResponder.panHandlers}
-        pointerEvents={isPopupVisible && !isEdgeGestureActive ? 'none' : 'auto'}
-        style={[styles.edgeSwipeZone, { width: edgeSwipeWidth }]}
+      <RepositoryScreen
+        commentCount={commentCount}
+        isActive={isViewable}
+        isSaved={isSaved}
+        onCommentPress={() => setIsCommentsVisible(true)}
+        onQueueActivity={onQueueActivity}
+        onReadFullPress={() => {
+          onQueueActivity?.(
+            { repo_id: repository.id, action: FEEDBACK_ACTIONS.readmeOpen },
+            true
+          );
+          setIsReadmeVisible(true);
+        }}
+        onSavePress={() => setIsSaveVisible(true)}
+        pageHeight={pageHeight}
+        pageWidth={pageWidth}
+        repository={repository}
       />
 
       <SavePopup
-        isVisible={isPopupVisible}
-        onClose={closeSaveDrawer}
-        panelWidth={panelWidth}
-        panelTranslateX={drawerTranslateX}
-        overlayOpacity={drawerOverlayOpacity}
-        isGestureActive={isEdgeGestureActive}
+        isVisible={isSaveVisible}
+        onClose={() => setIsSaveVisible(false)}
+        onSaved={() => setIsSaved(true)}
         repoId={repository.id}
         repoName={repository.title}
-        onQueueActivity={(e) => {
-          userActionTaken.current = true;
-          onQueueActivity?.(e);
-        }}
+      />
+      <CommentSheet
+        initialCommentCount={commentCount}
+        isVisible={isCommentsVisible}
+        onClose={() => setIsCommentsVisible(false)}
+        onCommentCountChange={setCommentCount}
+        repoId={repository.id}
       />
       <ReadmePopup
         isVisible={isReadmeVisible}
         onClose={() => setIsReadmeVisible(false)}
-        title={`${repository.title} README`}
         readmeText={repository.readmeFull}
+        title={repository.title}
       />
     </View>
   );
@@ -262,15 +171,8 @@ export function RepositoryFeedItem({
 
 const styles = StyleSheet.create({
   feedItem: {
-    backgroundColor: '#0D100D',
-  },
-  edgeSwipeZone: {
-    position: 'absolute',
-    left: 0,
-    top: 0,
-    bottom: 0,
-    zIndex: 1000,
-    elevation: 1000,
-    backgroundColor: 'transparent',
+    position: 'relative',
+    overflow: 'hidden',
+    backgroundColor: '#000000',
   },
 });

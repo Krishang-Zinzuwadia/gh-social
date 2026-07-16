@@ -30,13 +30,13 @@ export default function CustomCalendar({
   const [mode, setMode] = useState<'calendar' | 'year' | 'month'>('calendar');
 
   useEffect(() => {
-    if (visible) {
-      // Reopening the controlled modal intentionally resets its draft navigation state.
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (!visible) return;
+    const resetTimer = setTimeout(() => {
       setCurrentMonth(selectedDate.getMonth());
       setCurrentYear(selectedDate.getFullYear());
       setMode('calendar');
-    }
+    }, 0);
+    return () => clearTimeout(resetTimer);
   }, [visible, selectedDate]);
 
   const daysInMonth = (month: number, year: number) => {
@@ -97,7 +97,7 @@ export default function CustomCalendar({
         onPress={onClose} 
         style={{
           flex: 1, 
-          backgroundColor: 'rgba(0, 0, 0, 0.6)', 
+          backgroundColor: 'rgba(0,0,0,0.6)',
           justifyContent: 'center', 
           alignItems: 'center'
         }}
@@ -106,17 +106,17 @@ export default function CustomCalendar({
           activeOpacity={1}
           style={{
             width: 320,
-            backgroundColor: "#191F18",
+            backgroundColor: "#1C1C1E",
             borderRadius: 16,
             padding: 20,
             borderWidth: 1,
-            borderColor: "#303030",
+            borderColor: "rgba(255,255,255,0.14)",
           }}
         >
           {/* Header */}
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
             <TouchableOpacity onPress={handlePrevMonth} style={{ padding: 5 }}>
-              <ChevronLeft size={24} color="#6DA963" />
+              <ChevronLeft size={24} color="#63E08A" />
             </TouchableOpacity>
             
             <View style={{ flexDirection: 'row', gap: 8 }}>
@@ -128,14 +128,14 @@ export default function CustomCalendar({
                   paddingHorizontal: 12, 
                   paddingVertical: 6, 
                   borderWidth: 1, 
-                  borderColor: '#303030', 
+                  borderColor: 'rgba(255,255,255,0.14)',
                   borderRadius: 8 
                 }}
               >
-                <Text style={{ color: '#F0F6EB', fontSize: 16, fontWeight: '600', marginRight: 6 }}>
+                <Text style={{ color: '#FFFFFF', fontSize: 16, fontWeight: '600', marginRight: 6 }}>
                   {MONTHS[currentMonth]}
                 </Text>
-                <ChevronDown size={16} color="#8A8A8A" />
+                <ChevronDown size={16} color="rgba(235,235,245,0.6)" />
               </TouchableOpacity>
               <TouchableOpacity 
                 onPress={() => setMode('year')} 
@@ -145,19 +145,19 @@ export default function CustomCalendar({
                   paddingHorizontal: 12, 
                   paddingVertical: 6, 
                   borderWidth: 1, 
-                  borderColor: '#303030', 
+                  borderColor: 'rgba(255,255,255,0.14)',
                   borderRadius: 8 
                 }}
               >
-                <Text style={{ color: '#F0F6EB', fontSize: 16, fontWeight: '600', marginRight: 6 }}>
+                <Text style={{ color: '#FFFFFF', fontSize: 16, fontWeight: '600', marginRight: 6 }}>
                   {currentYear}
                 </Text>
-                <ChevronDown size={16} color="#8A8A8A" />
+                <ChevronDown size={16} color="rgba(235,235,245,0.6)" />
               </TouchableOpacity>
             </View>
             
             <TouchableOpacity onPress={handleNextMonth} style={{ padding: 5 }}>
-              <ChevronRightIcon size={24} color="#6DA963" />
+              <ChevronRightIcon size={24} color="#63E08A" />
             </TouchableOpacity>
           </View>
 
@@ -166,7 +166,7 @@ export default function CustomCalendar({
               {/* Days of Week */}
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 }}>
                 {DAYS.map((day, index) => (
-                  <Text key={`day-${index}`} style={{ color: '#8A8A8A', width: 32, textAlign: 'center', fontWeight: '500' }}>
+                  <Text key={`day-${index}`} style={{ color: 'rgba(235,235,245,0.6)', width: 32, textAlign: 'center', fontWeight: '500' }}>
                     {day}
                   </Text>
                 ))}
@@ -203,11 +203,11 @@ export default function CustomCalendar({
                         height: 32,
                         justifyContent: 'center',
                         alignItems: 'center',
-                        backgroundColor: isSelected ? '#6DA963' : 'transparent',
+                        backgroundColor: isSelected ? '#63E08A' : 'transparent',
                         borderRadius: 16,
                       }}>
                         <Text style={{ 
-                          color: isFuture ? '#444' : (isSelected ? '#000' : '#F0F6EB'), 
+                          color: isFuture ? 'rgba(235,235,245,0.3)' : '#FFFFFF',
                           fontWeight: isSelected ? '700' : '400' 
                         }}>
                           {dateObj.getDate()}
@@ -227,7 +227,7 @@ export default function CustomCalendar({
                     onPress={() => { setCurrentYear(year); setMode('calendar'); }}
                     style={{ padding: 12, alignItems: 'center' }}
                   >
-                    <Text style={{ color: currentYear === year ? '#8EFF7A' : '#F0F6EB', fontSize: 16, fontWeight: currentYear === year ? '700' : '400' }}>{year}</Text>
+                    <Text style={{ color: currentYear === year ? '#63E08A' : '#FFFFFF', fontSize: 16, fontWeight: currentYear === year ? '700' : '400' }}>{year}</Text>
                   </TouchableOpacity>
                 ))}
               </ScrollView>
@@ -241,7 +241,7 @@ export default function CustomCalendar({
                     onPress={() => { setCurrentMonth(index); setMode('calendar'); }}
                     style={{ padding: 12, alignItems: 'center' }}
                   >
-                    <Text style={{ color: currentMonth === index ? '#8EFF7A' : '#F0F6EB', fontSize: 16, fontWeight: currentMonth === index ? '700' : '400' }}>{month}</Text>
+                    <Text style={{ color: currentMonth === index ? '#63E08A' : '#FFFFFF', fontSize: 16, fontWeight: currentMonth === index ? '700' : '400' }}>{month}</Text>
                   </TouchableOpacity>
                 ))}
               </ScrollView>

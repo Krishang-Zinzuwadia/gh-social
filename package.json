@@ -1,6 +1,6 @@
 {
   "name": "gh-social",
-  "main": "expo-router/entry",
+  "main": "index.js",
   "version": "1.0.0",
   "dependencies": {
     "@expo-google-fonts/noto-sans": "^0.4.2",

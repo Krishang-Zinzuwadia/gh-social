@@ -1,174 +1,222 @@
-"use no memo";
-import { ChevronRight } from 'lucide-react-native';
-import { StyleSheet, Text, TouchableOpacity, View, Image } from 'react-native';
-import Markdown from 'react-native-markdown-display';
-import BookSvg from '../../assets/icons/mi_book.svg';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Animated, Easing, Pressable, StyleSheet, Text, View } from 'react-native';
+import { BookOpen, ChevronRight } from 'lucide-react-native';
+
+import { REFERENCE_THEME } from '@/constants/theme';
 
 type RepositoryData = {
   title: string;
   readmeSummary: string;
   readmeFull: string;
+  techStack?: string[];
 };
 
 type ReadmeCardProps = {
   repository: RepositoryData;
-  height: number;
   onReadFullPress: () => void;
+  isActive: boolean;
+  compact?: boolean;
+};
+
+const LANGUAGE_COLOURS: Record<string, string> = {
+  Rust: '#DEA584',
+  Go: '#00ADD8',
+  Python: '#3572A5',
+  TypeScript: '#3178C6',
+  JavaScript: '#F7DF1E',
+  Javascript: '#F7DF1E',
+  React: '#61DAFB',
 };
 
 export default function ReadmeCard({
   repository,
-  height,
   onReadFullPress,
+  isActive,
+  compact = false,
 }: ReadmeCardProps) {
+  const summary = repository.readmeSummary || repository.readmeFull || 'No summary available.';
+  const [typed, setTyped] = useState(0);
+  const cursorOpacity = useMemo(() => new Animated.Value(1), []);
+
+  useEffect(() => {
+    const resetTimer = setTimeout(() => setTyped(0), 0);
+    if (!isActive) {
+      return () => clearTimeout(resetTimer);
+    }
+
+    const timer = setInterval(() => {
+      setTyped((current) => {
+        const next = Math.min(summary.length, current + 2);
+        if (next >= summary.length) clearInterval(timer);
+        return next;
+      });
+    }, 30);
+
+    return () => {
+      clearTimeout(resetTimer);
+      clearInterval(timer);
+    };
+  }, [isActive, summary]);
+
+  useEffect(() => {
+    const animation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(cursorOpacity, {
+          toValue: 0,
+          duration: 1,
+          delay: 449,
+          easing: Easing.linear,
+          useNativeDriver: true,
+        }),
+        Animated.timing(cursorOpacity, {
+          toValue: 1,
+          duration: 1,
+          delay: 449,
+          easing: Easing.linear,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    animation.start();
+    return () => animation.stop();
+  }, [cursorOpacity]);
+
+  const language = repository.techStack?.[0] || 'Code';
+  const languageColour = LANGUAGE_COLOURS[language] ?? '#8E8E93';
+
   return (
-    <View style={{ position: 'relative', width: '100%', height }}>
-      <View
-        style={[
-          styles.readmeCard,
-          { height, width: '100%', position: 'absolute', left: 0, top: 0 },
-        ]}
-      >
-        {/* Header row */}
-        <View style={styles.rowCenter}>
-          <BookSvg width={14} height={14} />
-          <Text style={styles.customCardTitle}>README</Text>
+    <View style={[styles.card, compact && styles.cardCompact]}>
+      <View style={[styles.header, compact && styles.headerCompact]}>
+        <View style={styles.headerLabel}>
+          <BookOpen size={12} color={REFERENCE_THEME.accentLight} strokeWidth={2} />
+          <Text style={styles.heading}>README</Text>
         </View>
-
-        {/* Markdown preview — clipped by overflow:hidden on the card */}
-        <View style={styles.markdownWrapper}>
-          <Markdown style={previewMarkdownStyles} rules={markdownRules}>
-            {repository.readmeSummary || repository.readmeFull || ''}
-          </Markdown>
+        <View style={styles.language}>
+          <View style={[styles.languageDot, { backgroundColor: languageColour }]} />
+          <Text style={styles.languageText} numberOfLines={1}>{language}</Text>
         </View>
+      </View>
 
-        {/* Read Full button pinned to the bottom */}
-        <TouchableOpacity
-          onPress={onReadFullPress}
-          activeOpacity={0.7}
-          style={styles.readFullLinkContainer}
+      <View style={[styles.body, compact && styles.bodyCompact]}>
+        <Text
+          numberOfLines={compact ? 6 : 8}
+          style={[styles.summary, compact && styles.summaryCompact]}
         >
-          <Text style={styles.readFullLink}>Read Full</Text>
-          <ChevronRight size={12} color="#4ADE80" strokeWidth={2.5} />
-        </TouchableOpacity>
+          {summary.slice(0, typed)}
+          <Animated.Text style={[styles.cursor, { opacity: cursorOpacity }]}>▍</Animated.Text>
+        </Text>
+        <Pressable
+          accessibilityRole="button"
+          onPress={onReadFullPress}
+          style={({ pressed }) => [styles.readFull, pressed && styles.pressed]}
+        >
+          <Text style={styles.readFullText}>Read full</Text>
+          <ChevronRight size={11} color={REFERENCE_THEME.accentLight} strokeWidth={2.4} />
+        </Pressable>
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  readmeCard: {
-    width: '100%',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#4ADE80',
-    backgroundColor: '#0A0A0A',
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 12,
+  card: {
+    marginTop: 10,
+    borderRadius: 18,
+    backgroundColor: 'rgba(28,28,30,0.78)',
     overflow: 'hidden',
-    flexDirection: 'column',
   },
-  rowCenter: {
+  cardCompact: {
+    marginTop: 6,
+  },
+  header: {
+    minHeight: 41,
+    paddingHorizontal: 18,
+    paddingVertical: 13,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: 'rgba(255,255,255,0.06)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
+  headerCompact: {
+    minHeight: 35,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+  },
+  headerLabel: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    marginBottom: 8,
   },
-  customCardTitle: {
-    color: '#4ADE80',
+  heading: {
+    color: REFERENCE_THEME.accentLight,
     fontFamily: 'NataSans-Bold',
-    fontSize: 13,
-    lineHeight: 18,
+    fontSize: 11,
+    lineHeight: 15,
+    letterSpacing: 0.6,
   },
-  markdownWrapper: {
-    flex: 1,
-    overflow: 'hidden',
-  },
-  readFullLinkContainer: {
+  language: {
+    minWidth: 0,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 2,
-    paddingTop: 6,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(74,222,128,0.15)',
-    marginTop: 4,
+    gap: 5,
   },
-  readFullLink: {
-    color: '#4ADE80',
-    fontFamily: 'NataSans-Bold',
-    fontSize: 10,
+  languageDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+  },
+  languageText: {
+    maxWidth: 110,
+    color: REFERENCE_THEME.textSecondary,
+    fontFamily: 'NataSans-SemiBold',
+    fontSize: 10.5,
     lineHeight: 14,
   },
-});
-
-const previewMarkdownStyles = {
   body: {
-    color: '#FFFFFF',
+    paddingTop: 15,
+    paddingHorizontal: 18,
+    paddingBottom: 22,
+    gap: 12,
+  },
+  bodyCompact: {
+    paddingTop: 9,
+    paddingHorizontal: 14,
+    paddingBottom: 10,
+    gap: 6,
+  },
+  summary: {
+    minHeight: 150,
+    color: REFERENCE_THEME.textStrong,
     fontFamily: 'NataSans-Regular',
-    fontSize: 12,
-    lineHeight: 17,
+    fontSize: 14,
+    lineHeight: 22.4,
+    letterSpacing: -0.1,
   },
-  heading1: {
-    color: '#4ADE80',
-    fontFamily: 'NataSans-Bold',
-    fontSize: 15,
-    marginTop: 0,
-    marginBottom: 4,
+  summaryCompact: {
+    minHeight: 54,
+    fontSize: 11.5,
+    lineHeight: 16,
   },
-  heading2: {
-    color: '#4ADE80',
-    fontFamily: 'NataSans-Bold',
+  cursor: {
+    color: REFERENCE_THEME.accent,
+    fontFamily: 'NataSans-Regular',
     fontSize: 13,
-    marginTop: 0,
-    marginBottom: 4,
   },
-  heading3: {
-    color: '#4ADE80',
-    fontFamily: 'NataSans-Bold',
+  readFull: {
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  readFullText: {
+    color: REFERENCE_THEME.accentLight,
+    fontFamily: 'NataSans-SemiBold',
     fontSize: 12,
-    marginTop: 0,
-    marginBottom: 2,
+    lineHeight: 16,
   },
-  code_inline: {
-    color: '#D1D5DB',
-    backgroundColor: '#1F2937',
-    fontSize: 11,
-    fontFamily: 'Menlo',
+  pressed: {
+    opacity: 0.7,
   },
-  code_block: {
-    color: '#D1D5DB',
-    backgroundColor: '#1F2937',
-    fontSize: 11,
-    fontFamily: 'Menlo',
-    padding: 6,
-    borderRadius: 6,
-  },
-  fence: {
-    color: '#D1D5DB',
-    backgroundColor: '#1F2937',
-    fontSize: 11,
-    fontFamily: 'Menlo',
-    padding: 6,
-    borderRadius: 6,
-  },
-  bullet_list: { marginVertical: 2 },
-  ordered_list: { marginVertical: 2 },
-  list_item: { marginBottom: 2 },
-  paragraph: { marginTop: 0, marginBottom: 4 },
-  link: { color: '#3B82F6' },
-};
-
-const markdownRules = {
-  image: (node: any) => {
-    return (
-      <Image
-        key={node.key}
-        source={{ uri: node.attributes.src }}
-        style={{ width: '100%', height: 100, resizeMode: 'contain', marginVertical: 4 }}
-        accessible={!!node.attributes.alt}
-        accessibilityLabel={node.attributes.alt}
-      />
-    );
-  },
-};
+});

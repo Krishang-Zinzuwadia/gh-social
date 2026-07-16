@@ -134,7 +134,9 @@ export class FeedService {
   private async enrichRecommendations(recommendations: any[]): Promise<any[]> {
     if (recommendations.length === 0) return [];
 
-    const fullNames = recommendations.map(r => r.full_name).filter(Boolean);
+    const fullNames = recommendations
+      .map((recommendation) => recommendation.full_name || recommendation.github_repo)
+      .filter(Boolean);
     if (fullNames.length === 0) return recommendations;
 
     try {
@@ -143,7 +145,8 @@ export class FeedService {
       repoData.forEach(r => repoMap.set(r.full_name, r));
 
       return recommendations.map(r => {
-        const dbRepo = repoMap.get(r.full_name);
+        const fullName = r.full_name || r.github_repo;
+        const dbRepo = repoMap.get(fullName);
         if (!dbRepo) return r;
 
         let languages = r.languages || [];
@@ -153,6 +156,7 @@ export class FeedService {
 
         return {
           ...r,
+          full_name: fullName,
           repo_id: dbRepo.repo_id,
           description: dbRepo.description || r.description,
           readme_summary: dbRepo.readme_summary || r.readme_summary,
@@ -284,7 +288,10 @@ export class FeedService {
       const type = await redisClient.type(queueKey);
       if (type === 'string') {
         const val = await redisClient.get(queueKey);
-      if (val === '__empty__') return [];
+        if (val === '__empty__') {
+          await redisClient.del(queueKey);
+          return null;
+        }
       }
 
       // Pop the next `limit` items using an atomic transaction (MULTI/EXEC)

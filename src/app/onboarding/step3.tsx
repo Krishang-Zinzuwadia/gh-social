@@ -20,7 +20,7 @@ export default function Step3() {
   const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
 
   const { data: onboardingData } = useOnboarding();
-  const { checkOnboardingStatus } = useAuth();
+  const { user, checkOnboardingStatus, completeOnboardingPreview } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
@@ -37,6 +37,11 @@ export default function Step3() {
       setIsSubmitting(true);
       setErrorMsg("");
       try {
+        if (user?.isPreview) {
+          completeOnboardingPreview();
+          return;
+        }
+
         const token = await SecureStore.getItemAsync('access_token');
         if (!token) throw new Error("No access token found");
         
@@ -62,7 +67,7 @@ export default function Step3() {
     <ScrollView
       style={{
         flex: 1,
-        backgroundColor: "#0A0C09",
+        backgroundColor: "#000000",
       }}
       contentContainerStyle={{
         paddingHorizontal: 20,
@@ -74,7 +79,7 @@ export default function Step3() {
       <View style={{ maxWidth: 450, width: "100%", alignSelf: "center" }}>
         <Text
         style={{
-          color: "#F0F6EB",
+          color: "#FFFFFF",
           fontSize: 18,
           marginBottom: 12,
         }}
@@ -101,7 +106,7 @@ export default function Step3() {
 
       <Text
         style={{
-          color: "#8A8A8A",
+          color: "rgba(235,235,245,0.6)",
           fontSize: 15,
           marginTop: 24,
           marginBottom: 14,
@@ -117,7 +122,7 @@ export default function Step3() {
           <View key={category.id} style={{ marginBottom: 24 }}>
             <Text
               style={{
-                color: "#F0F6EB",
+                color: "#FFFFFF",
                 fontSize: 16,
                 fontWeight: "600",
                 marginBottom: 12,
@@ -141,13 +146,13 @@ export default function Step3() {
       })}
 
       {selectedInterests.length < 5 && (
-        <Text style={{ color: "#E57373", fontSize: 14, marginTop: 4, textAlign: "center" }}>
+        <Text style={{ color: "#FF453A", fontSize: 14, marginTop: 4, textAlign: "center" }}>
           Select at least 5 interests.
         </Text>
       )}
 
       {errorMsg ? (
-        <Text style={{ color: "#E57373", fontSize: 14, marginTop: 4, textAlign: "center" }}>
+        <Text style={{ color: "#FF453A", fontSize: 14, marginTop: 4, textAlign: "center" }}>
           {errorMsg}
         </Text>
       ) : null}

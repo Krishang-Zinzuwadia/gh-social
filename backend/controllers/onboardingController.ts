@@ -10,6 +10,9 @@ import {
 } from '../utils/response.js';
 import { GitHubApiError } from '../services/githubService.js';
 import type { OnboardingSetupBody } from '../types/onboarding.js';
+import { FeedService } from '../services/feedService.js';
+
+const feedService = new FeedService();
 
 function getAuthenticatedUserId(req: AuthRequest, res: Response): string | null {
   const userId = req.user?.userId;
@@ -99,7 +102,10 @@ export async function setupOnboarding(req: AuthRequest, res: Response): Promise<
     });
   }
 
-  void mlService.onboardUserBestEffort(buildMlOnboardPayload(userId, data));
+  // Finish syncing the chosen profile before Home asks ML for recommendations.
+  // Best-effort keeps onboarding usable if ML is temporarily unavailable.
+  await mlService.onboardUserBestEffort(buildMlOnboardPayload(userId, data));
+  await feedService.invalidateUserFeed(userId);
 
   return sendSuccess(res, 200, data);
 }

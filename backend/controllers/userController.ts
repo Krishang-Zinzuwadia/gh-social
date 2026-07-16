@@ -22,6 +22,24 @@ export async function getUserProfile(req: Request, res: Response): Promise<void>
   return sendSuccess(res, 200, data);
 }
 
+export async function getFollowers(req: Request, res: Response): Promise<void> {
+  const { data, error } = await userService.getUserConnections(req.params.username as string, 'followers');
+  if (error) return sendDatabaseError(res, error, { notFoundMessage: 'User not found' });
+  return sendSuccess(res, 200, data);
+}
+
+export async function getFollowing(req: Request, res: Response): Promise<void> {
+  const { data, error } = await userService.getUserConnections(req.params.username as string, 'following');
+  if (error) return sendDatabaseError(res, error, { notFoundMessage: 'User not found' });
+  return sendSuccess(res, 200, data);
+}
+
+export async function getLikesGiven(req: Request, res: Response): Promise<void> {
+  const { data, error } = await userService.getUserLikedRepositories(req.params.username as string);
+  if (error) return sendDatabaseError(res, error, { notFoundMessage: 'User not found' });
+  return sendSuccess(res, 200, data);
+}
+
 // Update current user's profile (Uses AuthRequest)
 export async function updateProfile(req: AuthRequest, res: Response): Promise<void> {
   const userId = req.user?.userId;

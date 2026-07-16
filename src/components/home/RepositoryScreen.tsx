@@ -1,315 +1,635 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import Svg, { Path } from 'react-native-svg';
-import { RepositoryData } from '../../data/repositories';
-import { TimelineColumn } from './TimelineColumn';
+import { Image } from 'expo-image';
+import {
+  Pressable,
+  ScrollView,
+  Share,
+  StyleSheet,
+  Text,
+  View,
+  type StyleProp,
+  type ViewStyle,
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Svg, {
+  Defs,
+  LinearGradient,
+  RadialGradient,
+  Rect,
+  Stop,
+} from 'react-native-svg';
+import {
+  Bookmark,
+  GitFork,
+  MessageCircle,
+  Pin,
+  Share as ShareIcon,
+  Star,
+  ThumbsDown,
+  ThumbsUp,
+} from 'lucide-react-native';
+
+import { REFERENCE_THEME } from '@/constants/theme';
+import type { RepositoryData } from '../../data/repositories';
 import DescriptionCard from './DescriptionCard';
 import ReadmeCard from './ReadmeCard';
-import { HomeUserFooter } from './UserFooter';
-import { ThumbsUpHomeIcon, ThumbsDownHomeIcon } from './FeedIcons';
 import type { FeedbackAction } from '../../api/activity';
 import { FEEDBACK_ACTIONS } from '../../constants/feedbackActions';
 
-function clampNumber(value: number, minimum: number, maximum: number) {
-  return Math.min(Math.max(value, minimum), maximum);
+type QueueActivity = (
+  event: { repo_id: string; action: FeedbackAction; dwell_seconds?: number },
+  flushNow?: boolean
+) => void;
+
+type ActionButtonProps = {
+  accessibilityLabel: string;
+  active?: boolean;
+  activeColor?: string;
+  count?: string;
+  dense?: boolean;
+  icon: React.ComponentType<{ color?: string; size?: number; strokeWidth?: number }>;
+  iconSize?: number;
+  label?: string;
+  onPress: () => void;
+};
+
+const LANGUAGE_GLOWS: Record<string, string> = {
+  Rust: 'rgba(222,165,132,0.13)',
+  Go: 'rgba(0,173,216,0.11)',
+  Python: 'rgba(53,114,165,0.15)',
+  TypeScript: 'rgba(49,120,198,0.14)',
+};
+
+const AVATAR_GRADIENTS = [
+  ['#BF5AF2', '#8944AB'],
+  ['#64D2FF', '#2A7FBF'],
+  ['#FF6482', '#C93A56'],
+  ['#63E6A9', '#2E9E6B'],
+] as const;
+
+const WEAVE_LOGO = require('../../../assets/images/logo/weavelogo.png');
+
+function formatCount(value?: string) {
+  if (!value) return '0';
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return value;
+  if (parsed >= 1_000_000) return `${(parsed / 1_000_000).toFixed(parsed >= 10_000_000 ? 0 : 1).replace(/\.0$/, '')}M`;
+  if (parsed >= 1_000) return `${(parsed / 1_000).toFixed(parsed >= 10_000 ? 0 : 1).replace(/\.0$/, '')}K`;
+  return String(parsed);
 }
 
-function formatNumber(num: number): string {
-  if (num >= 1000000) return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
-  if (num >= 1000) return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'k';
-  return num.toString();
+function getInitials(owner: string) {
+  return owner
+    .split(/[-_.\s]+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part.charAt(0).toUpperCase())
+    .join('') || '?';
+}
+
+function ActionButton({
+  accessibilityLabel,
+  active = false,
+  activeColor = REFERENCE_THEME.accent,
+  count,
+  dense = false,
+  icon: Icon,
+  iconSize = 29,
+  label,
+  onPress,
+}: ActionButtonProps) {
+  const colour = active ? activeColor : REFERENCE_THEME.text;
+  const renderedIconSize = dense ? Math.min(iconSize, 22) : iconSize;
+  return (
+    <Pressable
+      accessibilityLabel={accessibilityLabel}
+      accessibilityRole="button"
+      onPress={onPress}
+      hitSlop={8}
+      style={({ pressed }) => [
+        styles.actionButton,
+        dense && styles.actionButtonDense,
+        pressed && styles.actionPressed,
+      ]}
+    >
+      <View style={styles.iconShadow}>
+        <Icon color={colour} size={renderedIconSize} strokeWidth={1.9} />
+      </View>
+      <Text
+        style={[
+          styles.actionLabel,
+          dense && styles.actionLabelDense,
+          active && { color: activeColor },
+        ]}
+      >
+        {count ?? label}
+      </Text>
+    </Pressable>
+  );
 }
 
 export function RepositoryScreen({
   pageWidth,
   pageHeight,
   repository,
+  isActive,
+  isSaved,
+  commentCount,
   onReadFullPress,
+  onSavePress,
+  onCommentPress,
   onQueueActivity,
 }: {
   pageWidth: number;
   pageHeight: number;
   repository: RepositoryData;
+  isActive: boolean;
+  isSaved?: boolean;
+  commentCount?: number;
   onReadFullPress: () => void;
-  onQueueActivity?: (event: { repo_id: string; action: FeedbackAction; dwell_seconds?: number }, flushNow?: boolean) => void;
+  onSavePress: () => void;
+  onCommentPress: () => void;
+  onQueueActivity?: QueueActivity;
 }) {
   const insets = useSafeAreaInsets();
-  const isSmallPhone = pageWidth < 380;
+  const compact = pageWidth < 360 || pageHeight < 720;
+  const [liked, setLiked] = React.useState(false);
+  const [disliked, setDisliked] = React.useState(false);
+  const [starred, setStarred] = React.useState(false);
+  const [forked, setForked] = React.useState(false);
+  const [pinned, setPinned] = React.useState(false);
 
-  const [hasLiked, setHasLiked] = React.useState(false);
-  const [hasDisliked, setHasDisliked] = React.useState(false);
+  const initialLikes = Number(repository.stats.likes || 0) || 0;
+  const likeCount = Math.max(0, initialLikes + (liked ? 1 : 0) - (disliked ? 1 : 0));
+  const dislikeCount = disliked ? 1 : 0;
+  const visibleCommentCount = (commentCount ?? Number(repository.stats.comments || 0)) || 0;
+  const language = repository.techStack?.[0] || '';
+  const glow = LANGUAGE_GLOWS[language] ?? 'rgba(48,209,88,0.10)';
+  const avatarIndex = [...repository.owner].reduce((sum, character) => sum + character.charCodeAt(0), 0) % AVATAR_GRADIENTS.length;
+  const [avatarStart, avatarEnd] = AVATAR_GRADIENTS[avatarIndex];
+  const veryNarrow = pageWidth < 330;
+  const veryShort = pageHeight < 620;
+  const bodyTop = veryShort
+    ? Math.max(68, insets.top + 42)
+    : compact
+      ? Math.max(78, insets.top + 48)
+      : Math.max(96, insets.top + 52);
+  const actionRailBottom = 64 + Math.max(insets.bottom, 5);
+  const bodyLeft = veryNarrow ? 10 : compact ? 12 : 20;
+  const bodyRight = veryNarrow ? 52 : compact ? 58 : 78;
+  const bodyBottom = veryShort ? 84 : compact ? 94 : 112;
+  const availableCardWidth = Math.max(pageWidth - bodyLeft - bodyRight, 1);
+  const brandLogoSize = compact ? 26 : 30;
+  const brandLogoImageSize = brandLogoSize * 1.4;
+  const bodyStyle: StyleProp<ViewStyle> = {
+    paddingTop: bodyTop,
+    paddingRight: bodyRight,
+    paddingBottom: bodyBottom,
+    paddingLeft: bodyLeft,
+    gap: veryShort ? 3 : compact ? 5 : 14,
+  };
 
-  const initialLikes = parseInt(repository.stats?.likes || '0', 10) || 0;
-  const displayedLikes = Math.max(0, initialLikes + (hasLiked ? 1 : 0) - (hasDisliked ? 1 : 0));
-  // Default dislike count placeholder
-  const displayedDislikes = hasDisliked ? 1 : 0;
+  const toggleLike = () => {
+    if (liked) {
+      setLiked(false);
+      onQueueActivity?.({ repo_id: repository.id, action: FEEDBACK_ACTIONS.unlike }, true);
+      return;
+    }
+    setLiked(true);
+    setDisliked(false);
+    onQueueActivity?.({ repo_id: repository.id, action: FEEDBACK_ACTIONS.like }, true);
+  };
 
+  const toggleDislike = () => {
+    if (disliked) {
+      setDisliked(false);
+      onQueueActivity?.({ repo_id: repository.id, action: FEEDBACK_ACTIONS.undislike }, true);
+      return;
+    }
+    setDisliked(true);
+    setLiked(false);
+    onQueueActivity?.({ repo_id: repository.id, action: FEEDBACK_ACTIONS.dislike }, true);
+  };
 
-  const TIMELINE_COL_WIDTH = isSmallPhone ? 32 : 38;
-  const TIMELINE_MID = TIMELINE_COL_WIDTH / 2;
-  const ACTIONS_COL_WIDTH = isSmallPhone ? 44 : 50;
-
-  const HEADER_H = 88;
-  const HOME_CARD_GAP = isSmallPhone ? 28 : 34;
-  const HOME_FOOTER_GAP = isSmallPhone ? 24 : 34;
-  const HOME_BOTTOM_PADDING = isSmallPhone ? 18 : 22;
-  const HOME_FOOTER_HEIGHT = isSmallPhone ? 44 : 52;
-
-  const HOME_BASE_DESCRIPTION_HEIGHT = isSmallPhone ? 190 : 220;
-  const HOME_BASE_README_HEIGHT = isSmallPhone ? 160 : 190;
-
-  const homeBaseContentHeight =
-    HEADER_H +
-    HOME_BASE_DESCRIPTION_HEIGHT +
-    HOME_CARD_GAP +
-    HOME_BASE_README_HEIGHT +
-    HOME_FOOTER_GAP +
-    HOME_FOOTER_HEIGHT +
-    HOME_BOTTOM_PADDING;
-  const homeExtraHeight = clampNumber(
-    pageHeight - insets.top - homeBaseContentHeight,
-    0,
-    isSmallPhone ? 44 : 86
-  );
-  const H1 = HOME_BASE_DESCRIPTION_HEIGHT + homeExtraHeight * 0.48;
-  const H2 = HOME_BASE_README_HEIGHT + homeExtraHeight * 0.52;
-  const contentHeight =
-    HEADER_H +
-    H1 +
-    HOME_CARD_GAP +
-    H2 +
-    HOME_FOOTER_GAP +
-    HOME_FOOTER_HEIGHT +
-    HOME_BOTTOM_PADDING;
-  const centeredTopPadding = clampNumber((pageHeight - insets.top - contentHeight) / 2, 8, 22);
-
-  const y0 = HEADER_H / 2;
-  const y1 = HEADER_H + 80;
-  const y2 = HEADER_H + H1 + HOME_CARD_GAP + 80;
-  const y3_bottom = HEADER_H + H1 + HOME_CARD_GAP + H2;
-
-  const y2_top = HEADER_H + H1 + HOME_CARD_GAP;
-  const y2_bottom = y3_bottom;
-
-  const loop_start = y2_top + 40;
-  const loop_end = y2_bottom - 40;
-  const loop_x = 26;
-  const radius = 10;
-
-  const timelinePath = `
-    M ${TIMELINE_MID} ${y0} L ${TIMELINE_MID} ${y3_bottom - 12}
-    M ${TIMELINE_MID} ${y1 - 12} Q ${TIMELINE_MID} ${y1} ${TIMELINE_MID + 12} ${y1} L ${TIMELINE_COL_WIDTH + 2} ${y1}
-    M ${TIMELINE_MID} ${y2 - 12} Q ${TIMELINE_MID} ${y2} ${TIMELINE_MID + 12} ${y2} L ${TIMELINE_COL_WIDTH + 2} ${y2}
-    M ${TIMELINE_MID} ${y3_bottom - 12} Q ${TIMELINE_MID} ${y3_bottom} ${TIMELINE_COL_WIDTH + 2} ${y3_bottom}
-  `;
-
-  const bracketPath = `
-    M -2 ${loop_start}
-    L ${loop_x - radius} ${loop_start}
-    Q ${loop_x} ${loop_start} ${loop_x} ${loop_start + radius}
-    L ${loop_x} ${loop_end - radius}
-    Q ${loop_x} ${loop_end} ${loop_x - radius} ${loop_end}
-    L -2 ${loop_end}
-  `;
-
-  const btnY1 = loop_start + (loop_end - loop_start) * 0.3;
-  const btnY2 = loop_start + (loop_end - loop_start) * 0.7;
-
-  const ACTION_BTN_SIZE = 34;
+  const shareRepository = async () => {
+    onQueueActivity?.({ repo_id: repository.id, action: FEEDBACK_ACTIONS.share }, true);
+    try {
+      await Share.share({
+        title: `${repository.owner}/${repository.title}`,
+        message: `${repository.owner}/${repository.title}\n\n${repository.description}`,
+      });
+    } catch {
+      // The native share sheet can be dismissed or unavailable without affecting the feed.
+    }
+  };
 
   return (
     <View style={[styles.screen, { width: pageWidth, height: pageHeight }]}>
-      <SafeAreaView edges={['top', 'left', 'right']} style={styles.screenInner}>
-        <ScrollView
-          contentContainerStyle={[
-            styles.homeScrollContent,
-            { paddingTop: centeredTopPadding, minHeight: pageHeight },
-          ]}
-          showsVerticalScrollIndicator={false}
-          bounces={false}
-        >
-          <View style={styles.homeGridContainer}>
-            {/* Column 1: Timeline */}
-            <View style={[styles.timelineCol, { width: TIMELINE_COL_WIDTH }]}>
-              <TimelineColumn
-                pageHeight={pageHeight}
-                TIMELINE_COL_WIDTH={TIMELINE_COL_WIDTH}
-                TIMELINE_MID={TIMELINE_MID}
-                timelinePath={timelinePath}
-                y0={y0}
-                y1={y1}
-                y2={y2}
-              />
-            </View>
+      <Svg pointerEvents="none" style={StyleSheet.absoluteFill} width={pageWidth} height={pageHeight}>
+        <Defs>
+          <RadialGradient id="repoGlow" cx="50%" cy="108%" rx="65%" ry="38%">
+            <Stop offset="0" stopColor={glow} stopOpacity="1" />
+            <Stop offset="0.62" stopColor={glow} stopOpacity="0" />
+          </RadialGradient>
+        </Defs>
+        <Rect x="0" y="0" width={pageWidth} height={pageHeight} fill="url(#repoGlow)" />
+      </Svg>
 
-            {/* Column 2: Cards */}
-            <View style={styles.cardsCol}>
-              {/* Header */}
-              <View style={[styles.header, { height: HEADER_H }]}>
-                <Text style={[styles.title, styles.homeTitle, isSmallPhone && { fontSize: 22, lineHeight: 28 }]}>
-                  {repository.title}
-                </Text>
-              </View>
+      <View style={[styles.body, bodyStyle]}>
+        <DescriptionCard
+          availableWidth={availableCardWidth}
+          repository={repository}
+          compact={compact}
+        />
+        <ReadmeCard
+          repository={repository}
+          onReadFullPress={onReadFullPress}
+          isActive={isActive}
+          compact={compact}
+        />
 
-              {/* Description Card */}
-              <DescriptionCard repository={repository} height={H1} isSmallPhone={isSmallPhone} />
-
-              <View style={{ height: HOME_CARD_GAP }} />
-
-              {/* Readme Card */}
-              <ReadmeCard
-                repository={repository}
-                height={H2}
-                onReadFullPress={onReadFullPress}
-              />
-
-              {/* Footer */}
-              <HomeUserFooter
-                repository={repository}
-                isSmallPhone={isSmallPhone}
-                topGap={HOME_FOOTER_GAP}
-              />
-            </View>
-
-            {/* Column 3: Actions */}
-            <View style={[styles.actionsCol, { width: ACTIONS_COL_WIDTH }]}>
-              <Svg style={StyleSheet.absoluteFill} width={ACTIONS_COL_WIDTH} height={pageHeight}>
-                <Path d={bracketPath} stroke="#4ADE80" strokeWidth={1.5} fill="none" />
+        <View style={[styles.repoDetails, compact && styles.repoDetailsCompact]}>
+          <View style={[styles.ownerRow, compact && styles.ownerRowCompact]}>
+            <View style={[styles.avatar, compact && styles.avatarCompact]}>
+              <Svg style={StyleSheet.absoluteFill} width="100%" height="100%">
+                <Defs>
+                  <LinearGradient id="ownerGradient" x1="0" y1="0" x2="1" y2="1">
+                    <Stop offset="0" stopColor={avatarStart} />
+                    <Stop offset="1" stopColor={avatarEnd} />
+                  </LinearGradient>
+                </Defs>
+                <Rect width="100%" height="100%" fill="url(#ownerGradient)" />
               </Svg>
-
-              {/* Thumbs Up Button */}
-              <TouchableOpacity
-                activeOpacity={0.7}
-                onPress={() => {
-                  if (!hasLiked) {
-                    setHasLiked(true);
-                    setHasDisliked(false);
-                    if (onQueueActivity) {
-                      // Pass true to flush immediately
-                      onQueueActivity({ repo_id: repository.id, action: FEEDBACK_ACTIONS.like }, true);
-                    }
-                  } else {
-                    setHasLiked(false);
-                    if (onQueueActivity) {
-                      onQueueActivity({ repo_id: repository.id, action: FEEDBACK_ACTIONS.unlike }, true);
-                    }
-                  }
-                }}
-                style={[
-                  styles.loopReactionBtn,
-                  {
-                    left: loop_x - ACTION_BTN_SIZE / 2,
-                    top: btnY1 - ACTION_BTN_SIZE / 2,
-                    width: ACTION_BTN_SIZE,
-                    height: ACTION_BTN_SIZE,
-                    borderRadius: ACTION_BTN_SIZE / 2,
-                    backgroundColor: hasLiked ? '#F5C54D' : '#111111',
-                    borderColor: hasLiked ? '#F5C54D' : '#4ADE80',
-                  }
-                ]}
-              >
-                <ThumbsUpHomeIcon size={14} color={hasLiked ? '#111111' : '#F5C54D'} strokeWidth={2} />
-                <Text style={[styles.loopReactionCount, hasLiked ? { color: '#111111' } : { color: '#F5C54D' }]}>{formatNumber(displayedLikes)}</Text>
-              </TouchableOpacity>
-
-              {/* Thumbs Down Button */}
-              <TouchableOpacity
-                activeOpacity={0.7}
-                onPress={() => {
-                  if (!hasDisliked) {
-                    setHasDisliked(true);
-                    setHasLiked(false);
-                    onQueueActivity?.({ repo_id: repository.id, action: FEEDBACK_ACTIONS.dislike }, true);
-                  } else {
-                    setHasDisliked(false);
-                    onQueueActivity?.({ repo_id: repository.id, action: FEEDBACK_ACTIONS.undislike }, true);
-                  }
-                }}
-                style={[
-                  styles.loopReactionBtn,
-                  {
-                    left: loop_x - ACTION_BTN_SIZE / 2,
-                    top: btnY2 - ACTION_BTN_SIZE / 2,
-                    width: ACTION_BTN_SIZE,
-                    height: ACTION_BTN_SIZE,
-                    borderRadius: ACTION_BTN_SIZE / 2,
-                    backgroundColor: hasDisliked ? '#F5C54D' : '#111111',
-                    borderColor: hasDisliked ? '#F5C54D' : '#4ADE80',
-                  }
-                ]}
-              >
-                <ThumbsDownHomeIcon size={14} color={hasDisliked ? '#111111' : '#F5C54D'} strokeWidth={2} />
-                <Text style={[styles.loopReactionCount, hasDisliked ? { color: '#111111' } : { color: '#F5C54D' }]}>{displayedDislikes}</Text>
-              </TouchableOpacity>
+              <Text style={styles.avatarText}>{getInitials(repository.owner)}</Text>
             </View>
+            <Text style={styles.ownerHandle} numberOfLines={1}>{repository.owner}</Text>
           </View>
-        </ScrollView>
-      </SafeAreaView>
+
+          <Text
+            style={[
+              styles.repoTitle,
+              styles.repoTitleSpacing,
+              compact && styles.repoTitleCompact,
+              compact && styles.repoTitleSpacingCompact,
+            ]}
+            numberOfLines={2}
+          >
+            {repository.title}
+          </Text>
+          <ScrollView
+            style={[
+              styles.descriptionScroller,
+              compact && styles.descriptionScrollerCompact,
+            ]}
+            nestedScrollEnabled
+            directionalLockEnabled
+            bounces={false}
+            overScrollMode="never"
+            showsVerticalScrollIndicator
+          >
+            <Text style={[styles.description, compact && styles.descriptionCompact]}>
+              {repository.description}
+            </Text>
+          </ScrollView>
+
+          <View style={styles.repoStats}>
+            <Pressable
+              accessibilityLabel={starred ? 'Unstar repository' : 'Star repository'}
+              accessibilityRole="button"
+              onPress={() => setStarred((current) => !current)}
+              style={({ pressed }) => [styles.statButton, pressed && styles.statPressed]}
+            >
+              <Star
+                size={17}
+                color={starred ? REFERENCE_THEME.star : REFERENCE_THEME.text}
+                fill={starred ? REFERENCE_THEME.star : 'none'}
+                strokeWidth={1.9}
+              />
+              <Text style={[styles.statText, starred && { color: REFERENCE_THEME.star }]}>
+                {formatCount(repository.stats.stars)}
+              </Text>
+            </Pressable>
+            <Pressable
+              accessibilityLabel="Fork repository"
+              accessibilityRole="button"
+              onPress={() => setForked(true)}
+              style={({ pressed }) => [styles.statButton, pressed && styles.statPressed]}
+            >
+              <GitFork size={16} color={forked ? REFERENCE_THEME.success : REFERENCE_THEME.text} strokeWidth={1.9} />
+              <Text style={styles.statText}>{formatCount(repository.stats.forks)}</Text>
+            </Pressable>
+          </View>
+        </View>
+      </View>
+
+      <View
+        style={[
+          styles.actionRail,
+          compact && styles.actionRailCompact,
+          {
+            bottom: actionRailBottom,
+            gap: veryShort ? 6 : compact ? 12 : 19,
+            right: veryNarrow ? 8 : compact ? 10 : 14,
+          },
+        ]}
+      >
+        <ActionButton
+          accessibilityLabel={liked ? 'Unlike repository' : 'Like repository'}
+          active={liked}
+          count={formatCount(String(likeCount))}
+          dense={veryShort}
+          icon={ThumbsUp}
+          onPress={toggleLike}
+        />
+        <ActionButton
+          accessibilityLabel={disliked ? 'Remove dislike' : 'Dislike repository'}
+          active={disliked}
+          activeColor={REFERENCE_THEME.danger}
+          count={formatCount(String(dislikeCount))}
+          dense={veryShort}
+          icon={ThumbsDown}
+          onPress={toggleDislike}
+        />
+        <ActionButton
+          accessibilityLabel="Open comments"
+          count={formatCount(String(visibleCommentCount))}
+          dense={veryShort}
+          icon={MessageCircle}
+          onPress={onCommentPress}
+        />
+        <ActionButton
+          accessibilityLabel="Save repository"
+          active={isSaved}
+          dense={veryShort}
+          icon={Bookmark}
+          iconSize={26}
+          label="Save"
+          onPress={onSavePress}
+        />
+        <ActionButton
+          accessibilityLabel={pinned ? 'Unpin repository' : 'Pin repository'}
+          active={pinned}
+          activeColor="#1EE15B"
+          dense={veryShort}
+          icon={Pin}
+          iconSize={26}
+          label="Pin"
+          onPress={() => setPinned((current) => !current)}
+        />
+        <ActionButton
+          accessibilityLabel="Share repository"
+          dense={veryShort}
+          icon={ShareIcon}
+          iconSize={28}
+          label="Share"
+          onPress={shareRepository}
+        />
+      </View>
+
+      <Svg pointerEvents="none" style={styles.topGradient} width={pageWidth} height={150}>
+        <Defs>
+          <LinearGradient id="topFade" x1="0" y1="0" x2="0" y2="1">
+            <Stop offset="0.35" stopColor="#000000" stopOpacity="0.88" />
+            <Stop offset="1" stopColor="#000000" stopOpacity="0" />
+          </LinearGradient>
+        </Defs>
+        <Rect width={pageWidth} height="150" fill="url(#topFade)" />
+      </Svg>
+      <View
+        pointerEvents="none"
+        style={[
+          styles.topBar,
+          {
+            left: compact ? 12 : 20,
+            right: compact ? 12 : 20,
+            paddingTop: Math.max(insets.top + 6, 40),
+          },
+        ]}
+      >
+        <View style={styles.brandRow}>
+          <View
+            style={[
+              styles.brandLogoFrame,
+              {
+                width: brandLogoSize,
+                height: brandLogoSize,
+                borderRadius: brandLogoSize / 2,
+              },
+            ]}
+          >
+            <Image
+              accessible={false}
+              contentFit="contain"
+              source={WEAVE_LOGO}
+              style={{
+                position: 'absolute',
+                width: brandLogoImageSize,
+                height: brandLogoImageSize,
+                left: (brandLogoSize - brandLogoImageSize) / 2,
+                top: -brandLogoSize * 0.06,
+              }}
+            />
+          </View>
+          <Text style={[styles.brand, compact && styles.brandCompact]}>
+            Wea<Text style={styles.brandAccent}>v</Text>e
+          </Text>
+        </View>
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   screen: {
-    backgroundColor: '#0F0F0F',
-  },
-  screenInner: {
-    flex: 1,
-    width: '100%',
-  },
-  title: {
-    color: '#FFFFFF',
-    fontFamily: 'NataSans-Bold',
-    fontSize: 24,
-    lineHeight: 30,
-  },
-  homeTitle: {
-    marginLeft: -10,
-  },
-  homeGridContainer: {
-    width: '100%',
-    flexDirection: 'row',
     position: 'relative',
-    alignSelf: 'center',
-    paddingLeft: 4,
-    paddingRight: 8,
+    overflow: 'hidden',
+    backgroundColor: REFERENCE_THEME.background,
   },
-  homeScrollContent: {
-    flexGrow: 1,
-    paddingBottom: 10,
-  },
-  timelineCol: {
-    width: 44,
-    position: 'relative',
-  },
-  cardsCol: {
-    flex: 1,
+  body: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    right: 0,
+    bottom: 0,
     flexDirection: 'column',
   },
-  header: {
+  ownerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    width: '100%',
+    gap: 9,
   },
-  actionsCol: {
-    position: 'relative',
+  ownerRowCompact: {
+    gap: 7,
   },
-  loopReactionBtn: {
-    position: 'absolute',
-    backgroundColor: '#111111',
-    borderWidth: 1.5,
-    borderColor: '#4ADE80',
+  repoDetails: {
+    marginTop: 'auto',
+    gap: 14,
+    transform: [{ translateY: -10 }],
+  },
+  repoDetailsCompact: {
+    gap: 8,
+    transform: [{ translateY: -6 }],
+  },
+  avatar: {
+    width: 37,
+    height: 37,
+    borderRadius: 18.5,
+    overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
-    zIndex: 30,
-    paddingVertical: 4,
+    flexShrink: 0,
   },
-  loopReactionCount: {
-    color: '#FFFFFF',
-    fontSize: 8,
+  avatarCompact: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+  },
+  avatarText: {
+    position: 'absolute',
+    color: REFERENCE_THEME.text,
     fontFamily: 'NataSans-Bold',
-    marginTop: 2,
-    textAlign: 'center',
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  ownerHandle: {
+    flex: 1,
+    color: REFERENCE_THEME.text,
+    fontFamily: 'NataSans-SemiBold',
+    fontSize: 14.5,
+    lineHeight: 19,
+    letterSpacing: -0.2,
+  },
+  repoTitle: {
+    color: REFERENCE_THEME.text,
+    fontFamily: 'NataSans-Bold',
+    fontSize: 25,
+    lineHeight: 29,
+    letterSpacing: -0.7,
+  },
+  repoTitleSpacing: {
+    marginTop: -6,
+  },
+  repoTitleCompact: {
+    fontSize: 19,
+    lineHeight: 23,
+  },
+  repoTitleSpacingCompact: {
+    marginTop: -3,
+  },
+  descriptionScroller: {
+    maxHeight: 42,
+    marginTop: -6,
+  },
+  descriptionScrollerCompact: {
+    maxHeight: 32,
+    marginTop: -3,
+  },
+  description: {
+    color: 'rgba(235,235,245,0.72)',
+    fontFamily: 'NataSans-Regular',
+    fontSize: 14,
+    lineHeight: 21,
+    letterSpacing: -0.1,
+  },
+  descriptionCompact: {
+    fontSize: 11.5,
+    lineHeight: 16,
+  },
+  repoStats: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 18,
+    transform: [{ translateY: -8 }],
+  },
+  statButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  statPressed: {
+    transform: [{ scale: 0.94 }],
+  },
+  statText: {
+    color: 'rgba(255,255,255,0.92)',
+    fontFamily: 'NataSans-SemiBold',
+    fontSize: 13,
+    lineHeight: 17,
+  },
+  actionRail: {
+    position: 'absolute',
+    right: 14,
+    zIndex: 5,
+    alignItems: 'center',
+    gap: 19,
+  },
+  actionRailCompact: {
+    right: 10,
+    gap: 12,
+  },
+  actionButton: {
+    minWidth: 40,
+    alignItems: 'center',
+    gap: 4,
+  },
+  actionButtonDense: {
+    minWidth: 34,
+    gap: 2,
+  },
+  actionPressed: {
+    transform: [{ scale: 0.86 }],
+  },
+  iconShadow: {
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.55,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  actionLabel: {
+    color: 'rgba(255,255,255,0.92)',
+    fontFamily: 'NataSans-SemiBold',
+    fontSize: 11.5,
+    lineHeight: 15,
+    textShadowColor: 'rgba(0,0,0,0.6)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
+  },
+  actionLabelDense: {
+    fontSize: 9.5,
+    lineHeight: 12,
+  },
+  topGradient: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    right: 0,
+    zIndex: 6,
+  },
+  topBar: {
+    position: 'absolute',
+    top: 0,
+    zIndex: 7,
+  },
+  brandRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  brandLogoFrame: {
+    overflow: 'hidden',
+  },
+  brand: {
+    color: REFERENCE_THEME.text,
+    fontFamily: 'NataSans-Bold',
+    fontSize: 28,
+    lineHeight: 34,
+    letterSpacing: -0.4,
+  },
+  brandCompact: {
+    fontSize: 26,
+    lineHeight: 32,
+  },
+  brandAccent: {
+    color: '#63E08A',
   },
 });

@@ -1,266 +1,323 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { ActivityIndicator, Animated, Easing, Pressable, StyleSheet, Text, TextInput, TouchableOpacity, View, ScrollView } from 'react-native';
-import { Check, Plus, X } from 'lucide-react-native';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import {
+  ActivityIndicator,
+  Animated,
+  Easing,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  useWindowDimensions,
+  View,
+} from 'react-native';
+import { Check, X } from 'lucide-react-native';
 import { BlurView } from 'expo-blur';
-import { NebulaIcon } from '../icons';
-import { useAuth } from '../../store/AuthContext';
 import { useInfiniteQuery } from '@tanstack/react-query';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+import { REFERENCE_THEME } from '@/constants/theme';
 import { getUserBoards } from '../../api/boards';
-import * as SecureStore from '../../utils/storage';
 import { useOptimisticMutations } from '../../hooks/useOptimisticMutations';
-import type { FeedbackAction } from '../../api/activity';
+import { useAuth } from '../../store/AuthContext';
+import * as SecureStore from '../../utils/storage';
 
 interface SavePopupProps {
   isVisible: boolean;
   onClose: () => void;
-  panelWidth: number;
-  panelTranslateX: Animated.Value;
-  overlayOpacity: Animated.Value;
-  isGestureActive: boolean;
+  onSaved?: () => void;
   repoId?: string;
   repoName?: string;
-  onQueueActivity?: (event: { repo_id: string; action: FeedbackAction; dwell_seconds?: number }) => void;
 }
 
 export function SavePopup({
   isVisible,
   onClose,
-  panelWidth,
-  panelTranslateX,
-  overlayOpacity,
-  isGestureActive,
+  onSaved,
   repoId,
   repoName,
-  onQueueActivity,
 }: SavePopupProps) {
+  const { height, width } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const { createBoardMutation, addRepoToBoardMutation } = useOptimisticMutations(user?.user_id);
-
-  const { data: boardsData, isLoading: isLoadingBoards } = useInfiniteQuery({
-    queryKey: ["boards", user?.user_id],
-    queryFn: async ({ pageParam = 0 }) => {
-      if (!user?.user_id) throw new Error("No user id");
-      const token = await SecureStore.getItemAsync("access_token");
-      if (!token) throw new Error("No token");
-      return getUserBoards(user.user_id, token, 20, pageParam);
-    },
-    initialPageParam: 0,
-    getNextPageParam: (lastPage, allPages) => {
-      return lastPage.length === 20 ? allPages.length * 20 : undefined;
-    },
-    enabled: !!user?.user_id && isVisible,
-  });
-
-  const collections = boardsData?.pages.flat() || [];
-
+  const translateY = useMemo(() => new Animated.Value(0), []);
+  const overlayOpacity = useMemo(() => new Animated.Value(0), []);
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [newCollection, setNewCollection] = useState('');
   const [status, setStatus] = useState<'idle' | 'saved'>('idle');
+  const [error, setError] = useState('');
 
-  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const { data: boardsData, isLoading: isLoadingBoards } = useInfiniteQuery({
+    queryKey: ['boards', user?.user_id],
+    queryFn: async ({ pageParam = 0 }) => {
+      if (!user?.user_id) throw new Error('No user id');
+      const token = await SecureStore.getItemAsync('access_token');
+      if (!token) throw new Error('No token');
+      return getUserBoards(user.user_id, token, 20, pageParam);
+    },
+    initialPageParam: 0,
+    getNextPageParam: (lastPage, allPages) =>
+      lastPage.length === 20 ? allPages.length * 20 : undefined,
+    enabled: Boolean(user?.user_id && isVisible),
+  });
+
+  const collections = useMemo(() => boardsData?.pages.flat() ?? [], [boardsData]);
+  const effectiveSelected = collections.some((board: any) => board.board_id === selected)
+    ? selected
+    : collections[0]?.board_id ?? null;
+  const selectedBoard = collections.find((board: any) => board.board_id === effectiveSelected);
+  const sheetHeight = Math.min(520, height * 0.75);
 
   useEffect(() => {
-    return () => {
-      if (saveTimeoutRef.current) {
-        clearTimeout(saveTimeoutRef.current);
-      }
-    };
-  }, []);
-
-  const closeAnimated = () => {
+    if (!isVisible) return;
+    translateY.setValue(sheetHeight);
+    overlayOpacity.setValue(0);
     Animated.parallel([
-      Animated.timing(panelTranslateX, {
-        toValue: -panelWidth,
-        duration: 240,
-        easing: Easing.out(Easing.cubic),
+      Animated.timing(translateY, {
+        toValue: 0,
+        duration: 280,
+        easing: Easing.bezier(0.32, 0.72, 0, 1),
         useNativeDriver: true,
       }),
       Animated.timing(overlayOpacity, {
-        toValue: 0,
+        toValue: 1,
         duration: 200,
         easing: Easing.out(Easing.cubic),
         useNativeDriver: true,
       }),
+    ]).start();
+  }, [isVisible, overlayOpacity, sheetHeight, translateY]);
+
+  useEffect(() => () => {
+    if (closeTimer.current) clearTimeout(closeTimer.current);
+  }, []);
+
+  const closeAnimated = () => {
+    Animated.parallel([
+      Animated.timing(translateY, {
+        toValue: sheetHeight,
+        duration: 220,
+        easing: Easing.in(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.timing(overlayOpacity, {
+        toValue: 0,
+        duration: 180,
+        easing: Easing.in(Easing.cubic),
+        useNativeDriver: true,
+      }),
     ]).start(({ finished }) => {
-      if (!finished) return;
-      setStatus('idle');
-      setIsCreating(false);
-      setNewCollection('');
-      onClose();
+      if (finished) {
+        setStatus('idle');
+        setError('');
+        setIsCreating(false);
+        setNewCollection('');
+        onClose();
+      }
     });
   };
 
   const createCollection = () => {
     const name = newCollection.trim();
-    if (!name) return;
-    if (!user) {
-      alert("Error: User session not found");
-      return;
-    }
-    
+    if (!name || !user || createBoardMutation.isPending) return;
+    setError('');
     createBoardMutation.mutate(name, {
-      onSuccess: (data) => {
+      onSuccess: (board: any) => {
         setIsCreating(false);
         setNewCollection('');
-        // If the backend returns the new board, automatically select it
-        if (data && data.board_id) {
-          setSelected(data.board_id);
-        }
+        if (board?.board_id) setSelected(board.board_id);
       },
-      onError: (err: any) => {
-        alert(`Failed to create collection: ${err.message}`);
-      }
+      onError: (mutationError: any) => {
+        setError(mutationError?.message || 'Could not create collection.');
+      },
     });
   };
 
   const saveRepository = () => {
-    if (!selected || !repoId || !repoName) return;
-    setStatus('saved');
-    // Intentionally omitting onQueueActivity for 'save' since the backend automatically emits it.
-    addRepoToBoardMutation.mutate({ boardId: selected, repoId, repoName });
-    if (saveTimeoutRef.current) {
-      clearTimeout(saveTimeoutRef.current);
-    }
-    saveTimeoutRef.current = setTimeout(closeAnimated, 450);
+    if (!effectiveSelected || !repoId || !repoName || addRepoToBoardMutation.isPending) return;
+    setError('');
+    addRepoToBoardMutation.mutate(
+      { boardId: effectiveSelected, repoId, repoName },
+      {
+        onSuccess: () => {
+          setStatus('saved');
+          onSaved?.();
+          closeTimer.current = setTimeout(closeAnimated, 450);
+        },
+        onError: (mutationError: any) => {
+          setError(mutationError?.message || 'Could not save this repository.');
+        },
+      }
+    );
   };
-
-  const sheetHeight = 450;
-  const translateY = panelTranslateX.interpolate({
-    inputRange: [-panelWidth, 0],
-    outputRange: [sheetHeight, 0],
-    extrapolate: 'clamp',
-  });
 
   if (!isVisible) return null;
 
+  const saveDisabled = !effectiveSelected || addRepoToBoardMutation.isPending;
+
   return (
-    <View style={styles.root} pointerEvents={isGestureActive ? 'none' : 'auto'}>
-      <Pressable style={StyleSheet.absoluteFill} onPress={closeAnimated}>
+    <Modal
+      animationType="none"
+      navigationBarTranslucent
+      onRequestClose={closeAnimated}
+      presentationStyle="overFullScreen"
+      statusBarTranslucent
+      transparent
+      visible={isVisible}
+    >
+    <View style={styles.root}>
+      <Pressable accessibilityLabel="Close save sheet" style={StyleSheet.absoluteFill} onPress={closeAnimated}>
         <Animated.View style={[styles.overlay, { opacity: overlayOpacity }]}>
-          <BlurView intensity={30} tint="dark" style={StyleSheet.absoluteFill} />
+          <BlurView intensity={12} tint="dark" style={StyleSheet.absoluteFill} />
         </Animated.View>
       </Pressable>
 
-      <Animated.View
-        style={[
-          styles.sheet,
-          {
-            transform: [{ translateY }],
-          },
-        ]}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.keyboardLayer}
+        pointerEvents="box-none"
       >
-        {/* Header */}
-        <View style={styles.header}>
-          <View>
-            <Text style={styles.title}>Save Repository</Text>
-            <Text style={styles.subtitle}>Choose a collection</Text>
-          </View>
-          <Pressable onPress={closeAnimated} style={styles.closeButton}>
-            <X size={20} color="#FFFFFF" strokeWidth={1.8} />
-          </Pressable>
-        </View>
-
-        {/* Collection cards */}
-        <ScrollView 
-          style={styles.scrollList}
-          contentContainerStyle={styles.listContent}
-          showsVerticalScrollIndicator={false}
+        <Animated.View
+          style={[
+            styles.sheet,
+            {
+              width: Math.min(width, 520),
+              maxHeight: sheetHeight,
+              paddingBottom: Math.max(insets.bottom, 28),
+              transform: [{ translateY }],
+            },
+          ]}
         >
-          {isLoadingBoards ? (
-            <ActivityIndicator size="small" color="#8EFF7A" style={{ marginTop: 20 }} />
-          ) : (
-            collections.map((board: any) => {
-              const active = selected === board.board_id;
-              return (
-                <TouchableOpacity
-                  key={board.board_id}
-                  onPress={() => setSelected(board.board_id)}
-                  activeOpacity={0.7}
-                  style={[
-                    styles.collectionCard,
-                    active ? styles.collectionCardActive : styles.collectionCardInactive,
-                  ]}
-                >
-                  <View style={styles.thumbnail}>
-                    <NebulaIcon width={38} height={38} />
-                  </View>
+          <View style={styles.grabberWrap}>
+            <View style={styles.grabber} />
+          </View>
 
-                  <Text style={styles.collectionName}>{board.board_name}</Text>
-                  
-                  <View style={[styles.radio, active ? styles.radioActive : styles.radioInactive]}>
-                    {active ? <View style={styles.radioDot} /> : null}
-                  </View>
-                </TouchableOpacity>
-              );
-            })
-          )}
-        </ScrollView>
-
-        {/* Footer Actions */}
-        <View style={styles.footerContainer}>
-          {isCreating ? (
-            <View style={styles.createInputRow}>
-              <TextInput
-                autoFocus
-                value={newCollection}
-                onChangeText={setNewCollection}
-                onSubmitEditing={createCollection}
-                placeholder="Collection name"
-                placeholderTextColor="#757575"
-                style={styles.createInput}
-                editable={!createBoardMutation.isPending}
-              />
-              <TouchableOpacity onPress={createCollection} style={styles.createSubmit} disabled={createBoardMutation.isPending}>
-                {createBoardMutation.isPending ? (
-                  <ActivityIndicator size="small" color="#0A0C09" />
-                ) : (
-                  <Check size={18} color="#0A0C09" />
-                )}
-              </TouchableOpacity>
+          <View style={styles.content}>
+            <View style={styles.header}>
+              <View style={styles.headerCopy}>
+                <Text style={styles.title}>Save repository</Text>
+                <Text style={styles.subtitle}>Choose a collection</Text>
+              </View>
+              <Pressable
+                accessibilityLabel="Close"
+                accessibilityRole="button"
+                onPress={closeAnimated}
+                style={({ pressed }) => [styles.closeButton, pressed && styles.pressed]}
+              >
+                <X size={12} color="rgba(235,235,245,0.70)" strokeWidth={2.6} />
+              </Pressable>
             </View>
-          ) : (
-            <TouchableOpacity
-              onPress={() => setIsCreating(true)}
-              activeOpacity={0.7}
-              style={styles.createButton}
-            >
-              <Plus size={16} color="#FFFFFF" strokeWidth={2.5} />
-              <Text style={styles.createText}>Create new collection</Text>
-            </TouchableOpacity>
-          )}
 
-          <TouchableOpacity
-            onPress={saveRepository}
-            activeOpacity={0.8}
-            style={[styles.saveButton, !selected && { backgroundColor: '#1E241E', opacity: 0.5 }]}
-            disabled={!selected}
-          >
-            <Text style={[styles.saveText, !selected && { color: '#8E8E93' }]}>
-              {(() => {
-                if (status === 'saved') return 'Saved!';
-                const selectedBoardName = collections.find((b: any) => b.board_id === selected)?.board_name;
-                if (selectedBoardName) return `Save to ${selectedBoardName}`;
-                return 'Save to Collection';
-              })()}
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </Animated.View>
+            <ScrollView
+              style={styles.collectionList}
+              contentContainerStyle={styles.collectionListContent}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+            >
+              {isLoadingBoards ? (
+                <ActivityIndicator color={REFERENCE_THEME.accent} style={styles.loading} />
+              ) : collections.length > 0 ? collections.map((board: any) => {
+                const active = effectiveSelected === board.board_id;
+                return (
+                  <Pressable
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected: active }}
+                    key={board.board_id}
+                    onPress={() => setSelected(board.board_id)}
+                    style={({ pressed }) => [
+                      styles.collection,
+                      active ? styles.collectionSelected : styles.collectionIdle,
+                      pressed && styles.rowPressed,
+                    ]}
+                  >
+                    <Text style={styles.collectionName} numberOfLines={1}>{board.board_name}</Text>
+                    <View style={[styles.radio, active ? styles.radioSelected : styles.radioIdle]} />
+                  </Pressable>
+                );
+              }) : (
+                <Text style={styles.empty}>Create a collection to save this repository.</Text>
+              )}
+            </ScrollView>
+
+            {isCreating ? (
+              <View style={styles.newCollectionRow}>
+                <TextInput
+                  autoFocus
+                  editable={!createBoardMutation.isPending}
+                  onChangeText={setNewCollection}
+                  onSubmitEditing={createCollection}
+                  placeholder="New collection name"
+                  placeholderTextColor="rgba(235,235,245,0.30)"
+                  returnKeyType="done"
+                  style={styles.newCollectionInput}
+                  value={newCollection}
+                />
+                <Pressable
+                  accessibilityLabel="Create collection"
+                  disabled={!newCollection.trim() || createBoardMutation.isPending}
+                  onPress={createCollection}
+                  style={({ pressed }) => [styles.newCollectionSubmit, pressed && styles.pressed]}
+                >
+                  {createBoardMutation.isPending ? (
+                    <ActivityIndicator size="small" color={REFERENCE_THEME.text} />
+                  ) : (
+                    <Check size={16} color={REFERENCE_THEME.text} strokeWidth={2.4} />
+                  )}
+                </Pressable>
+              </View>
+            ) : (
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => setIsCreating(true)}
+                style={({ pressed }) => [styles.createButton, pressed && styles.pressed]}
+              >
+                <Text style={styles.createText}>+ Create new collection</Text>
+              </Pressable>
+            )}
+
+            {error ? <Text style={styles.error}>{error}</Text> : null}
+
+            <Pressable
+              accessibilityRole="button"
+              accessibilityState={{ disabled: saveDisabled }}
+              disabled={saveDisabled}
+              onPress={saveRepository}
+              style={({ pressed }) => [
+                styles.saveButton,
+                saveDisabled && styles.saveButtonDisabled,
+                pressed && !saveDisabled && styles.rowPressed,
+              ]}
+            >
+              {addRepoToBoardMutation.isPending ? (
+                <ActivityIndicator size="small" color={REFERENCE_THEME.text} />
+              ) : (
+                <Text style={[styles.saveText, saveDisabled && styles.saveTextDisabled]}>
+                  {status === 'saved'
+                    ? 'Saved'
+                    : selectedBoard?.board_name
+                      ? `Save to ${selectedBoard.board_name}`
+                      : 'Save to collection'}
+                </Text>
+              )}
+            </Pressable>
+          </View>
+        </Animated.View>
+      </KeyboardAvoidingView>
     </View>
+    </Modal>
   );
 }
 
 const styles = StyleSheet.create({
   root: {
-    position: 'absolute',
-    left: 0,
-    top: 0,
-    right: 0,
-    bottom: 0,
+    flex: 1,
     zIndex: 100,
-    justifyContent: 'flex-start',
-    alignItems: 'flex-start',
   },
   overlay: {
     position: 'absolute',
@@ -268,186 +325,195 @@ const styles = StyleSheet.create({
     top: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.6)',
+    backgroundColor: 'rgba(0,0,0,0.55)',
+  },
+  keyboardLayer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'flex-end',
   },
   sheet: {
-    backgroundColor: '#0C0E0B',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    borderWidth: 1.5,
-    borderBottomWidth: 0,
-    borderColor: '#8EFF7A',
+    minHeight: 350,
+    borderTopLeftRadius: 22,
+    borderTopRightRadius: 22,
+    backgroundColor: REFERENCE_THEME.surface,
+    overflow: 'hidden',
+  },
+  grabberWrap: {
+    alignItems: 'center',
+    paddingTop: 8,
+    paddingBottom: 6,
+  },
+  grabber: {
+    width: 36,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: 'rgba(235,235,245,0.20)',
+  },
+  content: {
+    paddingTop: 4,
     paddingHorizontal: 20,
-    paddingTop: 24,
-    paddingBottom: 32,
-    height: 450,
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    
-    // Cyberpunk glow style
-    shadowColor: '#8EFF7A',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 15,
-    elevation: 24,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     justifyContent: 'space-between',
-    marginBottom: 16,
+  },
+  headerCopy: {
+    flex: 1,
+    paddingRight: 12,
   },
   title: {
-    color: '#FFFFFF',
+    color: REFERENCE_THEME.text,
     fontFamily: 'NataSans-Bold',
-    fontSize: 20,
-    lineHeight: 26,
+    fontSize: 17,
+    lineHeight: 22,
+    letterSpacing: -0.3,
   },
   subtitle: {
-    color: '#8E8E93',
+    marginTop: 3,
+    color: 'rgba(235,235,245,0.55)',
     fontFamily: 'NataSans-Regular',
-    fontSize: 14,
-    lineHeight: 18,
-    marginTop: 2,
+    fontSize: 12.5,
+    lineHeight: 17,
   },
   closeButton: {
-    width: 32,
-    height: 32,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: 'rgba(118,118,128,0.24)',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  scrollList: {
-    flex: 1,
-    marginBottom: 16,
+  collectionList: {
+    maxHeight: 220,
+    marginTop: 16,
   },
-  listContent: {
-    gap: 12,
-    paddingVertical: 4,
+  collectionListContent: {
+    gap: 9,
   },
-  collectionCard: {
-    height: 58,
-    borderRadius: 18, // Rounded corner styling of DescriptionCard
-    borderWidth: 1.5,
+  loading: {
+    marginVertical: 28,
+  },
+  collection: {
+    height: 46,
+    paddingHorizontal: 15,
+    borderRadius: 12,
+    borderWidth: 1,
+    backgroundColor: 'rgba(118,118,128,0.12)',
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
+    justifyContent: 'space-between',
+    gap: 12,
   },
-  collectionCardInactive: {
-    borderColor: '#2E4C2C', // Dim green border outline to match screenshots
-    backgroundColor: '#0F110E',
+  collectionIdle: {
+    borderColor: 'rgba(255,255,255,0.14)',
   },
-  collectionCardActive: {
-    borderColor: '#8EFF7A', // Glowing green border
-    backgroundColor: '#10150F', // Same card background as first tab
-    shadowColor: '#8EFF7A',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 3,
-  },
-  thumbnail: {
-    width: 38,
-    height: 38,
-    borderRadius: 8, // Square collection thumbnails with rounded corners
-    backgroundColor: '#10150F',
-    overflow: 'hidden',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-  },
-  thumbnailImage: {
-    width: '100%',
-    height: '100%',
+  collectionSelected: {
+    borderColor: REFERENCE_THEME.accent,
+    borderWidth: 1.5,
   },
   collectionName: {
     flex: 1,
-    color: '#FFFFFF',
-    fontFamily: 'NataSans-Regular',
-    fontSize: 15,
-    lineHeight: 20,
+    color: REFERENCE_THEME.text,
+    fontFamily: 'NataSans-Medium',
+    fontSize: 14,
+    lineHeight: 19,
   },
   radio: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+  },
+  radioIdle: {
     borderWidth: 1.5,
-    alignItems: 'center',
-    justifyContent: 'center',
+    borderColor: 'rgba(255,255,255,0.30)',
   },
-  radioInactive: {
-    borderColor: '#303030',
-    backgroundColor: 'rgba(28,28,28,0.5)',
+  radioSelected: {
+    borderWidth: 5.5,
+    borderColor: REFERENCE_THEME.accent,
   },
-  radioActive: {
-    borderColor: '#8EFF7A',
-    backgroundColor: '#8EFF7A',
-  },
-  radioDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#0C0E0B',
-  },
-  footerContainer: {
-    gap: 12,
+  empty: {
+    marginVertical: 22,
+    color: REFERENCE_THEME.textTertiary,
+    fontFamily: 'NataSans-Regular',
+    fontSize: 13,
+    lineHeight: 18,
+    textAlign: 'center',
   },
   createButton: {
-    height: 48,
-    flexDirection: 'row',
+    width: '100%',
+    height: 40,
+    marginTop: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
   },
   createText: {
-    color: '#FFFFFF', // White accent color
-    fontFamily: 'NataSans-Bold',
-    fontSize: 15,
-    lineHeight: 20,
+    color: REFERENCE_THEME.text,
+    fontFamily: 'NataSans-SemiBold',
+    fontSize: 13.5,
+    lineHeight: 18,
   },
-  createInputRow: {
-    height: 48,
+  newCollectionRow: {
+    height: 46,
+    marginTop: 10,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 8,
   },
-  createInput: {
+  newCollectionInput: {
     flex: 1,
-    height: 42,
-    borderRadius: 8,
+    height: 46,
+    borderRadius: 12,
     borderWidth: 1.5,
-    borderColor: '#8EFF7A',
-    color: '#FFFFFF',
+    borderColor: REFERENCE_THEME.accent,
+    backgroundColor: 'rgba(118,118,128,0.12)',
+    paddingHorizontal: 15,
+    color: REFERENCE_THEME.text,
     fontFamily: 'NataSans-Regular',
-    fontSize: 15,
-    paddingHorizontal: 12,
-    backgroundColor: '#0F110E',
+    fontSize: 14,
   },
-  createSubmit: {
-    width: 42,
-    height: 42,
-    borderRadius: 8,
-    backgroundColor: '#8EFF7A',
+  newCollectionSubmit: {
+    width: 46,
+    height: 46,
+    borderRadius: 12,
+    backgroundColor: REFERENCE_THEME.accent,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  error: {
+    marginTop: 4,
+    color: REFERENCE_THEME.danger,
+    fontFamily: 'NataSans-Regular',
+    fontSize: 12,
+    textAlign: 'center',
   },
   saveButton: {
+    width: '100%',
     height: 48,
-    borderRadius: 8,
-    backgroundColor: '#58A351', // rich green button
+    marginTop: 10,
+    borderRadius: 12,
+    backgroundColor: REFERENCE_THEME.accent,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#58A351',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-    elevation: 8,
+  },
+  saveButtonDisabled: {
+    backgroundColor: REFERENCE_THEME.surfaceElevated,
   },
   saveText: {
-    color: '#FFFFFF', // white text
-    fontFamily: 'NataSans-Bold',
-    fontSize: 16,
-    lineHeight: 22,
+    color: REFERENCE_THEME.text,
+    fontFamily: 'NataSans-SemiBold',
+    fontSize: 15,
+    lineHeight: 20,
+    letterSpacing: -0.2,
+  },
+  saveTextDisabled: {
+    color: REFERENCE_THEME.textDisabled,
+  },
+  pressed: {
+    opacity: 0.7,
+  },
+  rowPressed: {
+    transform: [{ scale: 0.985 }],
   },
 });

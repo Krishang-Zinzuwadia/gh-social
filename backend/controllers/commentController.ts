@@ -1,6 +1,7 @@
 import type { Request, Response } from 'express';
 import * as commentService from '../services/commentService.js';
 import { sendError, sendSuccess, sendDatabaseError } from '../utils/response.js';
+import type { AuthRequest } from '../middlewares/authMiddleware.js';
 
 // Return every comment row.
 export async function getAllComments(_req: Request, res: Response): Promise<void> {
@@ -64,8 +65,11 @@ export async function getCommentById(req: Request, res: Response): Promise<void>
 }
 
 // Create a new comment row.
-export async function createComment(req: Request, res: Response): Promise<void> {
-  const { data, error } = await commentService.createComment(req.body);
+export async function createComment(req: AuthRequest, res: Response): Promise<void> {
+  const { data, error } = await commentService.createComment({
+    ...req.body,
+    user_id: req.user!.userId,
+  });
 
   if (error) {
     return sendDatabaseError(res, error);

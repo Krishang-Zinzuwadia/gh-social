@@ -4,13 +4,13 @@ export default function TermsFooter() {
   return (
     <View className="items-center mt-10">
       <Text
-        className="text-[#7B7B7B] text-xs text-center font-nata"
+        className="text-[rgba(235,235,245,0.3)] text-xs text-center font-nata"
       >
         By signing up, you agree to our
       </Text>
 
       <Text
-        className="text-[#8EFF7A] text-xs mt-1 font-nata"
+        className="text-[#63E08A] text-xs mt-1 font-nata"
       >
         Terms of Service and Privacy Policy.
       </Text>

@@ -23,14 +23,13 @@ function RootLayoutNav() {
     const inOnboardingGroup = segments[0] === 'onboarding';
 
     if (!user && !inAuthGroup) {
-      // Redirect unauthenticated users to login
       router.replace('/(auth)/login');
-    } else if (user && !user.onboarding_completed && !inOnboardingGroup) {
-      // Redirect authenticated users who haven't finished onboarding
-      router.replace('/onboarding/create-profile');
-    } else if (user && user.onboarding_completed && (inAuthGroup || inOnboardingGroup)) {
-      // Redirect fully authenticated users away from auth/onboarding pages to main app
-      router.replace('/(tabs)/explore');
+    } else if (user) {
+      if (user.onboarding_completed === false && !inOnboardingGroup) {
+        router.replace('/onboarding/create-profile');
+      } else if (user.onboarding_completed === true && (inAuthGroup || inOnboardingGroup)) {
+        router.replace('/(tabs)/explore');
+      }
     }
   }, [user, isLoading, segments, router]);
 

@@ -20,7 +20,7 @@ export default function StepHeader({
     >
       <Text
         style={{
-          color: "#F0F6EB",
+          color: "#FFFFFF",
           fontSize: 32,
           fontWeight: "700",
           textAlign: "center",
@@ -31,7 +31,7 @@ export default function StepHeader({
 
       <Text
         style={{
-          color: "#8EFF7A",
+          color: "#63E08A",
           fontSize: 32,
           fontWeight: "700",
           textAlign: "center",
@@ -42,7 +42,7 @@ export default function StepHeader({
 
       <Text
         style={{
-          color: "#9B9B9B",
+          color: "rgba(235,235,245,0.6)",
           fontSize: 15,
           textAlign: "center",
           marginTop: 16,

@@ -1,10 +1,7 @@
 import React from 'react';
-import { Text, TouchableOpacity, View } from 'react-native';
-import GitBranchIcon from '../../assets/icons/git-branch.svg';
-import MonitorIcon from '../../assets/icons/monitor.svg';
-import StarIcon from '../../assets/icons/star.svg';
+import { Pressable, Text, View } from 'react-native';
+import Svg, { Path } from 'react-native-svg';
 import { Repo } from '../../types';
-import Avatar from '../Avatar';
 
 interface TrendingRepoCardProps {
   repo: Repo;
@@ -12,57 +9,87 @@ interface TrendingRepoCardProps {
   onPress?: () => void;
 }
 
-const regular = { fontFamily: 'NataSans-Regular' };
-const bold = { fontFamily: 'NataSans-Bold' };
-
-export default function TrendingRepoCard({ repo, onPress }: TrendingRepoCardProps): React.JSX.Element {
-  const formattedName = repo.name.replace(/-/g, '- ');
-
+function BookIcon(): React.JSX.Element {
   return (
-    <TouchableOpacity
+    <Svg width={16} height={16} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V2H6.5A2.5 2.5 0 0 0 4 4.5v15Z"
+        stroke="rgba(235,235,245,0.75)"
+        strokeWidth={1.8}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5"
+        stroke="rgba(235,235,245,0.75)"
+        strokeWidth={1.8}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+function StarIcon(): React.JSX.Element {
+  return (
+    <Svg width={11} height={11} viewBox="0 0 24 24" fill="#FFD60A">
+      <Path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z" />
+    </Svg>
+  );
+}
+
+export default function TrendingRepoCard({ repo, rank, onPress }: TrendingRepoCardProps): React.JSX.Element {
+  return (
+    <Pressable
       onPress={onPress}
-      className="rounded-xl"
       style={{
-        backgroundColor: '#191F18',
-        borderColor: '#2E3D2E',
-        borderWidth: 1,
-        padding: 18,
+        minHeight: 52,
+        paddingVertical: 8,
+        paddingHorizontal: 14,
+        borderRadius: 14,
+        backgroundColor: '#1C1C1E',
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
       }}
-      activeOpacity={0.7}
     >
-      {/* Row 1: Icon and Name */}
-      <View className="flex-row items-center mb-2.5" style={{ gap: 8 }}>
-        {repo.hasIcon && (
-          <View className="w-7 h-7 bg-[#142918] rounded-md items-center justify-center border border-[#1B4322]">
-            <MonitorIcon stroke="#8EFF7A" width={14} height={14} />
-          </View>
-        )}
+      <BookIcon />
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}>
+          <Text
+            numberOfLines={1}
+            style={{
+              color: '#FFFFFF',
+              fontSize: 14,
+              fontWeight: '600',
+              letterSpacing: 0,
+              flexShrink: 1,
+            }}
+          >
+            {repo.name}
+          </Text>
+          {rank && rank <= 3 ? (
+            <Text style={{ color: 'rgb(255, 214, 10)', fontSize: 10.5, fontWeight: '700', flexShrink: 0 }}>
+              No. {rank}
+            </Text>
+          ) : null}
+        </View>
         <Text
-          className="text-white flex-1"
-          numberOfLines={1}
-          style={[bold, { fontSize: 14, lineHeight: 18, width: '100%' }]}
+          numberOfLines={2}
+          style={{
+            color: 'rgba(235, 235, 245, 0.55)',
+            fontSize: 11.5,
+            lineHeight: 16.1,
+            marginTop: 2,
+          }}
         >
-          {formattedName}
+          {repo.description}
         </Text>
       </View>
-
-      {/* Row 2: Stars and Forks */}
-      <View className="flex-row items-center mb-2.5" style={{ gap: 12 }}>
-        <View className="flex-row items-center" style={{ gap: 4 }}>
-          <StarIcon stroke="#FBBF24" fill="#FBBF24" width={12} height={12} />
-          <Text className="text-[#A3A3A3] text-xs" style={regular}>{repo.stars}</Text>
-        </View>
-        <View className="flex-row items-center" style={{ gap: 4 }}>
-          <GitBranchIcon stroke="#A3A3A3" width={12} height={12} />
-          <Text className="text-[#A3A3A3] text-xs" style={regular}>{repo.forks}</Text>
-        </View>
+      <View style={{ width: 48, flexDirection: 'row', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+        <StarIcon />
+        <Text style={{ color: 'rgba(235, 235, 245, 0.45)', fontSize: 12 }}>{repo.stars}</Text>
       </View>
-
-      {/* Row 3: Author */}
-      <View className="flex-row items-center" style={{ gap: 6 }}>
-        <Avatar color={repo.avatarColor} initial={repo.avatarInitial} size={16} author={repo.author} />
-        <Text className="text-[#A3A3A3] text-xs" style={regular}>{repo.author}</Text>
-      </View>
-    </TouchableOpacity>
+    </Pressable>
   );
 }

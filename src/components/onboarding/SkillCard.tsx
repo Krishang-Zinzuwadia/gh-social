@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo } from "react";
 import { Text, TouchableOpacity, View, Animated } from "react-native";
 import { Check } from "lucide-react-native";
 
@@ -17,8 +17,8 @@ export default function SkillCard({
   selected = false,
   onPress,
 }: SkillCardProps) {
-  const [scale] = useState(() => new Animated.Value(selected ? 1.02 : 1));
-  const [opacity] = useState(() => new Animated.Value(selected ? 1 : 0));
+  const scale = useMemo(() => new Animated.Value(1), []);
+  const opacity = useMemo(() => new Animated.Value(0), []);
 
   useEffect(() => {
     Animated.parallel([
@@ -41,8 +41,8 @@ export default function SkillCard({
       onPress={onPress ?? (() => {})}
       style={{
         width: "48%",
-        backgroundColor: selected ? "#152418" : "#191F18",
-borderColor: selected ? "#8EFF7A" : "#555252",
+        backgroundColor: selected ? "#2C2C2E" : "#1C1C1E",
+        borderColor: selected ? "#63E08A" : "rgba(255,255,255,0.14)",
         borderWidth: 1,
         borderRadius: 12,
         paddingHorizontal: 12,
@@ -51,7 +51,7 @@ borderColor: selected ? "#8EFF7A" : "#555252",
         alignItems: "center",
         marginBottom: 12,
         transform: [{ scale }],
-        shadowColor: selected ? "#6DA963" : "transparent",
+        shadowColor: selected ? "#63E08A" : "transparent",
         shadowOffset: { width: 0, height: 0 },
         shadowOpacity: selected ? 0.4 : 0,
         shadowRadius: 8,
@@ -77,21 +77,21 @@ borderColor: selected ? "#8EFF7A" : "#555252",
             width: 22,
             height: 22,
             borderRadius: 11,
-            backgroundColor: "#6DA963",
+            backgroundColor: "#63E08A",
             justifyContent: "center",
             alignItems: "center",
             opacity,
             transform: [
               { scale: opacity.interpolate({ inputRange: [0, 1], outputRange: [0.5, 1] }) }
             ],
-            shadowColor: "#000",
+            shadowColor: "#000000",
             shadowOffset: { width: 0, height: 2 },
             shadowOpacity: 0.3,
             shadowRadius: 3,
             elevation: 3,
           }}
         >
-          <Check size={14} color="#FFF" strokeWidth={3} />
+          <Check size={14} color="#FFFFFF" strokeWidth={3} />
         </Animated.View>
       </View>
 
@@ -99,7 +99,7 @@ borderColor: selected ? "#8EFF7A" : "#555252",
         numberOfLines={1}
         style={{
           flex: 1,
-          color: "#F0F6EB",
+          color: "#FFFFFF",
           fontSize: 12,
           lineHeight: 18,
         }}

@@ -1,152 +1,197 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import {
-  ReactLogoIcon,
-  MongoDBLogoIcon,
-  TailwindLogoIcon,
-  JavaLogoIcon,
-  PythonLogoIcon,
-  AndroidLogoIcon,
-  JavascriptLogoIcon,
-  TypescriptLogoIcon,
-  CsharpLogoIcon,
-  GoLogoIcon,
-  PhpLogoIcon,
-  RubyLogoIcon,
-  RustLogoIcon,
-  CplusplusLogoIcon,
-  HtmlLogoIcon,
-  CssLogoIcon,
-  AstroLogoIcon,
-  ShellLogoIcon,
-} from '@/components/icons';
-import { RepositoryData } from '../../data/repositories';
-import StackFillSvg from '../../assets/icons/ri_stack-fill.svg';
-import CommentSvg from '../../assets/icons/Vector (3).svg';
+import { StyleSheet, Text, View } from 'react-native';
+import { Layers } from 'lucide-react-native';
 
-const ICON_MAP: Record<string, React.FC<{ size?: number; width?: number; height?: number }>> = {
-  'React': ReactLogoIcon,
-  'MongoDB': MongoDBLogoIcon,
-  'Tailwind': TailwindLogoIcon,
-  'Java': JavaLogoIcon,
-  'Python': PythonLogoIcon,
-  'Android SDK': AndroidLogoIcon,
-  'Javascript': JavascriptLogoIcon,
-  'JavaScript': JavascriptLogoIcon,
-  'TypeScript': TypescriptLogoIcon,
-  'C#': CsharpLogoIcon,
-  'Go': GoLogoIcon,
-  'PHP': PhpLogoIcon,
-  'Ruby': RubyLogoIcon,
-  'Rust': RustLogoIcon,
-  'C++': CplusplusLogoIcon,
-  'HTML': HtmlLogoIcon,
-  'CSS': CssLogoIcon,
-  'Astro': AstroLogoIcon,
-  'Shell': ShellLogoIcon,
-  'Bash': ShellLogoIcon,
+import { REFERENCE_THEME } from '@/constants/theme';
+import type { RepositoryData } from '../../data/repositories';
+import { TechStackIcon } from './TechStackIcon';
+
+const TECH_COLORS: Record<string, string> = {
+  Android: '#3DDC84',
+  'Android SDK': '#3DDC84',
+  Astro: '#FF5D01',
+  Bash: '#8E8E93',
+  'C#': '#9B4F96',
+  'C++': '#659AD2',
+  CSS: '#1572B6',
+  Docker: '#2496ED',
+  Expo: '#B8C2CC',
+  Go: '#00ADD8',
+  HTML: '#E34F26',
+  Java: '#ED8B00',
+  JavaScript: '#F7DF1E',
+  Javascript: '#F7DF1E',
+  MongoDB: '#47A248',
+  Node: '#5FA04E',
+  'Node.js': '#5FA04E',
+  NumPy: '#4DABCF',
+  PHP: '#777BB4',
+  PostgreSQL: '#4169E1',
+  Python: '#3572A5',
+  Qdrant: '#DC244C',
+  React: '#61DAFB',
+  Redis: '#FF4438',
+  Ruby: '#CC342D',
+  Rust: '#DEA584',
+  Shell: '#8E8E93',
+  Supabase: '#3ECF8E',
+  SVG: '#FFB13B',
+  Tailwind: '#38BDF8',
+  'Tailwind CSS': '#38BDF8',
+  TypeScript: '#3178C6',
+  WASM: '#654FF0',
 };
 
 type DescriptionCardProps = {
   repository: RepositoryData;
-  height: number;
-  isSmallPhone: boolean;
+  compact?: boolean;
+  availableWidth: number;
 };
 
-export default function DescriptionCard({ repository, height, isSmallPhone }: DescriptionCardProps) {
+function clamp(value: number, minimum: number, maximum: number) {
+  return Math.min(Math.max(value, minimum), maximum);
+}
+
+export default function DescriptionCard({
+  repository,
+  compact = false,
+  availableWidth,
+}: DescriptionCardProps) {
+  const technologies = (repository.techStack ?? []).slice(0, 3);
+  const veryNarrow = availableWidth < 240;
+  const circleSize = compact
+    ? clamp(availableWidth * 0.14, 31, 38)
+    : clamp(availableWidth * 0.12, 40, 50);
+  const iconSize = Math.round(circleSize * 0.58);
+  const horizontalPadding = veryNarrow ? 10 : compact ? 12 : 21;
+
   return (
-    <View style={[styles.descriptionCard, { height }]}>
-      {/* Header */}
-      <View style={styles.header}>
-        <CommentSvg width={14} height={14} />
-        <Text style={styles.customCardTitle}>Description</Text>
+    <View
+      style={[
+        styles.card,
+        compact && styles.cardCompact,
+        { paddingHorizontal: horizontalPadding },
+      ]}
+    >
+      <View style={styles.headingRow}>
+        <Layers size={12} color={REFERENCE_THEME.accentLight} strokeWidth={2} />
+        <Text style={styles.heading}>TECH STACK</Text>
       </View>
-      <Text style={styles.customCardDesc} numberOfLines={5} ellipsizeMode="tail">
-        {repository.description}
-      </Text>
-      {/* Tech Stack Section */}
-      <View style={styles.techStackHeader}>
-        <StackFillSvg width={14} height={14} />
-        <Text style={styles.customCardTitle}>Tech Stack</Text>
-      </View>
-      <View style={styles.techStackGrid}>
-        {repository.techStack?.slice(0, 6).map((tech) => {
-          const Icon = ICON_MAP[tech];
-          const isJS = tech === 'Javascript' || tech === 'JavaScript';
-          const iconSize = isJS ? 24 : 26;
-          
+
+      <View style={[styles.grid, compact && styles.gridCompact]}>
+        {technologies.length > 0 ? technologies.map((technology) => {
+          const colour = TECH_COLORS[technology] ?? '#8E8E93';
+
           return (
-            <View key={tech} style={styles.techStackItem}>
-              {Icon ? (
-                <Icon size={iconSize} width={iconSize} height={iconSize} />
-              ) : (
-                <View style={{height: 26, width: 26, backgroundColor: '#1E241E', borderRadius: 6, alignItems: 'center', justifyContent: 'center'}}>
-                  <Text style={{color: '#4ADE80', fontSize: 12, fontFamily: 'NataSans-Bold'}}>{tech.substring(0, 1).toUpperCase()}</Text>
-                </View>
-              )}
-              <Text style={styles.techStackLabel} numberOfLines={1}>{tech}</Text>
+            <View key={technology} style={styles.item}>
+              <View
+                style={[
+                  styles.iconCircle,
+                  {
+                    width: circleSize,
+                    height: circleSize,
+                    borderRadius: circleSize / 2,
+                    backgroundColor: `${colour}26`,
+                  },
+                ]}
+              >
+                <TechStackIcon color={colour} name={technology} size={iconSize} />
+              </View>
+              <Text
+                adjustsFontSizeToFit
+                minimumFontScale={0.76}
+                style={[
+                  styles.label,
+                  compact && styles.labelCompact,
+                  veryNarrow && styles.labelVeryNarrow,
+                ]}
+                numberOfLines={1}
+              >
+                {technology}
+              </Text>
             </View>
           );
-        })}
+        }) : (
+          <View style={styles.emptyRow}>
+            <Text style={styles.emptyText}>Stack details unavailable</Text>
+          </View>
+        )}
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  descriptionCard: {
-    width: '100%',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#4ADE80',
-    backgroundColor: '#0A0A0A',
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 16,
+  card: {
+    borderRadius: 18,
+    backgroundColor: 'rgba(28,28,30,0.78)',
+    paddingTop: 19,
+    paddingRight: 21,
+    paddingBottom: 20,
+    paddingLeft: 21,
     overflow: 'hidden',
   },
-  header: {
+  cardCompact: {
+    paddingTop: 11,
+    paddingBottom: 12,
+  },
+  headingRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    marginBottom: 10,
   },
-  customCardTitle: {
-    color: '#4ADE80',
+  heading: {
+    color: REFERENCE_THEME.accentLight,
     fontFamily: 'NataSans-Bold',
-    fontSize: 13,
-    lineHeight: 18,
+    fontSize: 11,
+    lineHeight: 15,
+    letterSpacing: 0.6,
   },
-  customCardDesc: {
-    color: '#FFFFFF',
-    fontFamily: 'NataSans-Regular',
-    fontSize: 12,
-    lineHeight: 16,
-  },
-  techStackHeader: {
+  grid: {
     flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginTop: 17,
+    columnGap: 12,
+  },
+  gridCompact: {
+    marginTop: 8,
+    columnGap: 6,
+  },
+  item: {
+    flex: 1,
+    minWidth: 0,
     alignItems: 'center',
-    gap: 6,
-    marginTop: 20,
-    marginBottom: 10,
+    gap: 8,
   },
-  techStackGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    rowGap: 12,
-  },
-  techStackItem: {
-    width: '30%',
+  iconCircle: {
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 4,
   },
-  techStackLabel: {
-    color: '#FFFFFF',
+  label: {
+    width: '100%',
+    color: REFERENCE_THEME.textPrimary,
     fontFamily: 'NataSans-Medium',
-    fontSize: 8.5,
-    lineHeight: 11,
+    fontSize: 12,
+    lineHeight: 16,
     textAlign: 'center',
+  },
+  labelCompact: {
+    fontSize: 11,
+    lineHeight: 15,
+  },
+  labelVeryNarrow: {
+    fontSize: 10,
+    lineHeight: 14,
+  },
+  emptyRow: {
+    flex: 1,
+    height: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyText: {
+    color: REFERENCE_THEME.textTertiary,
+    fontFamily: 'NataSans-Regular',
+    fontSize: 12,
   },
 });

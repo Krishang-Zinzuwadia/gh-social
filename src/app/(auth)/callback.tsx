@@ -39,27 +39,27 @@ export default function OAuthCallbackScreen() {
 
   if (errorMsg) {
     return (
-      <View className="flex-1 bg-[#0A0C09] items-center justify-center px-8">
+      <View className="flex-1 bg-[#000000] items-center justify-center px-8">
         <Text className="text-white text-[20px] font-nataBold text-center mb-3">
           Sign-in failed
         </Text>
-        <Text className="text-[#8A8A8A] text-[14px] font-nata text-center mb-8">
+        <Text className="text-[rgba(235,235,245,0.6)] text-[14px] font-nata text-center mb-8">
           {errorMsg}
         </Text>
         <TouchableOpacity
-          className="bg-[#8EFF7A] rounded-[9px] px-8 py-4"
+          className="bg-[#FFFFFF] rounded-[9px] px-8 py-4"
           onPress={() => router.replace('/(auth)/login')}
         >
-          <Text className="text-black font-nataBold text-[15px]">Back to Login</Text>
+          <Text className="text-[#000000] font-nataBold text-[15px]">Back to Login</Text>
         </TouchableOpacity>
       </View>
     );
   }
 
   return (
-    <View className="flex-1 bg-[#0A0C09] items-center justify-center">
-      <ActivityIndicator size="large" color="#8EFF7A" />
-      <Text className="text-[#8A8A8A] text-[14px] font-nata mt-4">
+    <View className="flex-1 bg-[#000000] items-center justify-center">
+      <ActivityIndicator size="large" color="#63E08A" />
+      <Text className="text-[rgba(235,235,245,0.6)] text-[14px] font-nata mt-4">
         Signing you in…
       </Text>
     </View>

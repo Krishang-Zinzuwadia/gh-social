@@ -34,6 +34,21 @@ const hashToken = (token: string) => {
   return crypto.createHash("sha256").update(token).digest("hex");
 };
 
+const getClientRedirect = (value: unknown): string => {
+  if (typeof value !== "string" || !value.trim()) return CLIENT_URL;
+
+  try {
+    const redirect = new URL(value);
+    const isAppScheme = redirect.protocol === "ghsocial:";
+    const isExpoDevUrl =
+      process.env.NODE_ENV !== "production" && redirect.protocol === "exp:";
+
+    return isAppScheme || isExpoDevUrl ? redirect.toString() : CLIENT_URL;
+  } catch {
+    return CLIENT_URL;
+  }
+};
+
 // Helper: Create and store a refresh token securely
 const createAndStoreRefreshToken = async (userId: string, tx: any = db) => {
   const refreshToken = crypto.randomBytes(40).toString("hex");
@@ -304,9 +319,12 @@ export async function getOAuthUrl(req: Request, res: Response): Promise<void> {
     return sendError(res, 400, "Invalid provider.");
 
   try {
+    const clientRedirect = getClientRedirect(req.query.redirect_uri);
+    const callbackUrl = new URL(`${BACKEND_URL}/api/auth/callback`);
+    callbackUrl.searchParams.set("client_redirect", clientRedirect);
     const url = new URL(`${process.env.SUPABASE_URL}/auth/v1/authorize`);
     url.searchParams.set("provider", provider);
-    url.searchParams.set("redirect_to", `${BACKEND_URL}/api/auth/callback`);
+    url.searchParams.set("redirect_to", callbackUrl.toString());
 
     return sendSuccess(res, 200, { url: url.toString() });
   } catch (error) {
@@ -320,11 +338,12 @@ export async function handleOAuthCallback(
   res: Response,
 ): Promise<void> {
   const code = req.query.code as string;
+  const clientRedirect = getClientRedirect(req.query.client_redirect);
 
   if (!code) {
     const reason = (req.query.error as string) || "no_code";
     return res.redirect(
-      `${CLIENT_URL}?error=${encodeURIComponent(reason)}`,
+      `${clientRedirect}?error=${encodeURIComponent(reason)}`,
     );
   }
 
@@ -336,7 +355,7 @@ export async function handleOAuthCallback(
     if (error || !data.user) {
       console.error("OAuth Exchange Error:", error);
       return res.redirect(
-        `${CLIENT_URL}?error=Authentication failed`,
+        `${clientRedirect}?error=Authentication failed`,
       );
     }
 
@@ -361,15 +380,15 @@ export async function handleOAuthCallback(
     if (!codeData) {
       console.error("OAuth Code Insert Error");
       return res.redirect(
-        `${CLIENT_URL}?error=Failed to generate auth code`,
+        `${clientRedirect}?error=Failed to generate auth code`,
       );
     }
 
     // 4. Redirect to your frontend with the short-lived code.
-    res.redirect(`${CLIENT_URL}?code=${codeData.code}`);
+    res.redirect(`${clientRedirect}?code=${codeData.code}`);
   } catch (error) {
     console.error("OAuth Callback Caught Error:", error);
-    res.redirect(`${CLIENT_URL}?error=Internal server error`);
+    res.redirect(`${clientRedirect}?error=Internal server error`);
   }
 }
 

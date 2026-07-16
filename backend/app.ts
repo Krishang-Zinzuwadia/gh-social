@@ -23,10 +23,22 @@ const app = express();
 app.disable('x-powered-by');
 if (process.env.TRUST_PROXY === 'true') app.set('trust proxy', 1);
 
+const configuredClientUrl = process.env.CLIENT_URL;
+const allowedOrigins = new Set([
+  configuredClientUrl,
+  ...(process.env.NODE_ENV === 'production'
+    ? []
+    : ['http://localhost:8081', 'http://127.0.0.1:8081', 'http://localhost:8082', 'http://127.0.0.1:8082']),
+].filter((origin): origin is string => Boolean(origin)));
+
 // Global middleware used by every route.
 app.use(
   cors({
-    origin: process.env.CLIENT_URL,
+    origin(origin, callback) {
+      const isLocalDevelopmentOrigin = process.env.NODE_ENV !== 'production' && /^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(origin ?? '');
+      if (!origin || allowedOrigins.has(origin) || isLocalDevelopmentOrigin) return callback(null, true);
+      return callback(new Error('Origin is not allowed by CORS'));
+    },
     credentials: true,
   })
 );

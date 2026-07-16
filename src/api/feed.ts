@@ -10,8 +10,9 @@ export async function fetchFeed(token: string) {
   });
 
   if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(errorData.error || 'Failed to fetch feed');
+    const errorData = await response.json().catch(() => null);
+    const message = errorData?.error || errorData?.message;
+    throw new Error(message || `Failed to fetch feed (HTTP ${response.status})`);
   }
 
   const json = await response.json();

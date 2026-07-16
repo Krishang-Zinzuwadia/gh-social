@@ -309,9 +309,13 @@ export async function dislikeRepo(req: AuthRequest, res: Response): Promise<void
 
   // Toggle dislike via the batch processing service (handles the CASE logic)
   const action = wasDisliked ? 'undislike' : 'dislike';
-  const { error } = await activityService.processBatchedActivity(userId, [
-    { repo_id: repoId, action },
-  ]);
+  const events: activityService.BatchedActivityEvent[] = [];
+  if (!wasDisliked && wasLiked) {
+    events.push({ repo_id: repoId, action: 'unlike' });
+  }
+  events.push({ repo_id: repoId, action });
+
+  const { error } = await activityService.processBatchedActivity(userId, events);
 
   if (error) {
     return sendDatabaseError(res, error as import('../types/index.js').PostgresError);

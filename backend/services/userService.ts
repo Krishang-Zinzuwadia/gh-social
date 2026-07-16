@@ -1,5 +1,5 @@
 import { db } from '../db/index.js';
-import { users, follows } from '../db/schema.js';
+import { users, follows, activities, repos } from '../db/schema.js';
 import { eq, desc, and } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import type { UserProfile, UserUpdate } from '../types/database.js';
@@ -165,6 +165,45 @@ export async function getUserConnections(username: string, type: 'followers' | '
       : await db.select(columns).from(follows)
           .innerJoin(connectedUser, eq(connectedUser.user_id, follows.following_id))
           .where(eq(follows.follower_id, owner.user_id));
+
+    return { data, error: null };
+  } catch (error) {
+    return { data: null as any, error: error as any };
+  }
+}
+
+export async function getUserLikedRepositories(username: string) {
+  try {
+    const [owner] = await db
+      .select({ user_id: users.user_id })
+      .from(users)
+      .where(eq(users.username, username))
+      .limit(1);
+
+    if (!owner) throw { code: 'PGRST116', message: 'Not found' };
+
+    const data = await db
+      .select({
+        repo_id: repos.repo_id,
+        github_repo_url: repos.github_repo_url,
+        owner_id: repos.owner_id,
+        repo_name: repos.repo_name,
+        full_name: repos.full_name,
+        description: repos.description,
+        language_used: repos.language_used,
+        topics: repos.topics,
+        likes_count: repos.likes_count,
+        star_count: repos.star_count,
+        forks_count: repos.forks_count,
+        updated_at: repos.updated_at,
+      })
+      .from(activities)
+      .innerJoin(repos, eq(repos.repo_id, activities.repo_id))
+      .where(and(
+        eq(activities.user_id, owner.user_id),
+        eq(activities.likelihood_count, 1),
+      ))
+      .orderBy(desc(repos.updated_at));
 
     return { data, error: null };
   } catch (error) {

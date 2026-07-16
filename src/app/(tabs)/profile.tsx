@@ -5,7 +5,9 @@ import { Href, router } from "expo-router"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { API_URL } from "@/api/config"
 import { useAuth } from "@/store/AuthContext"
-import { getStorageItem } from "@/utils/storage"
+import { AUTH_BYPASS_ENABLED, AUTH_BYPASS_PROFILE_STORAGE_KEY } from "@/constants/auth"
+import { getStorageItem, setStorageItem } from "@/utils/storage"
+import { formatCompactCount } from "@/utils/format-count"
 
 type TabName = "Lists" | "Repositories"
 
@@ -64,6 +66,19 @@ export default function ProfileScreen() {
     setIsSaving(true)
     setEditError("")
     try {
+      if (AUTH_BYPASS_ENABLED) {
+        await setStorageItem(AUTH_BYPASS_PROFILE_STORAGE_KEY, JSON.stringify({
+          username: next.username,
+          full_name: next.name,
+          bio: next.job,
+        }))
+        setSavedProfile(next)
+        setDraft(next)
+        await checkOnboardingStatus()
+        setEditVisible(false)
+        return
+      }
+
       const accessToken = await getStorageItem("access_token")
       if (!accessToken) throw new Error("Your session has expired. Please log in again.")
       const response = await fetch(`${API_URL}/users/me`, {
@@ -104,7 +119,7 @@ export default function ProfileScreen() {
   }
 
   const stats = [
-    { value: String(user?.likes_given_count ?? 0), label: "stars given" },
+    { value: formatCompactCount(user?.likes_given_count), label: "likes given", href: { pathname: "/likes-given", params: { username } } },
     { value: String(user?.followers_count ?? 0), label: "followers", href: { pathname: "/followers", params: { username } } },
     { value: String(user?.saved_repos_count ?? 0), label: "saved" },
     { value: String(user?.following_count ?? 0), label: "following", href: { pathname: "/following", params: { username } } },

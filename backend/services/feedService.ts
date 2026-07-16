@@ -102,8 +102,10 @@ export class FeedService {
 
   /**
    * Stores ML recommendation objects in the Redis delivery queue.
+   * Returns false when the generation became stale before it could be cached,
+   * allowing request paths to retry against the latest feed version.
    */
-  async processAndCacheBatch(userId: string, recommendations: any[], expectedVersion?: number): Promise<void> {
+  async processAndCacheBatch(userId: string, recommendations: any[], expectedVersion?: number): Promise<boolean> {
     const queueKey = this.getQueueKey(userId);
 
     try {
@@ -112,13 +114,13 @@ export class FeedService {
         if (currentVersion !== expectedVersion) {
           await this.recordMetric('stale_drop');
           console.log(`[FeedService] Dropped stale feed batch for User: ${userId}`);
-          return;
+          return false;
         }
       }
 
       if (recommendations.length === 0) {
         await redisClient.set(queueKey, '__empty__', 'EX', this.SESSION_TTL);
-        return;
+        return true;
       }
 
       const enriched = await this.enrichRecommendations(recommendations);
@@ -135,6 +137,7 @@ export class FeedService {
 
       await this.recordMetric('cache_populate');
       console.log(`[FeedService] Cached ${enriched.length} ML recommendations for User: ${userId}`);
+      return true;
     } catch (error) {
       console.error('[FeedService] Error caching feed batch:', error);
       throw error;
@@ -287,7 +290,13 @@ export class FeedService {
           const feedVersion = await this.getFeedVersion(userId);
           const batches = await mlService.generateRecommendations(userId, coldStart);
           const recommendations = this.flattenRecommendationBatches(batches);
-          await this.processAndCacheBatch(userId, recommendations, feedVersion);
+          const cached = await this.processAndCacheBatch(userId, recommendations, feedVersion);
+
+          if (!cached) {
+            // An interaction invalidated this generation while ML was running.
+            // Release the lock in finally and retry using the new feed version.
+            continue;
+          }
           
           // Re-fetch now that it's cached so we pop exactly `limit`
           return await this.getCachedFeed(userId, limit) || [];

@@ -31,6 +31,8 @@ export default function CustomCalendar({
 
   useEffect(() => {
     if (visible) {
+      // Reopening the controlled modal intentionally resets its draft navigation state.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setCurrentMonth(selectedDate.getMonth());
       setCurrentYear(selectedDate.getFullYear());
       setMode('calendar');

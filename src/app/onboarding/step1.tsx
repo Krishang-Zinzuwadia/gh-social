@@ -3,7 +3,6 @@ import { router } from "expo-router";
 import {
     ScrollView,
     Text,
-    TouchableOpacity,
     View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";

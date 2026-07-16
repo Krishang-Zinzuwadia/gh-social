@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ScrollView, FlatList, StatusBar, View, Text, ListRenderItemInfo, useWindowDimensions, Platform, Linking } from 'react-native';
+import { ScrollView, FlatList, StatusBar, View, Text, ListRenderItemInfo, useWindowDimensions, Linking } from 'react-native';
 import { API_URL } from '../../api/config';
 import Header from '../../components/explore/Header';
 import RepoCard from '../../components/explore/RepoCard';
@@ -8,7 +8,6 @@ import TabBar from '../../components/explore/TabBar';
 import TrendingRepoCard from '../../components/explore/TrendingRepoCard';
 import SkeletonCard from '../../components/explore/SkeletonCard';
 import { getResponsiveContainerStyle } from '../../components/responsive-layout';
-import { fetchFeed } from '../../api/feed';
 import * as SecureStore from '../../utils/storage';
 import { Repo, TabName } from '../../types';
 import { APP_THEME } from '../../constants/theme';
@@ -224,7 +223,7 @@ export default function ExploreScreen() {
           Trending is quiet today
         </Text>
         <Text className="text-[#A49898] text-sm text-center leading-5" style={regular}>
-          We couldn't find any trending repositories at the moment. Check back later to discover what the community is building.
+          We could not find any trending repositories at the moment. Check back later to discover what the community is building.
         </Text>
       </View>
     );

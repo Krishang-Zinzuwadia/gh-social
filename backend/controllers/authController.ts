@@ -4,8 +4,8 @@ import type { Request, Response } from "express";
 import jwt from "jsonwebtoken";
 import supabase, { supabaseAdmin } from "../config/supabase.js";
 import { db } from "../db/index.js";
-import { oauthCodes, refreshTokens, users } from "../db/schema.js";
-import { mlService } from "../services/mlService.js";
+import { appOauthCodes as oauthCodes, appRefreshTokens as refreshTokens, appUsers as users } from "../db/v2Schema.js";
+import { ensureIdentityProfile, fallbackUsername } from "../services/identityService.js";
 import {
   sendControllerError,
   sendError,
@@ -43,9 +43,9 @@ const createAndStoreRefreshToken = async (userId: string, tx: any = db) => {
   const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
 
   await tx.insert(refreshTokens).values({
-    user_id: userId,
-    refresh_token_hash: tokenHash,
-    expires_at: expiresAt.toISOString(),
+    userId,
+    tokenHash,
+    expiresAt,
   });
 
   return refreshToken;
@@ -86,22 +86,14 @@ export async function signUp(req: Request, res: Response): Promise<void> {
 
     if (error) return sendError(res, error.status || 400, error.message);
 
-    if (data.user) {
-      void mlService.onboardUserBestEffort({
-        user_id: data.user.id,
-        username,
-        full_name,
-        bio:
-          typeof data.user.user_metadata?.bio === "string"
-            ? data.user.user_metadata.bio
-            : null,
-        interests: [],
-        skills: [],
-        tech_stack: [],
-      });
-    }
-
     const userId = data.user.id;
+
+    try {
+      await ensureIdentityProfile({ userId, username, fullName: full_name ?? null });
+    } catch (databaseError) {
+      await supabaseAdmin.auth.admin.deleteUser(userId);
+      throw databaseError;
+    }
 
     // 1. Generate Custom JWT Access Token
     const accessToken = jwt.sign({ userId, email }, JWT_SECRET, {
@@ -145,6 +137,13 @@ export async function login(req: Request, res: Response): Promise<void> {
 
     const userId = data.user.id;
 
+    await ensureIdentityProfile({
+      userId,
+      username: fallbackUsername(userId, data.user.user_metadata),
+      fullName: typeof data.user.user_metadata?.full_name === "string" ? data.user.user_metadata.full_name : null,
+      avatarUrl: typeof data.user.user_metadata?.avatar_url === "string" ? data.user.user_metadata.avatar_url : null,
+    });
+
     const accessToken = jwt.sign({ userId, email }, JWT_SECRET, {
       expiresIn: "15m",
     });
@@ -185,7 +184,7 @@ export async function logout(req: Request, res: Response): Promise<void> {
     try {
       await db
         .delete(refreshTokens)
-        .where(eq(refreshTokens.refresh_token_hash, tokenHash));
+        .where(eq(refreshTokens.tokenHash, tokenHash));
     } catch (dbError) {
       return sendError(res, 500, "Failed to revoke refresh token.");
     }
@@ -220,15 +219,14 @@ export async function refreshToken(req: Request, res: Response): Promise<void> {
     // 1. Look up the hash in the DB without locking
     const [tokenData] = await db
       .select({
-        user_id: refreshTokens.user_id,
-        expires_at: refreshTokens.expires_at,
-        is_revoked: refreshTokens.is_revoked,
+        user_id: refreshTokens.userId,
+        expires_at: refreshTokens.expiresAt,
       })
       .from(refreshTokens)
-      .where(eq(refreshTokens.refresh_token_hash, tokenHash))
+      .where(eq(refreshTokens.tokenHash, tokenHash))
       .limit(1);
 
-    if (!tokenData || tokenData.is_revoked) {
+    if (!tokenData) {
       throw new Error("InvalidToken");
     }
 
@@ -258,7 +256,7 @@ export async function refreshToken(req: Request, res: Response): Promise<void> {
       // If another concurrent request beat us to it, this returns empty.
       const deletedTokens = await tx
         .delete(refreshTokens)
-        .where(eq(refreshTokens.refresh_token_hash, tokenHash))
+        .where(eq(refreshTokens.tokenHash, tokenHash))
         .returning();
 
       if (deletedTokens.length === 0) {
@@ -342,52 +340,21 @@ export async function handleOAuthCallback(
       );
     }
 
-    // 2. Ensure the user has a row in public.users (first-time OAuth users won't).
-    //    Without this, the oauth_codes INSERT below fails with a FK violation.
-    const existingUsers = await db
-      .select({ user_id: users.user_id })
-      .from(users)
-      .where(eq(users.user_id, data.user.id))
-      .limit(1);
-
-    if (existingUsers.length === 0) {
-      const meta = data.user.user_metadata || {};
-      let defaultUsername =
-        (typeof meta.preferred_username === "string" && meta.preferred_username.trim()) ||
-        (typeof meta.user_name === "string" && meta.user_name.trim()) ||
-        `user_${data.user.id.slice(0, 8)}`;
-
-      // Check if username is taken
-      const takenUsernames = await db
-        .select({ user_id: users.user_id })
-        .from(users)
-        .where(eq(users.username, defaultUsername))
-        .limit(1);
-
-      if (takenUsernames.length > 0) {
-        // Append random string to make it unique and respect 50 char limit
-        const randomHex = crypto.randomBytes(2).toString("hex");
-        defaultUsername = `${defaultUsername.slice(0, 44)}_${randomHex}`;
-      }
-
-      await db
-        .insert(users)
-        .values({
-          user_id: data.user.id,
-          username: defaultUsername,
-          full_name: (typeof meta.full_name === "string" && meta.full_name.trim()) || null,
-          avatar_url: (typeof meta.avatar_url === "string" && meta.avatar_url.trim()) || null,
-        })
-        .onConflictDoNothing({ target: users.user_id });
-    }
-
-    // 3. Insert a short-lived (5 minute) authorization code into the DB using Drizzle
+    // 2. Ensure the v2 product profile exists before the one-time code references it.
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+    await ensureIdentityProfile({
+      userId: data.user.id,
+      username: fallbackUsername(data.user.id, data.user.user_metadata),
+      fullName: typeof data.user.user_metadata?.full_name === "string" ? data.user.user_metadata.full_name : null,
+      githubId: typeof data.user.user_metadata?.provider_id === "string" ? data.user.user_metadata.provider_id : null,
+      githubHandle: typeof data.user.user_metadata?.user_name === "string" ? data.user.user_metadata.user_name : null,
+      avatarUrl: typeof data.user.user_metadata?.avatar_url === "string" ? data.user.user_metadata.avatar_url : null,
+    });
     const [codeData] = await db
       .insert(oauthCodes)
       .values({
-        user_id: data.user.id,
-        expires_at: expiresAt.toISOString(),
+        userId: data.user.id,
+        expiresAt,
       })
       .returning({ code: oauthCodes.code });
 
@@ -427,8 +394,8 @@ export async function exchangeAuthCode(
       .delete(oauthCodes)
       .where(eq(oauthCodes.code, code))
       .returning({
-        user_id: oauthCodes.user_id,
-        expires_at: oauthCodes.expires_at,
+        user_id: oauthCodes.userId,
+        expires_at: oauthCodes.expiresAt,
       });
 
     if (!codeData) {
@@ -463,9 +430,9 @@ export async function exchangeAuthCode(
 
     const newExpiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
     await db.insert(refreshTokens).values({
-      user_id: userId,
-      refresh_token_hash: tokenHash,
-      expires_at: newExpiresAt.toISOString(),
+      userId,
+      tokenHash,
+      expiresAt: newExpiresAt,
     });
 
     res.cookie("refresh_token", refreshToken, {

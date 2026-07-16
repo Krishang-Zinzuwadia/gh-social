@@ -24,23 +24,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    loadSession();
-  }, []);
-
-  const loadSession = async () => {
-    try {
-      const token = await getStorageItem('access_token');
-      if (token) {
-        await fetchUserProfile(token);
-      }
-    } catch (e) {
-      console.error('Failed to load session', e);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const fetchUserProfile = async (token: string) => {
     try {
       const response = await fetch(`${API_URL}/onboarding/status`, {
@@ -71,6 +54,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.error('Failed to fetch user profile', error);
     }
   };
+
+  const loadSession = async () => {
+    try {
+      const token = await getStorageItem('access_token');
+      if (token) {
+        await fetchUserProfile(token);
+      }
+    } catch (e) {
+      console.error('Failed to load session', e);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    // Session hydration is the provider's mount-time external synchronization.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void loadSession();
+    // Authentication is hydrated once on provider mount; later refreshes are explicit.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const checkOnboardingStatus = async () => {
     const token = await getStorageItem('access_token');

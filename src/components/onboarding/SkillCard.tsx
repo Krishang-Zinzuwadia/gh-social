@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useState } from "react";
 import { Text, TouchableOpacity, View, Animated } from "react-native";
 import { Check } from "lucide-react-native";
 
@@ -17,8 +17,8 @@ export default function SkillCard({
   selected = false,
   onPress,
 }: SkillCardProps) {
-  const scale = useRef(new Animated.Value(selected ? 1.02 : 1)).current;
-  const opacity = useRef(new Animated.Value(selected ? 1 : 0)).current;
+  const [scale] = useState(() => new Animated.Value(selected ? 1.02 : 1));
+  const [opacity] = useState(() => new Animated.Value(selected ? 1 : 0));
 
   useEffect(() => {
     Animated.parallel([

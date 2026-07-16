@@ -1,0 +1,259 @@
+# GH Social Backend v2
+
+This service is the system of record for users, repositories, social state, feed serves, and interaction history. New clients must use only the APIs documented here. The legacy `/api/users`, `/api/repos`, `/api/activity`, `/api/comment`, `/api/boards`, `/api/containers`, `/api/onboarding`, and `/api/feed` routes are disabled unless `LEGACY_API_ENABLED=true`.
+
+## Authority boundaries
+
+| Component | May read/write | Must not do |
+|---|---|---|
+| Frontend | Public backend HTTP API | Query Supabase tables, Redis, ML, or Qdrant directly |
+| Backend | PostgreSQL `app` and `telemetry`; Redis feed queues; authenticated ML HTTP API | Store product state only in Redis or accept client-supplied user ownership |
+| ML | Backend-delivered jobs; Qdrant vectors; its own model artifacts | Query product tables, create canonical user/repository IDs, or serve frontend traffic |
+| Qdrant | Vectors and searchable ML payloads written by ML | Act as the repository catalog or decide record identity |
+| Ingestion job | GitHub/source data; internal ingestion API | Write PostgreSQL or Qdrant directly |
+
+Supabase Auth owns credentials and provider identities. `app.users.user_id` equals `auth.users.id`; the backend owns the product profile. PostgreSQL owns durable state. Redis is an expendable feed queue. Qdrant is an expendable projection that can always be rebuilt from backend repository mappings.
+
+## Canonical identity
+
+- `user_id`: UUID created by Supabase Auth and registered transactionally in `app.users`.
+- `repo_id`: UUID created only by `POST /api/internal/v2/ingestion/repositories/upsert`.
+- `github_id`: immutable numeric GitHub repository ID, represented as a decimal string over HTTP.
+- ML and Qdrant must use `repo_id` as the canonical key. Qdrant points may use another point ID only if payload field `repo_id` is present and uniquely identifies the backend repository.
+- Names, URLs, GitHub handles, and `full_name` are attributes, never identifiers.
+
+## Response and authentication conventions
+
+Public API successes use:
+
+```json
+{ "success": true, "data": {} }
+```
+
+Public API errors use:
+
+```json
+{ "success": false, "error": "Human-readable message." }
+```
+
+Feed, interaction, ingestion, and operations v2 endpoints return their versioned contract directly. Authentication uses `Authorization: Bearer <accessToken>`. The access token lasts 15 minutes. Refresh tokens are rotated in a secure HTTP-only cookie scoped to `/api/auth`. Internal routes require `x-internal-secret`; during rotation they accept `INTERNAL_API_SECRET_PREVIOUS` as well.
+
+All timestamps are ISO 8601 UTC. All IDs described as UUIDs must be valid UUID strings. Request bodies are limited to 256 KB. List endpoints accept `limit=1..100` and `offset=0..10000` unless stated otherwise.
+
+## Frontend API
+
+### Authentication
+
+| Method and path | Body | Result |
+|---|---|---|
+| `POST /api/auth/signup` | `{email,password,username,full_name?}` | Creates Supabase identity plus backend profile, returns `{accessToken,token,user}` |
+| `POST /api/auth/login` | `{email,password}` | Returns access token and rotates refresh cookie |
+| `POST /api/auth/refresh` | none; refresh cookie required | Consumes old refresh token and returns a new access token/cookie |
+| `POST /api/auth/logout` | none | Revokes refresh token and clears cookie |
+| `GET /api/auth/github` | none | Returns the provider authorization URL |
+| `GET /api/auth/google` | none | Returns the provider authorization URL |
+| `GET /api/auth/callback` | provider redirect | Creates a five-minute one-time exchange code and redirects frontend |
+| `POST /api/auth/exchange` | `{code}` | Consumes OAuth code and returns access token/cookie |
+
+Signup/profile creation and ML onboarding enqueue are one backend transaction. OAuth callback ensures the product profile exists before issuing a code. ML downtime never blocks authentication because onboarding delivery uses the outbox.
+
+### User and onboarding
+
+| Method and path | Body/query | Result |
+|---|---|---|
+| `GET /api/v2/users/me` | none | Private profile, stats, topic slugs, feed and feedback versions |
+| `PATCH /api/v2/users/me` | Any subset of `{username,full_name,bio,github_handle,avatar_url}` | Updated profile; unknown fields are rejected |
+| `GET /api/v2/users/:userId` | none | Public active profile and stats |
+| `PUT /api/v2/users/:userId/follow` | none | Idempotently follows; `204` |
+| `DELETE /api/v2/users/:userId/follow` | none | Idempotently unfollows; `204` |
+| `GET /api/v2/users/:userId/followers` | `limit`, `offset` | Followers |
+| `GET /api/v2/users/:userId/following` | `limit`, `offset` | Following users |
+| `GET /api/v2/onboarding/status` | none | `{completed,profile_version}` |
+| `PUT /api/v2/onboarding` | `{bio?,topics:[slug,...]}` | Replaces interests, increments profile version, enqueues ML onboarding |
+
+Topic slugs are lowercase letters/numbers/hyphens, 1-50 characters. Onboarding accepts 1-50 unique topics.
+
+### Repositories
+
+| Method and path | Body/query | Result |
+|---|---|---|
+| `GET /api/v2/repositories` | `q?`, `limit`, `offset` | Active repository cards with latest stats and active ML summary |
+| `GET /api/v2/repositories/:repoId` | none | Repository detail including README and topics |
+| `GET /api/v2/repositories/trending` | `period` default `daily` | Active complete trending snapshot, ordered by position |
+| `GET /api/v2/repositories/saved` | `limit`, `offset` | Current user's saved repositories |
+
+The frontend cannot import or mutate repository metadata. It records likes, saves, views, and other behavior through the interaction endpoint below. Repository details come from PostgreSQL, not ML/Qdrant.
+
+### Feed
+
+`POST /api/v2/feed`
+
+```json
+{
+  "feed_request_id": "client-generated UUID",
+  "session_id": "stable UUID for this app session",
+  "limit": 10,
+  "cursor": null
+}
+```
+
+The response contains `serve_id`, `feed_version`, `source`, `model_version`, `items`, and `next_cursor`. Reusing the same `feed_request_id` is an idempotent replay and returns the same persisted serve. `limit` is 1-25. If ML or Redis is unavailable, the backend serves a durable PostgreSQL fallback when possible.
+
+### Interactions
+
+`POST /api/v2/interactions/batch` accepts 1-50 events:
+
+```json
+{
+  "events": [{
+    "event_id": "client-generated UUID",
+    "schema_version": 2,
+    "session_id": "UUID",
+    "serve_id": "UUID or null",
+    "repo_id": "backend UUID",
+    "position": 0,
+    "event_type": "like",
+    "dwell_ms": null,
+    "client_occurred_at": "2026-07-15T12:00:00.000Z",
+    "context": {}
+  }]
+}
+```
+
+Allowed events: `impression`, `dwell`, `readme_open`, `github_open`, `like`, `unlike`, `dislike`, `undislike`, `save`, `unsave`, and `share`. `dwell` requires 3000-300000 ms; other events require `dwell_ms:null`. `event_id` provides durable idempotency. The backend applies reaction/save state, updates counters and versions, and inserts ML feedback into the same transaction. It returns `202` with accepted/duplicate counts.
+
+### Comments
+
+| Method and path | Body/query | Result |
+|---|---|---|
+| `GET /api/v2/repositories/:repoId/comments` | `limit`, `offset` | Chronological comments with author projection |
+| `POST /api/v2/repositories/:repoId/comments` | `{body,parent_comment_id?}` | Creates comment; parent must belong to same repo |
+| `PATCH /api/v2/comments/:commentId` | `{body}` | Updates only the current user's comment |
+| `DELETE /api/v2/comments/:commentId` | none | Deletes only the current user's comment; `204` |
+
+Comment bodies are 1-5000 trimmed characters.
+
+### Collections and boards
+
+| Method and path | Body | Result |
+|---|---|---|
+| `GET /api/v2/collections` | none | Current user's collections and board counts |
+| `POST /api/v2/collections` | `{name,description?}` | Creates collection |
+| `PUT /api/v2/collections/:collectionId` | `{name,description?}` | Replaces mutable fields |
+| `DELETE /api/v2/collections/:collectionId` | none | Deletes collection; boards become ungrouped |
+| `GET /api/v2/boards` | none | Current user's boards and repo counts |
+| `POST /api/v2/boards` | `{name,description?,visibility,collection_id?}` | Creates board |
+| `PUT /api/v2/boards/:boardId` | same fields | Replaces mutable fields |
+| `DELETE /api/v2/boards/:boardId` | none | Deletes board |
+| `GET /api/v2/boards/:boardId/repositories` | none | Owner or public/unlisted board contents |
+| `PUT /api/v2/boards/:boardId/repositories/:repoId` | none | Idempotently adds repository; owner only |
+| `DELETE /api/v2/boards/:boardId/repositories/:repoId` | none | Removes repository; owner only |
+
+Visibility is `private`, `public`, or `unlisted`. User ownership always comes from JWT, never request JSON.
+
+## Ingestion API
+
+Only a trusted ingestion process calls these endpoints.
+
+### Repository upsert
+
+`POST /api/internal/v2/ingestion/repositories/upsert`, maximum 100 records:
+
+```json
+{
+  "repositories": [{
+    "github_id": "123456789",
+    "github_node_id": "R_kg...",
+    "full_name": "owner/repository",
+    "owner": "owner",
+    "name": "repository",
+    "url": "https://github.com/owner/repository",
+    "description": "...",
+    "readme": "...",
+    "primary_language": "TypeScript",
+    "languages": ["TypeScript"],
+    "topics": ["expo"],
+    "star_count": 100,
+    "fork_count": 5,
+    "open_issues_count": 2,
+    "pushed_at": "2026-07-15T12:00:00Z",
+    "observed_at": "2026-07-15T12:05:00Z"
+  }]
+}
+```
+
+The response is `{mappings:[{github_id,repo_id,content_version,changed}]}`. The ingestion process must retain this mapping for the run. When content changes, the backend inserts a `repo_index` outbox job. Do not send data to Qdrant before receiving `repo_id`.
+
+### Trending snapshot
+
+`POST /api/internal/v2/ingestion/trending/snapshots` accepts `{snapshot_id,period,computed_at,source,repositories}` where repository entries use the upsert shape plus unique non-negative `rank` and optional `score`. Activation is atomic: incomplete snapshots never become frontend-visible.
+
+## Backend-to-ML API
+
+The backend is the client and ML implements these internal endpoints. Every request includes `x-internal-secret`, `x-request-id`, `idempotency-key`, and `schema_version:2`.
+
+| ML endpoint | Purpose | Required response behavior |
+|---|---|---|
+| `POST /api/v2/recommendations/generate` | Generate canonical `repo_id` ranking | Echo `generation_id`, `user_id`, `feed_version`; return unique known repo UUIDs, scores, model and embedding versions |
+| `POST /api/v2/feedback/batch` | Apply durable interaction feedback | Idempotent by event IDs/idempotency key |
+| `POST /api/v2/users/onboard` | Create/update user vector/profile | Idempotent by `job_id` and monotonic `profile_version` |
+| `POST /api/v2/repositories/embed` | Create vector from canonical repo content | Idempotent by `job_id`; payload includes `repo_id` and `content_version` |
+| `POST /api/v2/repositories/refresh` | Refresh derived features | Idempotent by `job_id` and feature version |
+| `GET /api/v2/health` | ML/Qdrant readiness | Non-2xx when ML cannot safely accept work |
+
+ML must return 2xx only after durable acceptance. Use `429` or `503` for retryable pressure/failure and an optional `Retry-After`; use other 4xx responses for terminal contract errors. The backend outbox retries with capped jitter, leases jobs with `SKIP LOCKED`, and moves terminal/expired work to `dead` for operator replay.
+
+Recommendation response shape:
+
+```json
+{
+  "schema_version": 2,
+  "generation_id": "UUID",
+  "user_id": "UUID",
+  "feed_version": 12,
+  "model_version": "model-2026-07",
+  "embedding_version": "embed-v3",
+  "items": [{"repo_id":"UUID","score":0.91,"source":"personalized"}]
+}
+```
+
+## Qdrant contract and rebuild
+
+Qdrant is not an HTTP consumer of this backend. ML owns Qdrant reads/writes and receives all authoritative changes through backend jobs.
+
+Recommended repository payload fields are `repo_id`, `github_id`, `content_version`, `content_hash`, `embedding_version`, `model_version`, and `indexed_at`. Create a fresh versioned collection for a dimensionality or distance change. Ingest backend mappings, embed only active repositories, verify every point has a unique valid `repo_id`, then switch the ML collection alias atomically. Old collections may be deleted only after ML health and recommendation contract checks pass.
+
+After a database reset: run repository ingestion first, allow the outbox worker to deliver all `repo_index` jobs, verify `pending=0`, `dead=0`, and Qdrant point count equals indexed active repositories, then enable recommendation traffic. Never restore old Qdrant points into a database whose backend `repo_id` values were regenerated.
+
+## Processes and production configuration
+
+Run separately so HTTP scaling never duplicates periodic jobs:
+
+```text
+API:                  npm start
+Outbox worker:        WORKER_ROLE=outbox npm run worker
+Feed reconciliation: WORKER_ROLE=feed npm run worker
+Maintenance:         WORKER_ROLE=maintenance npm run worker
+```
+
+Use one or more outbox workers; claiming is concurrency-safe. Run one feed and one maintenance worker initially. `WORKER_ROLE=all` is for local development only.
+
+Required production environment variables: `DATABASE_URL`, `SUPABASE_URL`, `SUPABASE_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `JWT_SECRET`, `CLIENT_URL`, `BACKEND_URL`, `REDIS_URL`, `ML_SERVICE_URL`, and `INTERNAL_API_SECRET`. Set all v2 flags in `.env.example` to their shown production values, `FEED_V2_CANARY_PERCENT=100`, and `LEGACY_API_ENABLED=false`. Rotate internal secrets by deploying the new value as primary and the old value as previous, updating ML, then removing the previous value.
+
+Set `TRUST_PROXY=true` only when exactly one trusted ingress proxy is in front of the service. Authentication endpoints have a Redis-backed per-IP/path limit of 20 requests per minute; configure broader request and connection limits at the ingress as well.
+
+`GET /healthz` is process liveness. `GET /readyz` checks PostgreSQL, Redis, ML, and feature dependencies. Internal `GET /api/internal/v2/operations/status` adds outbox and metric state. `POST /api/internal/v2/operations/outbox/:outboxId/replay` retries a dead outbox row.
+
+## Database deployment and clean ingestion
+
+1. Back up Supabase and verify restore access.
+2. Set the target `DATABASE_URL` and run `npm run migrate`.
+3. Run `npm run schema:audit`; do not deploy on any missing table, index, function, role, or prohibited frontend grant.
+4. Stop API and workers before a clean reset.
+5. Verify the database host and project manually. Run `npm run db:reset:v2` only with both `RESET_V2_DATABASE=I_UNDERSTAND_THIS_DELETES_DATA` and `ALLOW_REMOTE_DATABASE_RESET=1`.
+6. The reset clears `app` and `telemetry`, not `auth.users`. Existing users will be recreated in `app` on their next login. Delete Supabase Auth users separately only if account deletion is intended.
+7. Start API plus three worker roles. Run repository and trending ingestion.
+8. Wait for outbox drain and rebuild Qdrant from the new backend-issued mappings.
+9. Require `/readyz` healthy, outbox `dead=0`, integration tests passing, and ML health healthy before frontend release.
+
+For verification use `npm run build`, `npm test`, database integration with `RUN_DATABASE_INTEGRATION=1`, and HTTP integration with `RUN_HTTP_INTEGRATION=1`. The integration suite uses Redis database 14 by default and clears only that test database.

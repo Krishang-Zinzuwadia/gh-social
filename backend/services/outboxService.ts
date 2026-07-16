@@ -1,0 +1,85 @@
+import crypto from 'node:crypto';
+
+import { sqlClient } from '../db/index.js';
+
+export interface OutboxRow {
+  outbox_id: string;
+  job_type: 'feedback' | 'onboard' | 'repo_index' | 'repo_refresh';
+  aggregate_id: string;
+  idempotency_key: string;
+  payload: Record<string, unknown>;
+  attempts: number;
+  created_at: string;
+  claim_token: string;
+}
+
+export function retryDelayMs(attempt: number, random = Math.random): number {
+  const cap = 15 * 60_000;
+  const maximum = Math.min(cap, 1_000 * 2 ** Math.max(0, attempt));
+  return Math.floor(random() * maximum);
+}
+
+export class OutboxService {
+  async status(): Promise<{ pending: number; claimed: number; delivered: number; dead: number; oldest_pending_seconds: number }> {
+    const rows = await sqlClient`
+      SELECT
+        count(*) FILTER (WHERE status='pending')::int AS pending,
+        count(*) FILTER (WHERE status='claimed')::int AS claimed,
+        count(*) FILTER (WHERE status='delivered')::int AS delivered,
+        count(*) FILTER (WHERE status='dead')::int AS dead,
+        COALESCE(EXTRACT(EPOCH FROM now()-min(created_at) FILTER (WHERE status='pending')),0)::int AS oldest_pending_seconds
+      FROM telemetry.ml_outbox
+    `;
+    return {
+      pending: Number(rows[0].pending), claimed: Number(rows[0].claimed), delivered: Number(rows[0].delivered),
+      dead: Number(rows[0].dead), oldest_pending_seconds: Number(rows[0].oldest_pending_seconds),
+    };
+  }
+
+  async claim(limit = 50, leaseMs = 60_000): Promise<OutboxRow[]> {
+    const token = crypto.randomUUID();
+    const rows = await sqlClient.begin(async (tx) => tx`
+      WITH ready AS (
+        SELECT outbox_id FROM telemetry.ml_outbox
+        WHERE (status='pending' AND available_at<=now())
+           OR (status='claimed' AND claimed_at < now()-(${leaseMs}::text || ' milliseconds')::interval)
+        ORDER BY created_at FOR UPDATE SKIP LOCKED LIMIT ${limit}
+      )
+      UPDATE telemetry.ml_outbox outbox SET status='claimed',claimed_at=now(),claim_token=${token}::uuid,
+        attempts=outbox.attempts+1
+      FROM ready WHERE outbox.outbox_id=ready.outbox_id
+      RETURNING outbox.*
+    `);
+    return rows.map((row) => ({ ...row, outbox_id: String(row.outbox_id), aggregate_id: String(row.aggregate_id),
+      idempotency_key: String(row.idempotency_key), job_type: row.job_type as OutboxRow['job_type'],
+      attempts: Number(row.attempts), created_at: new Date(row.created_at as string).toISOString(),
+      claim_token: String(row.claim_token), payload: row.payload as Record<string, unknown> }));
+  }
+
+  async markDelivered(row: OutboxRow): Promise<void> {
+    await sqlClient`
+      UPDATE telemetry.ml_outbox SET status='delivered',delivered_at=now(),claim_token=NULL,claimed_at=NULL,last_error=NULL
+      WHERE outbox_id=${row.outbox_id}::uuid AND claim_token=${row.claim_token}::uuid
+    `;
+  }
+
+  async markFailed(row: OutboxRow, error: string, retryable: boolean, retryAfterMs?: number): Promise<void> {
+    const ageMs = Date.now() - Date.parse(row.created_at);
+    const dead = !retryable || row.attempts >= 10 || ageMs > 7 * 24 * 60 * 60_000;
+    const delay = retryAfterMs == null ? retryDelayMs(row.attempts) : Math.min(15 * 60_000, Math.max(0, retryAfterMs));
+    await sqlClient`
+      UPDATE telemetry.ml_outbox SET status=${dead ? 'dead' : 'pending'},
+        available_at=${new Date(Date.now() + delay).toISOString()}::timestamptz,
+        claim_token=NULL,claimed_at=NULL,last_error=${error.slice(0, 4_000)}
+      WHERE outbox_id=${row.outbox_id}::uuid AND claim_token=${row.claim_token}::uuid
+    `;
+  }
+
+  async replay(outboxId: string): Promise<boolean> {
+    const rows = await sqlClient`
+      UPDATE telemetry.ml_outbox SET status='pending',attempts=0,available_at=now(),claimed_at=NULL,claim_token=NULL,last_error=NULL
+      WHERE outbox_id=${outboxId}::uuid AND status='dead' RETURNING outbox_id
+    `;
+    return rows.length === 1;
+  }
+}

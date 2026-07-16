@@ -6,6 +6,9 @@ import { sendError, sendSuccess, sendDatabaseError } from '../utils/response.js'
 import { isValidUuid } from '../utils/validators.js';
 import { mlService } from '../services/mlService.js';
 import { isFeedbackInteraction } from '../config/feedback.js';
+import crypto from 'node:crypto';
+import { getV2FeatureFlags } from '../config/features.js';
+import { processLegacyInteractionBatchV2 } from '../services/legacyInteractionV2Adapter.js';
 
 const feedService = new FeedService();
 
@@ -47,6 +50,17 @@ export async function processBatchedActivity(req: AuthRequest, res: Response): P
       typeof event.dwell_seconds !== 'number' || event.dwell_seconds <= 0
     )) {
       return sendError(res, 400, 'dwell_seconds must be positive for dwell events');
+    }
+  }
+
+  if (getV2FeatureFlags().DB_SCHEMA_V2_WRITES) {
+    try {
+      const requestKey = String(req.header('idempotency-key') ?? req.header('x-request-id') ?? crypto.randomUUID());
+      const result = await processLegacyInteractionBatchV2(userId, events, requestKey);
+      return sendSuccess(res, 202, { message: 'Batched activity processed', v2: result });
+    } catch (error) {
+      console.error('[ActivityController] Legacy-to-v2 transaction failed:', error);
+      return sendError(res, 409, error instanceof Error ? error.message : 'Interaction transaction failed');
     }
   }
 

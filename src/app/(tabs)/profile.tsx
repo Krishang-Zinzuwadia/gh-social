@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react"
+import React, { useEffect, useState } from "react"
 import { View, Pressable, Text, Modal, TextInput, ScrollView, useWindowDimensions } from "react-native"
 import Svg, { Path } from "react-native-svg"
 import { SafeAreaView } from "react-native-safe-area-context"
@@ -14,8 +14,7 @@ import {
   ProfileAvatarIcon,
 } from "@/components/icons"
 
-const TABS = ["Lists", "Repositories"] as const
-type TabName = (typeof TABS)[number]
+type TabName = "Lists" | "Repositories"
 
 export default function ProfileScreen() {
   const { width } = useWindowDimensions()
@@ -34,12 +33,14 @@ export default function ProfileScreen() {
   const [activetab, setActivetab] = useState<TabName>("Lists")
 
   useEffect(() => {
-    if (user) {
-      setName(user.full_name || "New User");
-      setJob(user.bio || "No bio available");
-      setUsername(user.username || "newuser");
-    }
-  }, [user]);
+    if (!user) return
+
+    // Profile data is hydrated asynchronously by AuthContext after this screen mounts.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setName(user.full_name || "New User")
+    setJob(user.bio || "No bio available")
+    setUsername(user.username || "newuser")
+  }, [user])
 
   const stats = [
     { id: "likes", value: user?.likes_given_count?.toString() || "0", label: "Likes given" },

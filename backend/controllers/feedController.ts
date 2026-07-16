@@ -1,6 +1,10 @@
 import { Request, Response } from 'express'; 
 import { FeedService } from '../services/feedService.js';
 import { type AuthRequest } from '../middlewares/authMiddleware.js';
+import crypto from 'node:crypto';
+import { getV2FeatureFlags, inRolloutCohort } from '../config/features.js';
+import { getApplicationRuntime } from '../runtime/applicationRuntime.js';
+import { isValidUuid } from '../utils/validators.js';
 
 const feedService = new FeedService();
 
@@ -40,7 +44,40 @@ export const getFeedForMobile = async (req: AuthRequest, res: Response): Promise
        return;
     }
 
+    const flags = getV2FeatureFlags();
+    if (flags.FEED_V2 && inRolloutCohort(userId, 'FEED_V2_CANARY')) {
+      const runtime = getApplicationRuntime();
+      const requestHeader = req.header('idempotency-key') ?? req.header('x-request-id');
+      const sessionHeader = req.header('x-session-id');
+      const response = await runtime.feed.getFeed(userId, {
+        feed_request_id: requestHeader && isValidUuid(requestHeader) ? requestHeader : crypto.randomUUID(),
+        session_id: sessionHeader && isValidUuid(sessionHeader) ? sessionHeader : crypto.randomUUID(),
+        limit: 10,
+        cursor: null,
+      });
+      const data = response.items.map((item) => ({
+        ...item.repository,
+        score: item.score,
+        recommendation_source: item.source,
+        model_version: item.model_version,
+        serve_id: response.serve_id,
+        position: item.position,
+      }));
+      res.status(200).json({ success: true, count: data.length, data, v2: {
+        serve_id: response.serve_id, feed_version: response.feed_version, source: response.source,
+      } });
+      return;
+    }
+
     const feed = await feedService.getOrGenerateFeed(userId);
+
+    if (inRolloutCohort(userId, 'FEED_V2_SHADOW')) {
+      const runtime = getApplicationRuntime();
+      if (runtime.shadow) {
+        const ids = feed.flatMap((item) => typeof item?.repo_id === 'string' ? [item.repo_id] : []);
+        void runtime.shadow.run(userId, ids);
+      }
+    }
 
     res.status(200).json({
       success: true,

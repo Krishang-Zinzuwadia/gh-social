@@ -1,5 +1,5 @@
-import { useEffect, useState, useRef, useCallback } from 'react';
-import { FlatList, Platform, StyleSheet, useWindowDimensions, View, type ViewStyle, ActivityIndicator, Text } from 'react-native';
+import { useState, useRef, useCallback } from 'react';
+import { FlatList, Platform, StyleSheet, useWindowDimensions, View, type ViewStyle, ActivityIndicator } from 'react-native';
 import { getResponsiveContentWidth } from '@/components/responsive-layout';
 import { RepositoryData } from '@/data/repositories';
 import { RepositoryFeedItem } from '@/components/home/RepositoryFeedItem';
@@ -9,6 +9,7 @@ import { fetchFeed } from '@/api/feed';
 import { sendBatchedActivity, type FeedbackAction } from '@/api/activity';
 
 const TAB_BAR_HEIGHT = 60;
+const VIEWABILITY_CONFIG = { itemVisiblePercentThreshold: 50 };
 const WEB_FEED_LIST_STYLE =
   Platform.OS === 'web'
     ? ({ overflowY: 'auto', scrollSnapType: 'y mandatory' } as ViewStyle)
@@ -108,10 +109,9 @@ export default function HomeScreen() {
   }, [flushActivityBatch]);
 
   const [viewableItems, setViewableItems] = useState<string[]>([]);
-  const onViewableItemsChanged = useRef(({ viewableItems }: any) => {
+  const onViewableItemsChanged = useCallback(({ viewableItems }: any) => {
     setViewableItems(viewableItems.map((v: any) => v.item.feedId));
-  }).current;
-  const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 50 }).current;
+  }, []);
 
   if (isLoading && feedItems.length === 0) {
     return (
@@ -161,7 +161,7 @@ export default function HomeScreen() {
           maxToRenderPerBatch={4}
           removeClippedSubviews={false}
           onViewableItemsChanged={onViewableItemsChanged}
-          viewabilityConfig={viewabilityConfig}
+          viewabilityConfig={VIEWABILITY_CONFIG}
         />
       </View>
     </View>

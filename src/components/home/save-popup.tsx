@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Animated, Easing, Pressable, StyleSheet, Text, TextInput, TouchableOpacity, View, ScrollView } from 'react-native';
+import { ActivityIndicator, Animated, Easing, Pressable, StyleSheet, Text, TextInput, TouchableOpacity, View, ScrollView } from 'react-native';
 import { Check, Plus, X } from 'lucide-react-native';
 import { BlurView } from 'expo-blur';
 import { NebulaIcon } from '../icons';
@@ -8,9 +8,7 @@ import { useInfiniteQuery } from '@tanstack/react-query';
 import { getUserBoards } from '../../api/boards';
 import * as SecureStore from '../../utils/storage';
 import { useOptimisticMutations } from '../../hooks/useOptimisticMutations';
-import { ActivityIndicator } from 'react-native';
 import type { FeedbackAction } from '../../api/activity';
-import { FEEDBACK_ACTIONS } from '../../constants/feedbackActions';
 
 interface SavePopupProps {
   isVisible: boolean;
@@ -23,8 +21,6 @@ interface SavePopupProps {
   repoName?: string;
   onQueueActivity?: (event: { repo_id: string; action: FeedbackAction; dwell_seconds?: number }) => void;
 }
-
-const INITIAL_COLLECTIONS: string[] = ['AI Projects', 'Web Development', 'Open Source', 'Inspiration'];
 
 export function SavePopup({
   isVisible,

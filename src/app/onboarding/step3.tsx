@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { router, useLocalSearchParams } from "expo-router";
-import { ScrollView, View, Text, Pressable } from "react-native";
+import { useLocalSearchParams } from "expo-router";
+import { ScrollView, View, Text } from "react-native";
 import { useAuth } from "../../store/AuthContext";
 import { useOnboarding } from "../../store/OnboardingContext";
 import * as SecureStore from '../../utils/storage';

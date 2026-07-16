@@ -1,0 +1,53 @@
+import crypto from 'node:crypto';
+import { sqlClient } from '../db/index.js';
+
+interface IdentityProfile {
+  userId: string;
+  username: string;
+  fullName?: string | null;
+  bio?: string | null;
+  githubId?: string | null;
+  githubHandle?: string | null;
+  avatarUrl?: string | null;
+}
+
+export async function ensureIdentityProfile(profile: IdentityProfile): Promise<void> {
+  const outboxPayload = JSON.stringify({
+    job_id: crypto.randomUUID(),
+    user_id: profile.userId,
+    profile_version: 1,
+    profile: {
+      username: profile.username,
+      full_name: profile.fullName ?? null,
+      bio: profile.bio ?? null,
+      interests: [], skills: [], tech_stack: [],
+    },
+  });
+  await sqlClient.begin(async (tx) => {
+    await tx`
+      INSERT INTO app.users (user_id,username,full_name,bio,github_id,github_handle,avatar_url)
+      VALUES (${profile.userId}::uuid,${profile.username},${profile.fullName ?? null},${profile.bio ?? null},
+        ${profile.githubId ?? null},${profile.githubHandle ?? null},${profile.avatarUrl ?? null})
+      ON CONFLICT (user_id) DO UPDATE SET
+        full_name=COALESCE(EXCLUDED.full_name,app.users.full_name),
+        bio=COALESCE(EXCLUDED.bio,app.users.bio),
+        github_id=COALESCE(EXCLUDED.github_id,app.users.github_id),
+        github_handle=COALESCE(EXCLUDED.github_handle,app.users.github_handle),
+        avatar_url=COALESCE(EXCLUDED.avatar_url,app.users.avatar_url),updated_at=now()
+    `;
+    await tx`INSERT INTO app.user_stats (user_id) VALUES (${profile.userId}::uuid) ON CONFLICT DO NOTHING`;
+    await tx`INSERT INTO app.user_feed_state (user_id) VALUES (${profile.userId}::uuid) ON CONFLICT DO NOTHING`;
+    await tx`
+      INSERT INTO telemetry.ml_outbox (job_type,aggregate_id,idempotency_key,payload)
+      VALUES ('onboard',${profile.userId}::uuid,${`onboard:${profile.userId}:1`},${outboxPayload}::jsonb)
+      ON CONFLICT (idempotency_key) DO NOTHING
+    `;
+  });
+}
+
+export function fallbackUsername(userId: string, metadata: Record<string, unknown> | undefined): string {
+  const raw = [metadata?.user_name, metadata?.preferred_username, metadata?.name]
+    .find((value) => typeof value === 'string' && value.trim()) as string | undefined;
+  const base = (raw ?? 'user').toLowerCase().replace(/[^a-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 38) || 'user';
+  return `${base}-${userId.slice(0, 8)}`;
+}

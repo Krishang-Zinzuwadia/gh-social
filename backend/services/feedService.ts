@@ -388,3 +388,5 @@ export class FeedService {
     }
   }
 }
+
+export { FeedV2Service } from './feedV2Service.js';

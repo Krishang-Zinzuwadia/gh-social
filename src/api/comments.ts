@@ -17,7 +17,6 @@ export interface CommentAuthor {
 }
 
 export interface CreateCommentInput {
-  userId: string;
   repoId: string;
   comment: string;
   parentCommentId?: string | null;
@@ -112,8 +111,8 @@ export async function createComment(
   token: string,
 ): Promise<CommentRecord> {
   const body = input.comment.trim();
-  if (!input.userId.trim() || !input.repoId.trim() || !body) {
-    throw new Error('A user, repository, and comment are required');
+  if (!input.repoId.trim() || !body) {
+    throw new Error('A repository and comment are required');
   }
 
   const response = await fetch(`${API_URL}/comment`, {
@@ -124,7 +123,6 @@ export async function createComment(
       Authorization: `Bearer ${token}`,
     },
     body: JSON.stringify({
-      user_id: input.userId,
       repo_id: input.repoId,
       comment: body,
       ...(input.parentCommentId

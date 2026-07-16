@@ -246,7 +246,6 @@ export function CommentSheet({
 
       return createComment(
         {
-          userId: user.user_id,
           repoId,
           comment: text,
         },

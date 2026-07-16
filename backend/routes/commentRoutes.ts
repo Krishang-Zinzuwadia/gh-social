@@ -9,6 +9,7 @@ import {
   updateCommentById,
   deleteCommentById,
 } from '../controllers/commentController.js';
+import { requireAuth } from '../middlewares/authMiddleware.js';
 
 const router: Router = Router();
 
@@ -30,7 +31,7 @@ router.get('/parent/:parentCommentId', getRepliesByParentComment);
 router.get('/:commentId', getCommentById);
 
 // Create a new comment record.
-router.post('/', createComment);
+router.post('/', requireAuth, createComment);
 
 // Update one comment record by comment id.
 router.patch('/:commentId', updateCommentById);

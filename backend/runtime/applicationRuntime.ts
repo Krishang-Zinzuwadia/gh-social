@@ -33,6 +33,9 @@ export class ApplicationRuntime {
       ? (userId, limit, excluded) => this.generation!.generate(userId, Math.max(45, limit), excluded)
       : undefined,
     this.flags.TRENDING_FALLBACK,
+    1_500,
+    25,
+    process.env.JWT_SECRET,
   );
   readonly supervisor = new WorkerSupervisor();
 

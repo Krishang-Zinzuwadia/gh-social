@@ -80,6 +80,7 @@ export class PostgresFeedPersistence implements FeedPersistencePort {
       session_id: String(serve.session_id), feed_version: BigInt(serve.feed_version),
       generation_id: serve.generation_id == null ? null : String(serve.generation_id),
       source: serve.source as StoredServe['source'], model_version: serve.model_version == null ? null : String(serve.model_version),
+      next_cursor: serve.next_cursor == null ? null : String(serve.next_cursor),
       items, created_at: new Date(serve.created_at as string).toISOString(),
     };
   }
@@ -93,10 +94,10 @@ export class PostgresFeedPersistence implements FeedPersistencePort {
       if (existing.length > 0) return;
       const serves = await tx`
         INSERT INTO telemetry.feed_serves (
-          feed_request_id,user_id,session_id,feed_version,generation_id,source,model_version
+          feed_request_id,user_id,session_id,feed_version,generation_id,source,model_version,next_cursor
         ) VALUES (
           ${input.feed_request_id}::uuid,${input.user_id}::uuid,${input.session_id}::uuid,
-          ${input.feed_version.toString()}::bigint,${input.generation_id}::uuid,${input.source},${input.model_version}
+          ${input.feed_version.toString()}::bigint,${input.generation_id}::uuid,${input.source},${input.model_version},${input.next_cursor}
         ) RETURNING serve_id
       `;
       const serveId = String(serves[0].serve_id);

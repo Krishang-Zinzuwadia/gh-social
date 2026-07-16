@@ -245,6 +245,7 @@ export const feedServes = telemetrySchema.table('feed_serves', {
   generationId: uuid('generation_id'),
   source: text('source').notNull(),
   modelVersion: text('model_version'),
+  nextCursor: text('next_cursor'),
   status: text('status').notNull().default('prepared'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 }, (table) => [index('feed_serves_user_created_idx').on(table.userId, table.createdAt)]);

@@ -38,6 +38,7 @@ export interface StoredServe {
   generation_id: string | null;
   source: FeedSource;
   model_version: string | null;
+  next_cursor: string | null;
   items: StoredServeItem[];
   created_at: string;
 }
@@ -50,6 +51,7 @@ export interface CreateServeInput {
   generation_id: string | null;
   source: FeedSource;
   model_version: string | null;
+  next_cursor: string | null;
   items: Array<RecommendationEntry & { position: number; repository: RepositoryProjection }>;
 }
 

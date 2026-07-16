@@ -15,14 +15,15 @@ const repo: RepositoryProjection = {
 
 class FakePersistence implements FeedPersistencePort {
   serve: StoredServe | null = null;
+  version = 3n;
   missesBeforeServe = 0;
   fallbackCalls = 0;
-  async getFeedVersion() { return 3n; }
-  async getServeByRequest() {
+  async getFeedVersion() { return this.version; }
+  async getServeByRequest(_userId?: string, requestId?: string) {
     if (this.missesBeforeServe > 0) { this.missesBeforeServe--; return null; }
-    return this.serve;
+    return this.serve?.feed_request_id === requestId ? this.serve : null;
   }
-  async listActiveRepositories() { return [repo]; }
+  async listActiveRepositories(repoIds: string[]) { return repoIds.map((repoId) => ({ ...repo, repo_id: repoId })); }
   async getTrendingFallback() { this.fallbackCalls++; return [repo]; }
   async createServe(input: CreateServeInput) {
     this.serve = {
@@ -43,7 +44,7 @@ class FakeQueue implements FeedQueuePort {
   async commit() { this.committed++; return true; }
   async release() { this.released++; return true; }
   async replace() {}
-  async depth() { return 1; }
+  async depth() { return 0; }
   async acquireGenerationLock() { return true; }
   async releaseGenerationLock() {}
   async scanReservations() { return []; }
@@ -91,6 +92,7 @@ test('reservation ownership waits for and replays the durable serve', async () =
     generation_id: null,
     source: 'personalized',
     model_version: 'm1',
+    next_cursor: null,
     items: [{ repo_id: repo.repo_id, score: 1, source: 'semantic', model_version: 'm1', summary_id: null,
       position: 0, repository: repo }],
     serve_id: '00000000-0000-4000-8000-000000000099',
@@ -172,6 +174,63 @@ test('generation keeps reservation ownership and concurrent retries replay perso
   assert.equal(persistence.fallbackCalls, 0);
   assert.equal(queue.released, 0);
   assert.equal(queue.committed, 1);
+});
+
+test('signed cursor consumes remaining queue pages and preserves global positions', async () => {
+  const persistence = new FakePersistence();
+  const queue = new FakeQueue();
+  const available = [1, 2, 3].map((index) => ({
+    repo_id: `00000000-0000-4000-8000-${String(index).padStart(12, '0')}`,
+    score: index, source: 'semantic', model_version: 'm1', summary_id: null,
+  }));
+  queue.reserve = async (_user, _version, requestId, limit, token) => ({
+    requestId, token, items: available.splice(0, limit),
+  });
+  queue.depth = async () => available.length;
+  const service = new FeedV2Service(
+    persistence, queue, undefined, true, 1_500, 25, 'unit-test-feed-cursor-secret',
+  );
+  const userId = '00000000-0000-4000-8000-000000000030';
+  const sessionId = '00000000-0000-4000-8000-000000000020';
+  const firstRequest = {
+    feed_request_id: '00000000-0000-4000-8000-000000000021', session_id: sessionId, limit: 2, cursor: null,
+  };
+  const first = await service.getFeed(userId, firstRequest);
+  assert.deepEqual(first.items.map((item) => item.position), [0, 1]);
+  assert.ok(first.next_cursor);
+  assert.deepEqual(await service.getFeed(userId, firstRequest), first);
+
+  const second = await service.getFeed(userId, {
+    feed_request_id: '00000000-0000-4000-8000-000000000022',
+    session_id: sessionId, limit: 2, cursor: first.next_cursor,
+  });
+  assert.deepEqual(second.items.map((item) => item.position), [2]);
+  assert.equal(second.next_cursor, null);
+});
+
+test('feed cursor rejects tampering and stale feed versions', async () => {
+  const persistence = new FakePersistence();
+  const queue = new FakeQueue();
+  const remaining = [{ repo_id: repo.repo_id, score: 1, source: 'semantic', model_version: 'm1', summary_id: null }];
+  queue.reserve = async (_user, _version, requestId, _limit, token) => ({ requestId, token, items: remaining.splice(0, 1) });
+  queue.depth = async () => 1;
+  const service = new FeedV2Service(
+    persistence, queue, undefined, true, 1_500, 25, 'unit-test-feed-cursor-secret',
+  );
+  const userId = '00000000-0000-4000-8000-000000000030';
+  const sessionId = '00000000-0000-4000-8000-000000000020';
+  const first = await service.getFeed(userId, {
+    feed_request_id: '00000000-0000-4000-8000-000000000023', session_id: sessionId, limit: 1, cursor: null,
+  });
+  assert.ok(first.next_cursor);
+  const tampered = `${first.next_cursor.slice(0, -1)}${first.next_cursor.endsWith('A') ? 'B' : 'A'}`;
+  await assert.rejects(service.getFeed(userId, {
+    feed_request_id: '00000000-0000-4000-8000-000000000024', session_id: sessionId, limit: 1, cursor: tampered,
+  }), /invalid or stale/);
+  persistence.version = 4n;
+  await assert.rejects(service.getFeed(userId, {
+    feed_request_id: '00000000-0000-4000-8000-000000000025', session_id: sessionId, limit: 1, cursor: first.next_cursor,
+  }), /invalid or stale/);
 });
 
 test('feed replay cache-hit service p95 stays below 250ms', async () => {

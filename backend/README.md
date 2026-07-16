@@ -98,7 +98,7 @@ The frontend cannot import or mutate repository metadata. It records likes, save
 }
 ```
 
-The response contains `serve_id`, `feed_version`, `source`, `model_version`, `items`, and `next_cursor`. Reusing the same `feed_request_id` is an idempotent replay and returns the same persisted serve. `limit` is 1-25. If ML or Redis is unavailable, the backend serves a durable PostgreSQL fallback when possible.
+The response contains `serve_id`, `feed_version`, `source`, `model_version`, `items`, and `next_cursor`. Reusing the same `feed_request_id` is an idempotent replay and returns the same persisted serve. Pass a non-null `next_cursor` with a new `feed_request_id` to consume the next queue page. Cursors are opaque, signed, and bound to the user, session, feed version, and next position; invalid or stale cursors return `400`. `limit` is 1-25. If ML or Redis is unavailable, the backend serves a durable PostgreSQL fallback when possible.
 
 ### Interactions
 

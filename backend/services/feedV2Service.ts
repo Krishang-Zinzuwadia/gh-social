@@ -5,6 +5,7 @@ import type { FeedPersistencePort } from '../ports/feedPersistencePort.js';
 import type { FeedQueuePort } from '../redis/feedQueue.js';
 import { ReservationOwnedError } from '../redis/feedQueue.js';
 import { incrementMetric } from '../observability/metrics.js';
+import { FeedCursorCodec } from './feedCursor.js';
 
 export class FeedRequestInProgressError extends Error {
   constructor() {
@@ -21,7 +22,7 @@ function responseFromServe(serve: Awaited<ReturnType<FeedPersistencePort['create
     source: serve.source,
     model_version: serve.model_version,
     items: serve.items,
-    next_cursor: null,
+    next_cursor: serve.next_cursor,
   };
 }
 
@@ -33,7 +34,12 @@ export class FeedV2Service {
     private readonly fallbackEnabled = true,
     private readonly reservationWaitMs = 1_500,
     private readonly reservationPollMs = 25,
-  ) {}
+    cursorSecret?: string,
+  ) {
+    this.cursorCodec = new FeedCursorCodec(cursorSecret);
+  }
+
+  private readonly cursorCodec: FeedCursorCodec;
 
   private async waitForServe(userId: string, requestId: string): Promise<FeedResponseV2> {
     const deadline = Date.now() + this.reservationWaitMs;
@@ -57,6 +63,11 @@ export class FeedV2Service {
     }
 
     const version = await this.persistence.getFeedVersion(userId);
+    const pageOffset = request.cursor === null ? 0 : this.cursorCodec.decode(request.cursor, {
+      user_id: userId,
+      session_id: request.session_id,
+      feed_version: version.toString(),
+    });
     const token = crypto.randomUUID();
     let queueAvailable = true;
     let reservation;
@@ -93,13 +104,15 @@ export class FeedV2Service {
     incrementMetric(entries.length > 0 ? 'feed_v2_cache_hits_total' : 'feed_v2_cache_misses_total');
     let source: FeedSource = 'personalized';
     if (entries.length === 0) {
-      if (!this.fallbackEnabled) throw new Error('Feed queue is empty and trending fallback is disabled.');
-      const fallback = await this.persistence.getTrendingFallback(request.limit, []);
-      entries = fallback.map((repo) => ({
-        repo_id: repo.repo_id, score: 0, source: 'fallback', model_version: 'backend-fallback', summary_id: repo.summary_id,
-      }));
-      source = 'fallback';
-      incrementMetric('feed_v2_fallback_total');
+      if (request.cursor === null) {
+        if (!this.fallbackEnabled) throw new Error('Feed queue is empty and trending fallback is disabled.');
+        const fallback = await this.persistence.getTrendingFallback(request.limit, []);
+        entries = fallback.map((repo) => ({
+          repo_id: repo.repo_id, score: 0, source: 'fallback', model_version: 'backend-fallback', summary_id: repo.summary_id,
+        }));
+        source = 'fallback';
+        incrementMetric('feed_v2_fallback_total');
+      }
     }
 
     const projections = await this.persistence.listActiveRepositories(entries.map((entry) => entry.repo_id));
@@ -111,6 +124,21 @@ export class FeedV2Service {
     }
 
     try {
+      let nextCursor: string | null = null;
+      if (queueAvailable && source === 'personalized' && usable.length > 0) {
+        try {
+          if (await this.queue.depth(userId, version) > 0) {
+            nextCursor = this.cursorCodec.encode({
+              user_id: userId,
+              session_id: request.session_id,
+              feed_version: version.toString(),
+              offset: pageOffset + usable.length,
+            });
+          }
+        } catch (error) {
+          console.error('[FeedV2Service] Failed to determine next cursor:', error);
+        }
+      }
       const stored = await this.persistence.createServe({
         feed_request_id: request.feed_request_id,
         user_id: userId,
@@ -119,7 +147,10 @@ export class FeedV2Service {
         generation_id: usable[0]?.generation_id ?? null,
         source,
         model_version: usable[0]?.model_version ?? null,
-        items: usable.map((entry, position) => ({ ...entry, position, repository: byId.get(entry.repo_id)! })),
+        next_cursor: nextCursor,
+        items: usable.map((entry, position) => ({
+          ...entry, position: pageOffset + position, repository: byId.get(entry.repo_id)!,
+        })),
       });
       if (queueAvailable) await this.queue.commit(userId, version, request.feed_request_id, token);
       return responseFromServe(stored);

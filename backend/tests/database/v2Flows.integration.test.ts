@@ -135,12 +135,36 @@ integration('v2 database, outbox, and Redis feed flows preserve invariants', asy
   const redis = new Redis(process.env.REDIS_DATABASE_TEST_URL ?? 'redis://127.0.0.1:6379/14', { maxRetriesPerRequest: 1 });
   await redis.flushdb();
   try {
-    const feed = new FeedV2Service(new PostgresFeedPersistence(), new RedisFeedQueue(redis));
+    const queue = new RedisFeedQueue(redis);
+    const feed = new FeedV2Service(
+      new PostgresFeedPersistence(), queue, undefined, true, 1_500, 25, 'database-integration-feed-cursor-secret',
+    );
     const request = { feed_request_id: crypto.randomUUID(), session_id: sessionId, limit: 10, cursor: null };
     const served = await feed.getFeed(userId, request);
     assert.equal(served.source, 'fallback');
     assert.deepEqual(served.items.map((item) => item.repo_id), [repoId]);
     assert.deepEqual(await feed.getFeed(userId, request), served);
+
+    const version = await new PostgresFeedPersistence().getFeedVersion(userId);
+    const recommendation = {
+      repo_id: repoId, score: 1, source: 'semantic', model_version: 'integration-model', summary_id: null,
+    };
+    await queue.replace(userId, version, [recommendation, recommendation], 60);
+    const firstPageRequestId = crypto.randomUUID();
+    const firstPage = await feed.getFeed(userId, {
+      feed_request_id: firstPageRequestId, session_id: sessionId, limit: 1, cursor: null,
+    });
+    assert.deepEqual(firstPage.items.map((item) => item.position), [0]);
+    assert.ok(firstPage.next_cursor);
+    const replayedFirstPage = await feed.getFeed(userId, {
+      feed_request_id: firstPageRequestId, session_id: sessionId, limit: 1, cursor: null,
+    });
+    assert.equal(replayedFirstPage.next_cursor, firstPage.next_cursor);
+    const secondPage = await feed.getFeed(userId, {
+      feed_request_id: crypto.randomUUID(), session_id: sessionId, limit: 1, cursor: firstPage.next_cursor,
+    });
+    assert.deepEqual(secondPage.items.map((item) => item.position), [1]);
+    assert.equal(secondPage.next_cursor, null);
   } finally {
     await redis.flushdb();
     await redis.quit();

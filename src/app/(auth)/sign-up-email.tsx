@@ -90,9 +90,9 @@ export default function SignUpEmail() {
 
         <View className="mt-2">
 
-          <SectionLabel title="Full name" />
+          <SectionLabel title="Name" />
           <AuthInput
-            placeholder="Enter your full name"
+            placeholder="Enter your name"
             icon="user"
             value={fullName}
             onChangeText={setFullName}

@@ -1,6 +1,6 @@
 import { useRouter } from "expo-router";
-import { useEffect, useRef } from "react";
-import { ScrollView, Text, View } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { ActivityIndicator, ScrollView, Text, View } from "react-native";
 
 import AuthFooter from "@/components/Auth/AuthFooter";
 import LogoCircle from "@/components/Auth/LogoCircle";
@@ -10,6 +10,7 @@ import SocialButton from "@/components/Auth/SocialButton";
 
 import LoginInput from "@/components/Auth/LoginInput";
 import RememberMe from "@/components/Auth/RememberMe";
+import { API_URL } from "@/constants/api";
 
 import {
     GithubIcon,
@@ -19,12 +20,45 @@ import {
 export default function LoginScreen() {
   const router = useRouter();
   const scrollViewRef = useRef<ScrollView>(null);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [loginError, setLoginError] = useState("");
 
   useEffect(() => {
     setTimeout(() => {
       scrollViewRef.current?.scrollToEnd({ animated: true });
     }, 500);
   }, []);
+
+  const handleLogin = async () => {
+    if (!email.trim() || !password) {
+      setLoginError("Enter your email and password.");
+      return;
+    }
+
+    setIsLoggingIn(true);
+    setLoginError("");
+    try {
+      const response = await fetch(`${API_URL}/auth/login`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim(), password }),
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.error ?? "Unable to log in.");
+      router.replace("/(tabs)/home");
+    } catch (error) {
+      setLoginError(
+        error instanceof TypeError
+          ? `Unable to reach the backend at ${API_URL}.`
+          : error instanceof Error ? error.message : "Unable to log in."
+      );
+    } finally {
+      setIsLoggingIn(false);
+    }
+  };
 
   return (
     <ScrollView
@@ -82,11 +116,17 @@ export default function LoginScreen() {
           
           className="text-white text-[15px] mt-8 mb-3 font-nata"
         >
-          Email or username
+          Email
         </Text>
 
         <LoginInput
-          placeholder="Enter your email or username"
+          placeholder="Enter your email"
+          value={email}
+          onChangeText={setEmail}
+          autoCapitalize="none"
+          autoCorrect={false}
+          keyboardType="email-address"
+          textContentType="emailAddress"
         />
 
         {/* Password */}
@@ -100,6 +140,10 @@ export default function LoginScreen() {
         <LoginInput
           placeholder="Enter your password"
           secureTextEntry
+          value={password}
+          onChangeText={setPassword}
+          textContentType="password"
+          onSubmitEditing={handleLogin}
         />
 
         {/* Remember me */}
@@ -108,9 +152,16 @@ export default function LoginScreen() {
         {/* Button */}
         <View className="mt-8">
           <PrimaryButton
-            label="Log In"
-            onPress={() => router.replace("/(tabs)/home")}
+            label={isLoggingIn ? "Logging in…" : "Log In"}
+            disabled={isLoggingIn}
+            onPress={handleLogin}
           />
+          {isLoggingIn ? <ActivityIndicator className="mt-3" color="#6DA963" /> : null}
+          {loginError ? (
+            <Text selectable className="mt-3 text-center font-nata text-[13px] text-[#FF6878]">
+              {loginError}
+            </Text>
+          ) : null}
         </View>
 
         {/* Footer */}

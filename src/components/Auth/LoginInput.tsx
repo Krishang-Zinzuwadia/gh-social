@@ -1,13 +1,13 @@
-import { TextInput, View } from "react-native";
+import { TextInput, TextInputProps, View } from "react-native";
 
-interface Props {
+interface Props extends TextInputProps {
   placeholder: string;
-  secureTextEntry?: boolean;
 }
 
 export default function LoginInput({
   placeholder,
   secureTextEntry,
+  ...props
 }: Props) {
   return (
     <View className="h-[60px] border-2 border-[#6DA963] rounded-[12px] bg-[#191F18] px-5 justify-center">
@@ -16,6 +16,7 @@ export default function LoginInput({
         placeholderTextColor="#5F5F5F"
         secureTextEntry={secureTextEntry}
         className="text-white text-[14px] font-nata outline-none w-full h-full"
+        {...props}
       />
     </View>
   );

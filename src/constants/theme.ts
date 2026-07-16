@@ -66,10 +66,9 @@ export const MaxContentWidth = 800;
 
 export const APP_THEME = {
   background: '#0A0C09',
-  activeAccent: '#6DA963',
-  inactiveAccent: '#FFFFFF',
+  activeAccent: '#F7F7F8',
+  inactiveAccent: '#77767C',
   borderDark: '#242524',
   tabBarBackground: '#0D0E0D',
 } as const;
-
 

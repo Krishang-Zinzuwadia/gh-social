@@ -62,11 +62,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         onboarding_completed: Array.isArray(profile.topics) && profile.topics.length > 0,
       });
     } catch (error) {
-      console.error('Failed to fetch user profile', error);
-      if ((error as { status?: number }).status === 401) {
+      const status = (error as { status?: number }).status;
+      // A 404 means an older valid session predates its v2 product profile.
+      // Clear it so the next login can run ensureIdentityProfile atomically.
+      if (status === 401 || status === 404) {
         await removeStorageItem('access_token').catch(() => undefined);
         setUser(null);
+        return;
       }
+      console.error('Failed to fetch user profile', error);
     }
   }, []);
 

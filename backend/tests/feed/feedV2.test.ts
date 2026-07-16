@@ -37,6 +37,9 @@ class FakeQueue implements FeedQueuePort {
   async reserve(_u: string, _v: bigint, requestId: string, _l: number, token: string): Promise<FeedReservation> {
     return { requestId, token, items: [{ repo_id: repo.repo_id, score: 1, source: 'semantic', model_version: 'm1', summary_id: null }] };
   }
+  async refill(_u: string, _v: bigint, requestId: string, _l: number, token: string): Promise<FeedReservation> {
+    return this.reserve(_u, _v, requestId, _l, token);
+  }
   async commit() { this.committed++; return true; }
   async release() { this.released++; return true; }
   async replace() {}
@@ -119,6 +122,56 @@ test('reservation ownership never falls back or creates a competing serve', asyn
   assert.equal(persistence.fallbackCalls, 0);
   assert.equal(queue.committed, 0);
   assert.equal(queue.released, 0);
+});
+
+test('generation keeps reservation ownership and concurrent retries replay personalized serve', async () => {
+  const persistence = new FakePersistence();
+  const queue = new FakeQueue();
+  let owner: string | null = null;
+  let generationStarted!: () => void;
+  let finishGeneration!: () => void;
+  const started = new Promise<void>((resolve) => { generationStarted = resolve; });
+  const finish = new Promise<void>((resolve) => { finishGeneration = resolve; });
+
+  queue.reserve = async (_user, _version, requestId, _limit, token) => {
+    if (owner && owner !== token) throw new ReservationOwnedError();
+    owner = token;
+    return { requestId, token, items: [] };
+  };
+  queue.refill = async (_user, _version, requestId, _limit, token) => {
+    if (owner !== token) throw new ReservationOwnedError();
+    return { requestId, token, items: [{
+      repo_id: repo.repo_id, score: 1, source: 'semantic', model_version: 'm1', summary_id: null,
+    }] };
+  };
+  queue.commit = async () => {
+    if (!owner) return false;
+    owner = null;
+    queue.committed++;
+    return true;
+  };
+
+  const service = new FeedV2Service(persistence, queue, async () => {
+    generationStarted();
+    await finish;
+  }, true, 1_000, 1);
+  const userId = '00000000-0000-4000-8000-000000000030';
+  const request = {
+    feed_request_id: '00000000-0000-4000-8000-000000000015',
+    session_id: '00000000-0000-4000-8000-000000000020', limit: 10, cursor: null,
+  };
+
+  const original = service.getFeed(userId, request);
+  await started;
+  const retry = service.getFeed(userId, request);
+  finishGeneration();
+  const [originalResponse, retryResponse] = await Promise.all([original, retry]);
+
+  assert.equal(originalResponse.source, 'personalized');
+  assert.deepEqual(retryResponse, originalResponse);
+  assert.equal(persistence.fallbackCalls, 0);
+  assert.equal(queue.released, 0);
+  assert.equal(queue.committed, 1);
 });
 
 test('feed replay cache-hit service p95 stays below 250ms', async () => {

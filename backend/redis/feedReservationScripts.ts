@@ -24,6 +24,18 @@ redis.call('del', KEYS[1], KEYS[2])
 return 1
 `;
 
+export const REFILL_FEED_LUA = `
+if redis.call('hget', KEYS[2], 'token') ~= ARGV[1] then return {err='RESERVATION_OWNED'} end
+for i = 1, tonumber(ARGV[2]) do
+  local item = redis.call('lpop', KEYS[1])
+  if not item then break end
+  redis.call('rpush', KEYS[3], item)
+end
+redis.call('pexpire', KEYS[2], ARGV[3])
+redis.call('pexpire', KEYS[3], ARGV[3])
+return redis.call('lrange', KEYS[3], 0, -1)
+`;
+
 export const RELEASE_FEED_LUA = `
 if redis.call('hget', KEYS[2], 'token') ~= ARGV[1] then return 0 end
 while redis.call('llen', KEYS[3]) > 0 do

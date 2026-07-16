@@ -75,10 +75,9 @@ export class FeedV2Service {
     }
 
     if (queueAvailable && reservation.items.length === 0 && this.generateOnMiss) {
-      await this.queue.release(userId, version, request.feed_request_id, token);
       try {
         await this.generateOnMiss(userId, request.limit, []);
-        reservation = await this.queue.reserve(
+        reservation = await this.queue.refill(
           userId, version, request.feed_request_id, request.limit, token,
         );
       } catch (error) {

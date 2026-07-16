@@ -3,6 +3,7 @@ import type { Redis } from 'ioredis';
 
 import {
   COMMIT_FEED_LUA,
+  REFILL_FEED_LUA,
   RELEASE_FEED_LUA,
   RELEASE_LOCK_LUA,
   RESERVE_FEED_LUA,
@@ -23,6 +24,7 @@ export class ReservationOwnedError extends Error {
 
 export interface FeedQueuePort {
   reserve(userId: string, version: bigint, requestId: string, limit: number, token: string): Promise<FeedReservation>;
+  refill(userId: string, version: bigint, requestId: string, limit: number, token: string): Promise<FeedReservation>;
   commit(userId: string, version: bigint, requestId: string, token: string): Promise<boolean>;
   release(userId: string, version: bigint, requestId: string, token: string): Promise<boolean>;
   replace(userId: string, version: bigint, items: RecommendationEntry[], ttlSeconds: number): Promise<void>;
@@ -71,6 +73,25 @@ export class RedisFeedQueue implements FeedQueuePort {
   async commit(userId: string, version: bigint, requestId: string, token: string): Promise<boolean> {
     const [meta, items] = this.reservationKeys(userId, version, requestId);
     return Number(await this.redis.eval(COMMIT_FEED_LUA, 2, meta, items, token)) === 1;
+  }
+
+  async refill(userId: string, version: bigint, requestId: string, limit: number, token: string): Promise<FeedReservation> {
+    const [meta, items] = this.reservationKeys(userId, version, requestId);
+    let result: string[];
+    try {
+      result = await this.redis.eval(
+        REFILL_FEED_LUA,
+        3,
+        this.queueKey(userId, version), meta, items,
+        token, String(limit), String(this.reservationTtlMs),
+      ) as string[];
+    } catch (error) {
+      if (error instanceof Error && error.message.includes('RESERVATION_OWNED')) {
+        throw new ReservationOwnedError();
+      }
+      throw error;
+    }
+    return { token, requestId, items: result.map((item) => JSON.parse(item) as RecommendationEntry) };
   }
 
   async release(userId: string, version: bigint, requestId: string, token: string): Promise<boolean> {

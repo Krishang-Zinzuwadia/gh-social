@@ -1,27 +1,37 @@
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
+import * as Device from 'expo-device';
+
+const LOCAL_BACKEND_PORT = 5000;
+
+const withoutTrailingSlash = (url: string): string => url.replace(/\/+$/, '');
 
 export const getApiUrl = (): string => {
   // 1. Production / User-defined environment variable (Highest Priority)
   // This is what will be used in GitHub/Vercel/EAS deployments
   if (process.env.EXPO_PUBLIC_BACKEND_URL) {
-    return process.env.EXPO_PUBLIC_BACKEND_URL;
+    return withoutTrailingSlash(process.env.EXPO_PUBLIC_BACKEND_URL);
   }
 
   // 2. Development fallbacks (if no env variable is provided)
   if (process.env.NODE_ENV !== 'production') {
-    // Try to dynamically resolve the host LAN IP (works perfectly on Expo Go for mobile devices)
+    // Android emulators reach services on the host machine through 10.0.2.2.
+    // A LAN address can be blocked by host firewall rules even when Metro works.
+    if (Platform.OS === 'android' && !Device.isDevice) {
+      return `http://10.0.2.2:${LOCAL_BACKEND_PORT}/api`;
+    }
+
+    if (Platform.OS === 'web') {
+      return `http://localhost:${LOCAL_BACKEND_PORT}/api`;
+    }
+
+    // Physical devices use the same LAN host that served the Expo bundle.
     if (Constants.expoConfig?.hostUri) {
-      return `http://${Constants.expoConfig.hostUri.split(':')[0]}:5001/api`;
+      return `http://${Constants.expoConfig.hostUri.split(':')[0]}:${LOCAL_BACKEND_PORT}/api`;
     }
-    
-    // Fallback for Android Emulator
-    if (Platform.OS === 'android') {
-      return 'http://10.0.2.2:5001/api';
-    }
-    
+
     // Fallback for iOS Simulator or Web
-    return 'http://localhost:5001/api';
+    return `http://localhost:${LOCAL_BACKEND_PORT}/api`;
   }
 
   // 3. Final Production Fallback

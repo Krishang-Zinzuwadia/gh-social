@@ -13,10 +13,51 @@ import feedRoutes from './routes/feedRoutes.js';
 
 const app = express();
 
+const configuredCorsOrigins = new Set(
+  [
+    ...(process.env.CORS_ORIGINS ?? '').split(','),
+    process.env.CLIENT_URL?.startsWith('http') ? process.env.CLIENT_URL : '',
+  ]
+    .map((origin) => origin.trim().replace(/\/$/, ''))
+    .filter(Boolean),
+);
+
+const isLocalDevelopmentOrigin = (origin: string): boolean => {
+  if (process.env.NODE_ENV === 'production') return false;
+
+  try {
+    const url = new URL(origin);
+    return (
+      (url.protocol === 'http:' || url.protocol === 'https:') &&
+      (url.hostname === 'localhost' ||
+        url.hostname === '127.0.0.1' ||
+        url.hostname === '10.0.2.2' ||
+        url.hostname.startsWith('10.') ||
+        url.hostname.startsWith('192.168.'))
+    );
+  } catch {
+    return false;
+  }
+};
+
 // Global middleware used by every route.
 app.use(
   cors({
-    origin: process.env.CLIENT_URL,
+    // Native requests do not send an Origin header. Browser origins must be
+    // explicitly configured in production; local/LAN origins are allowed in dev.
+    origin: (origin, callback) => {
+      const normalizedOrigin = origin?.replace(/\/$/, '');
+      if (
+        !normalizedOrigin ||
+        configuredCorsOrigins.has(normalizedOrigin) ||
+        isLocalDevelopmentOrigin(normalizedOrigin)
+      ) {
+        callback(null, true);
+        return;
+      }
+
+      callback(new Error(`CORS origin is not allowed: ${normalizedOrigin}`));
+    },
     credentials: true,
   })
 );

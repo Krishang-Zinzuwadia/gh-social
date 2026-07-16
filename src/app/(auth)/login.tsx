@@ -1,11 +1,12 @@
 import { useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
-import { KeyboardAvoidingView, Platform, ScrollView, Text, View } from "react-native";
-import { useAuth } from "../../store/AuthContext";
+import { KeyboardAvoidingView, Platform, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { isDemoModeEnabled, useAuth } from "../../store/AuthContext";
 import { login } from "../../api/auth";
 import { useOAuth } from "../../hooks/useOAuth";
 
 import AuthFooter from "@/components/Auth/AuthFooter";
+import BrandWord from "@/components/Auth/BrandWord";
 import LogoCircle from "@/components/Auth/LogoCircle";
 import OrDivider from "@/components/Auth/OrDivider";
 import PrimaryButton from "@/components/Auth/PrimaryButton";
@@ -22,7 +23,7 @@ import {
 export default function LoginScreen() {
   const router = useRouter();
   const scrollViewRef = useRef<ScrollView>(null);
-  const { setSession } = useAuth();
+  const { setSession, enterOnboardingPreview } = useAuth();
   const { signInWithProvider, isLoading: oauthLoading, error: oauthError } = useOAuth();
 
   const [email, setEmail] = useState("");
@@ -61,7 +62,7 @@ export default function LoginScreen() {
     >
       <ScrollView
         ref={scrollViewRef}
-        className="flex-1 bg-[#0A0C09]"
+        className="flex-1 bg-[#000000]"
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 40, flexGrow: 1, justifyContent: 'center' }}
         keyboardShouldPersistTaps="handled"
@@ -79,12 +80,13 @@ export default function LoginScreen() {
               
               className="text-white text-[30px] text-center font-nataBold"
             >
-              Welcome to Weave
+              Welcome to{' '}
+              <BrandWord />
             </Text>
 
             <Text
               
-              className="text-[#8A8A8A] text-[14px] mt-3 text-center font-nata"
+              className="text-[rgba(235,235,245,0.6)] text-[14px] mt-3 text-center font-nata"
             >
               Glad to see you again.
             </Text>
@@ -94,7 +96,11 @@ export default function LoginScreen() {
           <View className="mt-10 gap-y-5">
             <SocialButton
               label={oauthLoading ? "Opening..." : "Continue with GitHub"}
-              icon={<GithubIcon />}
+              icon={
+                <GithubIcon
+                  color={oauthLoading ? "rgba(235,235,245,0.35)" : "#FFFFFF"}
+                />
+              }
               showChevron
               disabled={oauthLoading}
               onPress={() => signInWithProvider('github')}
@@ -110,7 +116,7 @@ export default function LoginScreen() {
           </View>
 
           {oauthError ? (
-            <Text className="text-[#E57373] text-[13px] font-nata mt-3 text-center">
+            <Text className="text-[#FF453A] text-[13px] font-nata mt-3 text-center">
               {oauthError}
             </Text>
           ) : null}
@@ -155,7 +161,7 @@ export default function LoginScreen() {
           <RememberMe />
 
           {errorMsg ? (
-            <Text className="text-[#E57373] text-[13px] font-nata mt-4 text-center">
+            <Text className="text-[#FF453A] text-[13px] font-nata mt-4 text-center">
               {errorMsg}
             </Text>
           ) : null}
@@ -165,10 +171,21 @@ export default function LoginScreen() {
             <PrimaryButton
               label={isLoading ? "Logging In..." : "Log In"}
               onPress={handleLogin}
-              style={{ opacity: isFormValid ? 1 : 0.5 }}
               disabled={!isFormValid}
             />
           </View>
+
+          {isDemoModeEnabled ? (
+            <TouchableOpacity
+              className="mt-4 h-[52px] items-center justify-center rounded-[9px] border border-[#63E08A]"
+              activeOpacity={0.8}
+              onPress={() => void enterOnboardingPreview()}
+            >
+              <Text className="font-nataSemiBold text-[16px] text-[#63E08A]">
+                Continue to onboarding (no login)
+              </Text>
+            </TouchableOpacity>
+          ) : null}
 
           {/* Footer */}
           <AuthFooter

@@ -1,9 +1,24 @@
 "use no memo";
-import React, { useEffect, useMemo } from 'react';
-import { Animated, Pressable, ScrollView, StyleSheet, Text, View, Image } from 'react-native';
-import { X } from 'lucide-react-native';
+
+import React, { useEffect, useMemo, useState } from 'react';
+import {
+  Animated,
+  Easing,
+  Image,
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  useWindowDimensions,
+  View,
+} from 'react-native';
+import { BookOpen, X } from 'lucide-react-native';
+import { BlurView } from 'expo-blur';
 import Markdown from 'react-native-markdown-display';
-import BookSvg from '../../assets/icons/mi_book.svg';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+import { REFERENCE_THEME } from '@/constants/theme';
 
 interface ReadmePopupProps {
   isVisible: boolean;
@@ -12,238 +27,312 @@ interface ReadmePopupProps {
   readmeText: string;
 }
 
+const POPUP_TYPING_STEP = 12;
+const POPUP_TYPING_INTERVAL_MS = 12;
+
 export function ReadmePopup({ isVisible, onClose, title, readmeText }: ReadmePopupProps) {
-  const scale = useMemo(() => new Animated.Value(0.95), []);
+  const { width, height } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
   const opacity = useMemo(() => new Animated.Value(0), []);
-  const translateY = useMemo(() => new Animated.Value(20), []);
+  const cursorOpacity = useMemo(() => new Animated.Value(1), []);
+  const [typed, setTyped] = useState(0);
+  const content = readmeText?.trim() || 'No README content is available for this repository.';
 
   useEffect(() => {
-    if (isVisible) {
-      Animated.parallel([
-        Animated.timing(scale, {
-          toValue: 1,
-          duration: 250,
-          useNativeDriver: true,
-        }),
-        Animated.timing(opacity, {
-          toValue: 1,
-          duration: 200,
-          useNativeDriver: true,
-        }),
-        Animated.timing(translateY, {
+    if (!isVisible) return;
+    opacity.setValue(0);
+    const resetTimer = setTimeout(() => setTyped(0), 0);
+    Animated.timing(opacity, {
+      toValue: 1,
+      duration: 220,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
+
+    const typingTimer = setInterval(() => {
+      setTyped((current) => {
+        const next = Math.min(content.length, current + POPUP_TYPING_STEP);
+        if (next >= content.length) clearInterval(typingTimer);
+        return next;
+      });
+    }, POPUP_TYPING_INTERVAL_MS);
+
+    return () => {
+      clearTimeout(resetTimer);
+      clearInterval(typingTimer);
+    };
+  }, [content, isVisible, opacity]);
+
+  useEffect(() => {
+    const cursorAnimation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(cursorOpacity, {
           toValue: 0,
-          duration: 250,
+          duration: 1,
+          delay: 449,
           useNativeDriver: true,
         }),
-      ]).start();
-    }
-  }, [isVisible, scale, opacity, translateY]);
+        Animated.timing(cursorOpacity, {
+          toValue: 1,
+          duration: 1,
+          delay: 449,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    cursorAnimation.start();
+    return () => cursorAnimation.stop();
+  }, [cursorOpacity]);
 
   const closeAnimated = () => {
-    Animated.parallel([
-      Animated.timing(scale, {
-        toValue: 0.95,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-      Animated.timing(opacity, {
-        toValue: 0,
-        duration: 180,
-        useNativeDriver: true,
-      }),
-      Animated.timing(translateY, {
-        toValue: 20,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-    ]).start(({ finished }) => {
-      if (!finished) return;
-      onClose();
+    Animated.timing(opacity, {
+      toValue: 0,
+      duration: 180,
+      easing: Easing.in(Easing.cubic),
+      useNativeDriver: true,
+    }).start(({ finished }) => {
+      if (finished) onClose();
     });
   };
 
-  if (!isVisible) return null;
+  const compact = height < 700;
+  const top = compact ? Math.max(insets.top + 10, 44) : Math.max(74, insets.top + 20);
+  const bottom = compact ? Math.max(insets.bottom + 72, 84) : Math.max(100, insets.bottom + 66);
+  const cardWidth = Math.min(width - 32, 488);
 
   return (
-    <Animated.View style={[styles.popupRoot, { opacity }]}>
-      <Pressable style={StyleSheet.absoluteFill} onPress={closeAnimated}>
-        <View style={styles.popupOverlay} />
-      </Pressable>
-      <Animated.View
-        style={[
-          styles.popupCard,
-          { transform: [{ scale }, { translateY }] }
-        ]}
-      >
-        <View style={styles.popupHeader}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-            <BookSvg width={20} height={20} />
-            <Text style={styles.popupTitle}>README Summary</Text>
-          </View>
-          <Pressable onPress={closeAnimated} style={styles.popupCloseButton}>
-            <X size={24} color="#D1D5DB" strokeWidth={1} />
-          </Pressable>
-        </View>
+    <Modal
+      animationType="none"
+      onRequestClose={closeAnimated}
+      presentationStyle="overFullScreen"
+      statusBarTranslucent
+      transparent
+      visible={isVisible}
+    >
+      <View style={styles.root}>
+        <Pressable accessibilityLabel="Close README" onPress={closeAnimated} style={StyleSheet.absoluteFill}>
+          <Animated.View style={[styles.overlay, { opacity }]}>
+            <BlurView intensity={12} tint="dark" style={StyleSheet.absoluteFill} />
+          </Animated.View>
+        </Pressable>
 
-        <View style={{ flex: 1, overflow: 'hidden' }}>
+        <Animated.View
+          style={[
+            styles.card,
+            {
+              width: cardWidth,
+              top,
+              bottom,
+              opacity,
+            },
+          ]}
+        >
+          <View style={styles.header}>
+            <View style={styles.headerTitle}>
+              <BookOpen size={14} color={REFERENCE_THEME.accentLight} strokeWidth={2} />
+              <Text style={styles.headerText}>README Summary</Text>
+            </View>
+            <Pressable
+              accessibilityLabel="Close"
+              accessibilityRole="button"
+              onPress={closeAnimated}
+              style={({ pressed }) => [styles.closeButton, pressed && styles.pressed]}
+            >
+              <X size={12} color="rgba(235,235,245,0.70)" strokeWidth={2.6} />
+            </Pressable>
+          </View>
+
           <ScrollView
-            style={styles.popupContentScroll}
-            contentContainerStyle={styles.popupContentContainer}
-            showsVerticalScrollIndicator={true}
-            bounces={true}
-            scrollEventThrottle={16}
-            nestedScrollEnabled={true}
+            contentContainerStyle={styles.content}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
           >
+            <Text style={styles.repoTitle}>{title}</Text>
             <Markdown style={markdownStyles} rules={markdownRules}>
-              {readmeText}
+              {content.slice(0, typed)}
             </Markdown>
+            <Animated.View style={[styles.cursor, { opacity: cursorOpacity }]} />
           </ScrollView>
-        </View>
-      </Animated.View>
-    </Animated.View>
+        </Animated.View>
+      </View>
+    </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  popupRoot: {
-    position: 'absolute',
-    left: 0,
-    top: 0,
-    right: 0,
-    bottom: 0,
-    zIndex: 100,
-    justifyContent: 'center',
+  root: {
+    flex: 1,
     alignItems: 'center',
   },
-  popupOverlay: {
+  overlay: {
     position: 'absolute',
     left: 0,
     top: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.4)',
+    backgroundColor: 'rgba(0,0,0,0.55)',
   },
-  popupCard: {
-    backgroundColor: '#0B130B',
+  card: {
+    position: 'absolute',
     borderRadius: 20,
-    borderWidth: 1.5,
-    borderColor: '#4ADE80',
-    padding: 20,
-    width: '90%',
-    height: '75%',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.12)',
+    backgroundColor: REFERENCE_THEME.surface,
     overflow: 'hidden',
-    shadowColor: '#4ADE80',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 2,
-    flexDirection: 'column',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 24 },
+    shadowOpacity: 0.6,
+    shadowRadius: 60,
+    elevation: 24,
   },
-  popupHeader: {
+  header: {
+    paddingTop: 15,
+    paddingHorizontal: 18,
+    paddingBottom: 13,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: REFERENCE_THEME.separator,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 20,
+    gap: 12,
   },
-  popupTitle: {
-    color: '#4ADE80',
+  headerTitle: {
+    minWidth: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+  },
+  headerText: {
+    color: REFERENCE_THEME.accentLight,
     fontFamily: 'NataSans-Bold',
-    fontSize: 15,
+    fontSize: 13,
+    lineHeight: 18,
+    letterSpacing: 0.3,
   },
-  popupCloseButton: {
-    width: 32,
-    height: 32,
+  closeButton: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: REFERENCE_THEME.controlStrong,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  popupContentScroll: {
-    flex: 1,
+  content: {
+    paddingTop: 18,
+    paddingHorizontal: 22,
+    paddingBottom: 32,
   },
-  popupContentContainer: {
-    paddingBottom: 20,
+  repoTitle: {
+    marginBottom: 14,
+    color: REFERENCE_THEME.text,
+    fontFamily: 'NataSans-Bold',
+    fontSize: 24,
+    lineHeight: 30,
+    letterSpacing: -0.5,
   },
-  popupReadmeText: {
-    color: '#FFFFFF',
-    fontFamily: 'NataSans-Regular',
-    fontSize: 13,
-    lineHeight: 20,
+  cursor: {
+    width: 6,
+    height: 12,
+    marginTop: 2,
+    marginLeft: 2,
+    borderRadius: 1,
+    backgroundColor: REFERENCE_THEME.accent,
+  },
+  pressed: {
+    opacity: 0.7,
+  },
+  markdownImage: {
+    width: '100%',
+    height: 200,
+    marginVertical: 8,
   },
 });
 
 const markdownStyles = {
   body: {
-    color: '#FFFFFF',
+    color: REFERENCE_THEME.textPrimary,
     fontFamily: 'NataSans-Regular',
-    fontSize: 13,
-    lineHeight: 20,
+    fontSize: 14,
+    lineHeight: 21.7,
+    letterSpacing: -0.1,
   },
   heading1: {
-    color: '#4ADE80',
+    color: REFERENCE_THEME.text,
     fontFamily: 'NataSans-Bold',
     fontSize: 20,
-    marginVertical: 10,
+    lineHeight: 26,
+    marginTop: 18,
+    marginBottom: 8,
   },
   heading2: {
-    color: '#4ADE80',
-    fontFamily: 'NataSans-Bold',
-    fontSize: 18,
-    marginVertical: 8,
+    color: REFERENCE_THEME.text,
+    fontFamily: 'NataSans-SemiBold',
+    fontSize: 16,
+    lineHeight: 22,
+    marginTop: 20,
+    marginBottom: 8,
   },
   heading3: {
-    color: '#4ADE80',
-    fontFamily: 'NataSans-Bold',
-    fontSize: 16,
-    marginVertical: 6,
+    color: REFERENCE_THEME.text,
+    fontFamily: 'NataSans-SemiBold',
+    fontSize: 14,
+    lineHeight: 20,
+    marginTop: 16,
+    marginBottom: 6,
+  },
+  paragraph: {
+    marginTop: 0,
+    marginBottom: 10,
   },
   link: {
-    color: '#3B82F6',
+    color: REFERENCE_THEME.accentLight,
     textDecorationLine: 'underline' as const,
   },
   code_inline: {
-    color: '#D1D5DB',
-    backgroundColor: '#1F2937',
+    color: '#E8E8ED',
+    backgroundColor: REFERENCE_THEME.background,
+    fontFamily: 'monospace',
+    fontSize: 11.5,
     paddingHorizontal: 4,
     paddingVertical: 2,
     borderRadius: 4,
-    fontFamily: 'Menlo',
   },
   code_block: {
-    color: '#D1D5DB',
-    backgroundColor: '#1F2937',
-    padding: 10,
-    borderRadius: 8,
-    fontFamily: 'Menlo',
+    color: '#E8E8ED',
+    backgroundColor: REFERENCE_THEME.background,
+    fontFamily: 'monospace',
+    fontSize: 11.5,
+    lineHeight: 17,
+    paddingVertical: 13,
+    paddingHorizontal: 15,
+    borderRadius: 12,
     marginVertical: 8,
   },
   fence: {
-    color: '#D1D5DB',
-    backgroundColor: '#1F2937',
-    padding: 10,
-    borderRadius: 8,
-    fontFamily: 'Menlo',
+    color: '#E8E8ED',
+    backgroundColor: REFERENCE_THEME.background,
+    fontFamily: 'monospace',
+    fontSize: 11.5,
+    lineHeight: 17,
+    paddingVertical: 13,
+    paddingHorizontal: 15,
+    borderRadius: 12,
     marginVertical: 8,
   },
-  bullet_list: {
-    marginVertical: 8,
-  },
-  ordered_list: {
-    marginVertical: 8,
-  },
-  list_item: {
-    marginBottom: 4,
-  },
+  bullet_list: { marginVertical: 8 },
+  ordered_list: { marginVertical: 8 },
+  list_item: { marginBottom: 4 },
 };
 
 const markdownRules = {
-  image: (node: any) => {
-    return (
-      <Image
-        key={node.key}
-        source={{ uri: node.attributes.src }}
-        style={{ width: '100%', height: 200, resizeMode: 'contain', marginVertical: 8 }}
-        accessible={!!node.attributes.alt}
-        accessibilityLabel={node.attributes.alt}
-      />
-    );
-  },
+  image: (node: any) => (
+    <Image
+      accessibilityLabel={node.attributes.alt}
+      accessible={Boolean(node.attributes.alt)}
+      key={node.key}
+      resizeMode="contain"
+      source={{ uri: node.attributes.src }}
+      style={styles.markdownImage}
+    />
+  ),
 };

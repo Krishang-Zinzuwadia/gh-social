@@ -30,7 +30,7 @@ function RootLayoutNav() {
       router.replace('/onboarding/create-profile');
     } else if (user && user.onboarding_completed && (inAuthGroup || inOnboardingGroup)) {
       // Redirect fully authenticated users away from auth/onboarding pages to main app
-      router.replace('/(tabs)/explore');
+      router.replace('/(tabs)/home');
     }
   }, [user, isLoading, segments]);
 

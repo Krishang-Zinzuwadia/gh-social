@@ -20,11 +20,11 @@ export default function ProfileTextArea({ value, onChangeText, ...rest }: Props)
         maxLength={60}
         textAlignVertical="top"
         placeholder="Tell us about yourself!"
-        placeholderTextColor="#666"
+        placeholderTextColor="rgba(235,235,245,0.3)"
         value={value}
         onChangeText={onChangeText}
-        className="bg-[#191F18]
- border border-[#8EFF7A]
+        className="bg-[#1C1C1E]
+ border border-[rgba(255,255,255,0.14)]
  rounded-xl
  h-[90px]
  px-5

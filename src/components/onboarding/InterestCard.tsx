@@ -20,10 +20,10 @@ export default function InterestCard({
       style={{
         width: "48.5%",
         minHeight: 78,
-        backgroundColor: "#181E18",
+        backgroundColor: "#1C1C1E",
         borderRadius: 14,
         borderWidth: 1,
-        borderColor: selected ? "#8EFF7A" : "#303030",
+        borderColor: selected ? "#63E08A" : "rgba(255,255,255,0.14)",
         flexDirection: "row",
         alignItems: "center",
         paddingHorizontal: 12,
@@ -36,7 +36,7 @@ export default function InterestCard({
           width: 38,
           height: 38,
           borderRadius: 12,
-          backgroundColor: "#2A332B",
+          backgroundColor: "#2C2C2E",
           justifyContent: "center",
           alignItems: "center",
           marginRight: 10,
@@ -49,7 +49,7 @@ export default function InterestCard({
         numberOfLines={2}
         style={{
           flex: 1,
-          color: selected ? "#F0F6EB" : "#D0D0D0",
+          color: selected ? "#FFFFFF" : "rgba(235,235,245,0.75)",
           fontSize: 14,
           fontWeight: "500",
         }}
@@ -60,7 +60,7 @@ export default function InterestCard({
       {selected && (
         <Text
           style={{
-            color: "#8EFF7A",
+            color: "#63E08A",
             fontSize: 22,
             fontWeight: "700",
           }}

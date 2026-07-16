@@ -16,8 +16,8 @@ export default function ProgressBar({
           key={index}
           className={`h-2 flex-1 rounded-full mx-1 ${
             index < step
-              ? "bg-[#8EFF7A]"
-              : "bg-[#5A5A5A]"
+              ? "bg-[#63E08A]"
+              : "bg-[rgba(118,118,128,0.24)]"
           }`}
         />
       ))}

@@ -5,10 +5,10 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        darkBg: '#0B0F0C',
-        accentPrimary: '#8EFF7A',
-        accentSecondary: '#66D95B',
-        glowColor: 'rgba(142,255,122,0.35)',
+        darkBg: '#000000',
+        accentPrimary: '#63E08A',
+        accentSecondary: '#63E08A',
+        glowColor: 'rgba(99,224,138,0.35)',
       },
       fontFamily: {
         sans: ['NataSans-Regular', 'System'],

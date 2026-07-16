@@ -11,10 +11,10 @@ export default function LoginInput({
   ...rest
 }: Props) {
   return (
-    <View className="h-[60px] border-2 border-[#8EFF7A] rounded-[12px] bg-[#191F18] px-5 justify-center">
+    <View className="h-[60px] border-2 border-[rgba(255,255,255,0.14)] rounded-[12px] bg-[#1C1C1E] px-5 justify-center">
       <TextInput
         placeholder={placeholder}
-        placeholderTextColor="#5F5F5F"
+        placeholderTextColor="rgba(235,235,245,0.3)"
         secureTextEntry={secureTextEntry}
         className="text-white text-[14px] font-nata outline-none w-full h-full"
         {...rest}

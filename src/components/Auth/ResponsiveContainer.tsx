@@ -6,7 +6,7 @@ import { View } from "react-native";
  */
 export default function ResponsiveContainer({ children }: { children: React.ReactNode }) {
   return (
-    <View className="flex-1 items-center bg-[#0A0C09]">
+    <View className="flex-1 items-center bg-[#000000]">
       <View
         style={{ width: "100%", maxWidth: 480 }}
         className="flex-1"

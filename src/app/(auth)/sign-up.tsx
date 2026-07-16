@@ -3,6 +3,7 @@ import { ScrollView, Text, View } from 'react-native';
 import { useOAuth } from '../../hooks/useOAuth';
 
 import AuthFooter from '@/components/Auth/AuthFooter';
+import BrandWord from '@/components/Auth/BrandWord';
 import { GithubIcon, GoogleIcon, MailIcon } from '@/components/Auth/icons';
 import LogoCircle from '@/components/Auth/LogoCircle';
 import OrDivider from '@/components/Auth/OrDivider';
@@ -13,7 +14,7 @@ export default function SignUpScreen() {
   const { signInWithProvider, isLoading: oauthLoading, error: oauthError } = useOAuth();
 
   return (
-    <View className="flex-1 bg-[#0A0C09]">
+    <View className="flex-1 bg-[#000000]">
       <ScrollView
         contentContainerStyle={{
           paddingBottom: 48,
@@ -31,9 +32,9 @@ export default function SignUpScreen() {
         <View className="mb-10 items-center">
           <Text className="text-white text-3xl leading-tight text-center font-nataBold">
             Join{' '}
-            <Text className="text-[#8EFF7A] font-nataBold">Weave</Text>
+            <BrandWord className="font-nataBold" />
           </Text>
-          <Text className="text-white/50 text-sm mt-2 text-center font-nata">
+          <Text className="text-[rgba(235,235,245,0.6)] text-sm mt-2 text-center font-nata">
             Connect. Collaborate. Work Together.
           </Text>
         </View>
@@ -41,7 +42,12 @@ export default function SignUpScreen() {
         <View className="gap-y-3">
           <SocialButton
             label={oauthLoading ? "Opening..." : "Continue with GitHub"}
-            icon={<GithubIcon size={20} color="#ffffff" />}
+            icon={
+              <GithubIcon
+                size={20}
+                color={oauthLoading ? "rgba(235,235,245,0.35)" : "#FFFFFF"}
+              />
+            }
             showChevron
             disabled={oauthLoading}
             onPress={() => signInWithProvider('github')}
@@ -55,14 +61,14 @@ export default function SignUpScreen() {
           />
           <SocialButton
             label="Continue with Email"
-            icon={<MailIcon size={20} color="#8EFF7A" />}
+            icon={<MailIcon size={20} color="#63E08A" />}
             showChevron
             onPress={() => router.push('/(auth)/sign-up-email')}
           />
         </View>
 
         {oauthError ? (
-          <Text className="text-[#E57373] text-[13px] font-nata mt-3 text-center">
+          <Text className="text-[#FF453A] text-[13px] font-nata mt-3 text-center">
             {oauthError}
           </Text>
         ) : null}
@@ -77,10 +83,10 @@ export default function SignUpScreen() {
           onPress={() => router.push('/(auth)/login')}
         />
 
-        <Text className="text-white/30 text-[16px] text-center mt-6 leading-6 font-nata">
+        <Text className="text-[rgba(235,235,245,0.3)] text-[16px] text-center mt-6 leading-6 font-nata">
           By signing up, you agree to our{'\n'}
-          <Text className="text-[#8EFF7A] font-nata">Terms of Service</Text>{' '}
-          and <Text className="text-[#8EFF7A] font-nata">Privacy Policy</Text>.
+          <Text className="text-[#63E08A] font-nata">Terms of Service</Text>{' '}
+          and <Text className="text-[#63E08A] font-nata">Privacy Policy</Text>.
         </Text>
         </View>
       </ScrollView>

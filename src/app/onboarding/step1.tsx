@@ -3,7 +3,6 @@ import { router } from "expo-router";
 import {
     ScrollView,
     Text,
-    TouchableOpacity,
     View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -46,7 +45,7 @@ export default function Step1() {
           {/* Step */}
         <Text
           style={{
-            color: "#F0F6EB",
+            color: "#FFFFFF",
             fontSize: 18,
             marginBottom: 12,
           }}
@@ -74,7 +73,7 @@ export default function Step1() {
         <View style={{ alignItems: "center" }}>
           <Text
             style={{
-              color: "#F0F6EB",
+              color: "#FFFFFF",
               fontSize: 40,
               fontWeight: "700",
               textAlign: "center",
@@ -85,7 +84,7 @@ export default function Step1() {
 
           <Text
             style={{
-              color: "#8EFF7A",
+              color: "#63E08A",
               fontSize: 38,
               fontWeight: "700",
               textAlign: "center",
@@ -97,7 +96,7 @@ export default function Step1() {
 
           <Text
             style={{
-              color: "#8A8A8A",
+              color: "rgba(235,235,245,0.6)",
               textAlign: "center",
               fontSize: 15,
               lineHeight: 22,
@@ -108,7 +107,7 @@ export default function Step1() {
 
           <Text
             style={{
-              color: "#8A8A8A",
+              color: "rgba(235,235,245,0.6)",
               textAlign: "center",
               fontSize: 15,
               lineHeight: 22,
@@ -121,7 +120,7 @@ export default function Step1() {
         {/* Section Title */}
         <Text
           style={{
-            color: "#8A8A8A",
+            color: "rgba(235,235,245,0.6)",
             fontSize: 13,
             letterSpacing: 1,
             marginTop: 28,
@@ -145,7 +144,7 @@ export default function Step1() {
         </View>
 
         {selectedCategories.length < 2 && (
-          <Text style={{ color: "#E57373", fontSize: 14, marginTop: 16, textAlign: "center" }}>
+          <Text style={{ color: "#FF453A", fontSize: 14, marginTop: 16, textAlign: "center" }}>
             Select at least 2 categories.
           </Text>
         )}

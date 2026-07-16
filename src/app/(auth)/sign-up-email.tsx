@@ -13,6 +13,7 @@ import { useOAuth } from "../../hooks/useOAuth";
 
 import AuthFooter from "@/components/Auth/AuthFooter";
 import AuthInput from "@/components/Auth/AuthInput";
+import BrandWord from "@/components/Auth/BrandWord";
 import EmailTab from "@/components/Auth/EmailTab";
 import { GithubIcon, GoogleIcon } from "@/components/Auth/icons";
 import LogoCircle from "@/components/Auth/LogoCircle";
@@ -75,7 +76,7 @@ export default function SignUpEmail() {
     >
       <ScrollView
         ref={scrollViewRef}
-        className="flex-1 bg-[#0A0C09]"
+        className="flex-1 bg-[#000000]"
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 40, flexGrow: 1, justifyContent: 'center' }}
         keyboardShouldPersistTaps="handled"
@@ -91,11 +92,9 @@ export default function SignUpEmail() {
               Join
             </Text>
 
-            <Text className="font-nataBold text-[#8EFF7A] text-[28px] text-center">
-              Weave
-            </Text>
+            <BrandWord className="font-nataBold text-[28px] text-center" />
 
-            <Text className="font-nata text-[#8A8A8A] text-center mt-4 text-[13px] leading-5">
+            <Text className="font-nata text-[rgba(235,235,245,0.6)] text-center mt-4 text-[13px] leading-5">
               Join repositories and connect{"\n"}
               with developers around the world.
             </Text>
@@ -104,7 +103,11 @@ export default function SignUpEmail() {
           <View className="mt-10 gap-y-5">
               <SocialButton
                   label={oauthLoading ? "Opening..." : "Continue with GitHub"}
-                  icon={<GithubIcon />}
+                  icon={
+                    <GithubIcon
+                      color={oauthLoading ? "rgba(235,235,245,0.35)" : "#FFFFFF"}
+                    />
+                  }
                   showChevron
                   disabled={oauthLoading}
                   onPress={() => signInWithProvider('github')}
@@ -120,7 +123,7 @@ export default function SignUpEmail() {
           </View>
 
           {oauthError ? (
-            <Text className="text-[#E57373] text-[13px] font-nata mt-3 text-center">
+            <Text className="text-[#FF453A] text-[13px] font-nata mt-3 text-center">
               {oauthError}
             </Text>
           ) : null}
@@ -153,7 +156,7 @@ export default function SignUpEmail() {
               keyboardType="email-address"
             />
             {email.trim().length > 0 && !isEmailValid && (
-              <Text className="text-[#E57373] text-[13px] font-nata mt-1 ml-1">
+              <Text className="text-[#FF453A] text-[13px] font-nata mt-1 ml-1">
                 Please enter a valid email address.
               </Text>
             )}
@@ -170,17 +173,16 @@ export default function SignUpEmail() {
             <PasswordRules password={password} />
 
             {errorMsg ? (
-              <Text className="text-[#E57373] text-[13px] font-nata mt-2 text-center">
+              <Text className="text-[#FF453A] text-[13px] font-nata mt-2 text-center">
                 {errorMsg}
               </Text>
             ) : null}
 
             <View className="mt-10">
               <PrimaryButton
-                  label={isLoading ? "Creating..." : "Create Account"}
-                  onPress={handleRegister}
-                  style={{ opacity: isFormValid ? 1 : 0.5 }}
-                  disabled={!isFormValid}
+                label={isLoading ? "Creating..." : "Create Account"}
+                onPress={handleRegister}
+                disabled={!isFormValid}
               />
             </View>
 

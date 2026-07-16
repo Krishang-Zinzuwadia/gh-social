@@ -64,13 +64,43 @@ export const Spacing = {
 export const BottomTabInset = Platform.select({ ios: 50, android: 80 }) ?? 0;
 export const MaxContentWidth = 800;
 
+/**
+ * Visual tokens taken directly from the bundled GH Social Reels reference.
+ * Keep feature-specific semantic colours (stars, errors, success) separate
+ * from the configurable green accent used by the reference prototype.
+ */
+export const REFERENCE_THEME = {
+  background: '#000000',
+  canvas: '#0A0A0C',
+  surface: '#1C1C1E',
+  surfaceElevated: '#2C2C2E',
+  accent: '#30D158',
+  accentDark: '#23963F',
+  accentLight: '#87E49E',
+  text: '#FFFFFF',
+  textStrong: 'rgba(235,235,245,0.85)',
+  textPrimary: 'rgba(235,235,245,0.75)',
+  textSecondary: 'rgba(235,235,245,0.60)',
+  textTertiary: 'rgba(235,235,245,0.45)',
+  textDisabled: 'rgba(235,235,245,0.35)',
+  control: 'rgba(118,118,128,0.18)',
+  controlStrong: 'rgba(118,118,128,0.24)',
+  separator: 'rgba(255,255,255,0.07)',
+  border: 'rgba(255,255,255,0.12)',
+  inactive: '#7C7C82',
+  star: '#FFD60A',
+  danger: '#FF453A',
+  heart: '#FF375F',
+  success: '#30D158',
+} as const;
+
 export const APP_THEME = {
-  background: '#0A0C09',
-  activeAccent: '#8EFF7A',
-  inactiveAccent: '#FFFFFF',
-  borderDark: '#242524',
-  tabBarBackground: '#0A0C09',
-  tabBarBorder: '#0A0C09',
+  background: REFERENCE_THEME.background,
+  activeAccent: REFERENCE_THEME.text,
+  inactiveAccent: REFERENCE_THEME.inactive,
+  borderDark: REFERENCE_THEME.separator,
+  tabBarBackground: 'rgba(10,10,12,0.85)',
+  tabBarBorder: 'rgba(255,255,255,0.10)',
 } as const;
 
 

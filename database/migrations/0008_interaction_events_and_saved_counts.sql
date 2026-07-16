@@ -10,6 +10,8 @@ CREATE TABLE IF NOT EXISTS public.interaction_events (
     CHECK (dwell_seconds IS NULL OR dwell_seconds >= 0)
 );
 
+ALTER TABLE public.interaction_events ENABLE ROW LEVEL SECURITY;
+
 CREATE INDEX IF NOT EXISTS interaction_events_user_created_idx
   ON public.interaction_events (user_id, created_at);
 

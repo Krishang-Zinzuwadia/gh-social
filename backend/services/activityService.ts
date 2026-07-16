@@ -53,7 +53,11 @@ async function upsertActivityState(userId: string, event: BatchedActivityEvent) 
   }
 
   const dwell = event.dwell_seconds ? `${event.dwell_seconds} seconds` : '0 seconds';
-  const isLike = event.action === 'like' ? 1 : 0;
+  const likelihoodCount = event.action === 'like'
+    ? 1
+    : event.action === 'dislike'
+      ? -1
+      : 0;
   const isSave = event.action === 'save';
 
   const updated = await db.execute(sql`
@@ -62,7 +66,7 @@ async function upsertActivityState(userId: string, event: BatchedActivityEvent) 
       ${userId}::uuid,
       repo.repo_id,
       ${dwell}::interval,
-      ${isLike},
+      ${likelihoodCount},
       ${isSave}
     FROM repo
     WHERE repo.full_name = ${event.repo_id} OR repo.repo_id::text = ${event.repo_id}

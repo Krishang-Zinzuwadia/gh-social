@@ -48,6 +48,75 @@ export class FeedService {
     }
   }
 
+  private async replaceQueueIfVersionMatches(
+    userId: string,
+    serializedRecommendations: string[],
+    expectedVersion?: number,
+  ): Promise<boolean> {
+    const script = `
+      if ARGV[1] ~= '' then
+        local current_version = redis.call('get', KEYS[1]) or '0'
+        if current_version ~= ARGV[1] then
+          return 0
+        end
+      end
+
+      redis.call('del', KEYS[2])
+      if #ARGV == 2 then
+        redis.call('set', KEYS[2], '__empty__', 'EX', ARGV[2])
+      else
+        for i = 3, #ARGV do
+          redis.call('rpush', KEYS[2], ARGV[i])
+        end
+        redis.call('expire', KEYS[2], ARGV[2])
+      end
+      return 1
+    `;
+
+    const result = await redisClient.eval(
+      script,
+      2,
+      this.getVersionKey(userId),
+      this.getQueueKey(userId),
+      expectedVersion?.toString() ?? '',
+      this.SESSION_TTL.toString(),
+      ...serializedRecommendations,
+    );
+    return Number(result) === 1;
+  }
+
+  private async appendQueueIfVersionMatches(
+    userId: string,
+    serializedRecommendations: string[],
+    expectedVersion?: number,
+  ): Promise<boolean> {
+    const script = `
+      if ARGV[1] ~= '' then
+        local current_version = redis.call('get', KEYS[1]) or '0'
+        if current_version ~= ARGV[1] then
+          return 0
+        end
+      end
+
+      for i = 3, #ARGV do
+        redis.call('rpush', KEYS[2], ARGV[i])
+      end
+      redis.call('expire', KEYS[2], ARGV[2])
+      return 1
+    `;
+
+    const result = await redisClient.eval(
+      script,
+      2,
+      this.getVersionKey(userId),
+      this.getQueueKey(userId),
+      expectedVersion?.toString() ?? '',
+      this.SESSION_TTL.toString(),
+      ...serializedRecommendations,
+    );
+    return Number(result) === 1;
+  }
+
   private flattenRecommendationBatches(batches: MlRecommendationBatches): unknown[] {
     return Object.keys(batches)
       .filter((key) => key.startsWith('batch_'))
@@ -106,34 +175,27 @@ export class FeedService {
    * allowing request paths to retry against the latest feed version.
    */
   async processAndCacheBatch(userId: string, recommendations: any[], expectedVersion?: number): Promise<boolean> {
-    const queueKey = this.getQueueKey(userId);
-
     try {
-      if (expectedVersion !== undefined) {
-        const currentVersion = await this.getFeedVersion(userId);
-        if (currentVersion !== expectedVersion) {
+      if (recommendations.length === 0) {
+        const cached = await this.replaceQueueIfVersionMatches(userId, [], expectedVersion);
+        if (!cached) {
           await this.recordMetric('stale_drop');
           console.log(`[FeedService] Dropped stale feed batch for User: ${userId}`);
-          return false;
         }
-      }
-
-      if (recommendations.length === 0) {
-        await redisClient.set(queueKey, '__empty__', 'EX', this.SESSION_TTL);
-        return true;
+        return cached;
       }
 
       const enriched = await this.enrichRecommendations(recommendations);
-      const pipeline = redisClient.pipeline();
-
-      pipeline.del(queueKey);
-
-      for (const post of enriched) {
-        pipeline.rpush(queueKey, JSON.stringify(post));
+      const cached = await this.replaceQueueIfVersionMatches(
+        userId,
+        enriched.map((post) => JSON.stringify(post)),
+        expectedVersion,
+      );
+      if (!cached) {
+        await this.recordMetric('stale_drop');
+        console.log(`[FeedService] Dropped stale feed batch for User: ${userId}`);
+        return false;
       }
-
-      pipeline.expire(queueKey, this.SESSION_TTL);
-      await pipeline.exec();
 
       await this.recordMetric('cache_populate');
       console.log(`[FeedService] Cached ${enriched.length} ML recommendations for User: ${userId}`);
@@ -145,29 +207,21 @@ export class FeedService {
   }
 
   async appendBatch(userId: string, recommendations: any[], expectedVersion?: number): Promise<void> {
-    const queueKey = this.getQueueKey(userId);
-
     try {
       if (recommendations.length === 0) return;
 
-      if (expectedVersion !== undefined) {
-        const currentVersion = await this.getFeedVersion(userId);
-        if (currentVersion !== expectedVersion) {
-          await this.recordMetric('stale_drop');
-          console.log(`[FeedService] Dropped stale replenishment batch for User: ${userId}`);
-          return;
-        }
-      }
-
       const enriched = await this.enrichRecommendations(recommendations);
-      const pipeline = redisClient.pipeline();
-
-      for (const post of enriched) {
-        pipeline.rpush(queueKey, JSON.stringify(post));
+      const appended = await this.appendQueueIfVersionMatches(
+        userId,
+        enriched.map((post) => JSON.stringify(post)),
+        expectedVersion,
+      );
+      if (!appended) {
+        await this.recordMetric('stale_drop');
+        console.log(`[FeedService] Dropped stale replenishment batch for User: ${userId}`);
+        return;
       }
-      pipeline.expire(queueKey, this.SESSION_TTL);
 
-      await pipeline.exec();
       await this.recordMetric('cache_append');
       console.log(`[FeedService] Appended ${enriched.length} ML recommendations for User: ${userId}`);
     } catch (error) {

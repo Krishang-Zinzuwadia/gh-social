@@ -4,7 +4,8 @@ import test from 'node:test';
 import type { CreateServeInput, RepositoryProjection, StoredServe } from '../../contracts/feed.v2.js';
 import type { FeedPersistencePort } from '../../ports/feedPersistencePort.js';
 import type { FeedQueuePort, FeedReservation } from '../../redis/feedQueue.js';
-import { FeedV2Service } from '../../services/feedV2Service.js';
+import { ReservationOwnedError } from '../../redis/feedQueue.js';
+import { FeedRequestInProgressError, FeedV2Service } from '../../services/feedV2Service.js';
 
 const repo: RepositoryProjection = {
   repo_id: '00000000-0000-4000-8000-000000000001', full_name: 'owner/repo', description: null,
@@ -14,10 +15,15 @@ const repo: RepositoryProjection = {
 
 class FakePersistence implements FeedPersistencePort {
   serve: StoredServe | null = null;
+  missesBeforeServe = 0;
+  fallbackCalls = 0;
   async getFeedVersion() { return 3n; }
-  async getServeByRequest() { return this.serve; }
+  async getServeByRequest() {
+    if (this.missesBeforeServe > 0) { this.missesBeforeServe--; return null; }
+    return this.serve;
+  }
   async listActiveRepositories() { return [repo]; }
-  async getTrendingFallback() { return [repo]; }
+  async getTrendingFallback() { this.fallbackCalls++; return [repo]; }
   async createServe(input: CreateServeInput) {
     this.serve = {
       ...input, serve_id: '00000000-0000-4000-8000-000000000099', created_at: new Date(0).toISOString(),
@@ -69,6 +75,50 @@ test('v2 feed persists trending fallback when Redis is unavailable', async () =>
   assert.equal(response.source, 'fallback');
   assert.equal(response.items[0].repo_id, repo.repo_id);
   assert.equal(queue.committed, 0);
+});
+
+test('reservation ownership waits for and replays the durable serve', async () => {
+  const persistence = new FakePersistence();
+  const queue = new FakeQueue();
+  persistence.serve = {
+    feed_request_id: '00000000-0000-4000-8000-000000000013',
+    user_id: '00000000-0000-4000-8000-000000000030',
+    session_id: '00000000-0000-4000-8000-000000000020',
+    feed_version: 3n,
+    generation_id: null,
+    source: 'personalized',
+    model_version: 'm1',
+    items: [{ repo_id: repo.repo_id, score: 1, source: 'semantic', model_version: 'm1', summary_id: null,
+      position: 0, repository: repo }],
+    serve_id: '00000000-0000-4000-8000-000000000099',
+    created_at: new Date(0).toISOString(),
+  };
+  persistence.missesBeforeServe = 1;
+  queue.reserve = async () => { throw new ReservationOwnedError(); };
+
+  const response = await new FeedV2Service(persistence, queue, undefined, true, 10, 0).getFeed(
+    persistence.serve.user_id,
+    { feed_request_id: persistence.serve.feed_request_id, session_id: persistence.serve.session_id, limit: 10, cursor: null },
+  );
+  assert.equal(response.serve_id, persistence.serve.serve_id);
+  assert.equal(persistence.fallbackCalls, 0);
+});
+
+test('reservation ownership never falls back or creates a competing serve', async () => {
+  const persistence = new FakePersistence();
+  const queue = new FakeQueue();
+  queue.reserve = async () => { throw new ReservationOwnedError(); };
+  await assert.rejects(
+    new FeedV2Service(persistence, queue, undefined, true, 1, 0).getFeed(
+      '00000000-0000-4000-8000-000000000030',
+      { feed_request_id: '00000000-0000-4000-8000-000000000014',
+        session_id: '00000000-0000-4000-8000-000000000020', limit: 10, cursor: null },
+    ),
+    FeedRequestInProgressError,
+  );
+  assert.equal(persistence.fallbackCalls, 0);
+  assert.equal(queue.committed, 0);
+  assert.equal(queue.released, 0);
 });
 
 test('feed replay cache-hit service p95 stays below 250ms', async () => {

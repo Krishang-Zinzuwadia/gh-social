@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { Redis } from 'ioredis';
 
-import { RedisFeedQueue } from '../../redis/feedQueue.js';
+import { RedisFeedQueue, ReservationOwnedError } from '../../redis/feedQueue.js';
 
 const integration = process.env.RUN_REDIS_INTEGRATION === '1' ? test : test.skip;
 
@@ -21,6 +21,10 @@ integration('reservation recovery survives client restart before commit', async 
   await queue.replace(userId, 1n, entries, 60);
   const reservation = await queue.reserve(userId, 1n, requestId, 2, token);
   assert.deepEqual(reservation.items.map((item) => item.repo_id), entries.slice(0, 2).map((item) => item.repo_id));
+  await assert.rejects(
+    queue.reserve(userId, 1n, requestId, 2, '00000000-0000-4000-8000-000000000014'),
+    ReservationOwnedError,
+  );
   first.disconnect();
 
   const restarted = new Redis(url, { maxRetriesPerRequest: 1 });

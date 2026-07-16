@@ -14,6 +14,13 @@ export interface FeedReservation {
   items: RecommendationEntry[];
 }
 
+export class ReservationOwnedError extends Error {
+  constructor() {
+    super('Feed request already has an active reservation.');
+    this.name = 'ReservationOwnedError';
+  }
+}
+
 export interface FeedQueuePort {
   reserve(userId: string, version: bigint, requestId: string, limit: number, token: string): Promise<FeedReservation>;
   commit(userId: string, version: bigint, requestId: string, token: string): Promise<boolean>;
@@ -22,7 +29,7 @@ export interface FeedQueuePort {
   depth(userId: string, version: bigint): Promise<number>;
   acquireGenerationLock(userId: string, version: bigint, token: string, ttlMs: number): Promise<boolean>;
   releaseGenerationLock(userId: string, version: bigint, token: string): Promise<void>;
-  scanReservations(): Promise<Array<{ userId: string; version: bigint; requestId: string; token: string }>>;
+  scanReservations(): Promise<Array<{ userId: string; version: bigint; requestId: string; token: string; ttlMs: number }>>;
   deleteStaleVersions(userId: string, keepVersion: bigint): Promise<number>;
 }
 
@@ -44,12 +51,20 @@ export class RedisFeedQueue implements FeedQueuePort {
 
   async reserve(userId: string, version: bigint, requestId: string, limit: number, token: string): Promise<FeedReservation> {
     const [meta, items] = this.reservationKeys(userId, version, requestId);
-    const result = await this.redis.eval(
-      RESERVE_FEED_LUA,
-      3,
-      this.queueKey(userId, version), meta, items,
-      token, requestId, String(limit), String(this.reservationTtlMs),
-    ) as string[];
+    let result: string[];
+    try {
+      result = await this.redis.eval(
+        RESERVE_FEED_LUA,
+        3,
+        this.queueKey(userId, version), meta, items,
+        token, requestId, String(limit), String(this.reservationTtlMs),
+      ) as string[];
+    } catch (error) {
+      if (error instanceof Error && error.message.includes('RESERVATION_OWNED')) {
+        throw new ReservationOwnedError();
+      }
+      throw error;
+    }
     return { token, requestId, items: result.map((item) => JSON.parse(item) as RecommendationEntry) };
   }
 
@@ -85,17 +100,19 @@ export class RedisFeedQueue implements FeedQueuePort {
     await this.redis.eval(RELEASE_LOCK_LUA, 1, this.lockKey(userId, version), token);
   }
 
-  async scanReservations(): Promise<Array<{ userId: string; version: bigint; requestId: string; token: string }>> {
+  async scanReservations(): Promise<Array<{ userId: string; version: bigint; requestId: string; token: string; ttlMs: number }>> {
     let cursor = '0';
-    const reservations: Array<{ userId: string; version: bigint; requestId: string; token: string }> = [];
+    const reservations: Array<{ userId: string; version: bigint; requestId: string; token: string; ttlMs: number }> = [];
     do {
       const [next, keys] = await this.redis.scan(cursor, 'MATCH', 'feed:v2:reservation:*:meta', 'COUNT', 100);
       cursor = next;
       for (const key of keys) {
         const match = /^feed:v2:reservation:([^:]+):(\d+):([^:]+):meta$/.exec(key);
         if (!match) continue;
-        const token = await this.redis.hget(key, 'token');
-        if (token) reservations.push({ userId: match[1], version: BigInt(match[2]), requestId: match[3], token });
+        const [token, ttlMs] = await Promise.all([this.redis.hget(key, 'token'), this.redis.pttl(key)]);
+        if (token && ttlMs >= 0) reservations.push({
+          userId: match[1], version: BigInt(match[2]), requestId: match[3], token, ttlMs,
+        });
       }
     } while (cursor !== '0');
     return reservations;

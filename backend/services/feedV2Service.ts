@@ -3,7 +3,15 @@ import crypto from 'node:crypto';
 import type { FeedRequestV2, FeedResponseV2, FeedSource, RecommendationEntry } from '../contracts/feed.v2.js';
 import type { FeedPersistencePort } from '../ports/feedPersistencePort.js';
 import type { FeedQueuePort } from '../redis/feedQueue.js';
+import { ReservationOwnedError } from '../redis/feedQueue.js';
 import { incrementMetric } from '../observability/metrics.js';
+
+export class FeedRequestInProgressError extends Error {
+  constructor() {
+    super('A feed request with this id is still being prepared.');
+    this.name = 'FeedRequestInProgressError';
+  }
+}
 
 function responseFromServe(serve: Awaited<ReturnType<FeedPersistencePort['createServe']>>): FeedResponseV2 {
   return {
@@ -23,7 +31,23 @@ export class FeedV2Service {
     private readonly queue: FeedQueuePort,
     private readonly generateOnMiss?: (userId: string, limit: number, excludeRepoIds: string[]) => Promise<unknown>,
     private readonly fallbackEnabled = true,
+    private readonly reservationWaitMs = 1_500,
+    private readonly reservationPollMs = 25,
   ) {}
+
+  private async waitForServe(userId: string, requestId: string): Promise<FeedResponseV2> {
+    const deadline = Date.now() + this.reservationWaitMs;
+    do {
+      const replay = await this.persistence.getServeByRequest(userId, requestId);
+      if (replay) {
+        incrementMetric('feed_v2_duplicate_requests_total');
+        return responseFromServe(replay);
+      }
+      if (Date.now() >= deadline) break;
+      await new Promise((resolve) => setTimeout(resolve, this.reservationPollMs));
+    } while (true);
+    throw new FeedRequestInProgressError();
+  }
 
   async getFeed(userId: string, request: FeedRequestV2): Promise<FeedResponseV2> {
     const replay = await this.persistence.getServeByRequest(userId, request.feed_request_id);
@@ -41,6 +65,9 @@ export class FeedV2Service {
         userId, version, request.feed_request_id, request.limit, token,
       );
     } catch (error) {
+      if (error instanceof ReservationOwnedError) {
+        return this.waitForServe(userId, request.feed_request_id);
+      }
       queueAvailable = false;
       reservation = { token, requestId: request.feed_request_id, items: [] };
       incrementMetric('feed_v2_redis_failures_total');
@@ -55,6 +82,9 @@ export class FeedV2Service {
           userId, version, request.feed_request_id, request.limit, token,
         );
       } catch (error) {
+        if (error instanceof ReservationOwnedError) {
+          return this.waitForServe(userId, request.feed_request_id);
+        }
         console.error('[FeedV2Service] Generation failed; evaluating fallback:', error);
         reservation = { token, requestId: request.feed_request_id, items: [] };
       }

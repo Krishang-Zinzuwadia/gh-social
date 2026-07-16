@@ -4,10 +4,16 @@ import { Text, View } from "react-native";
 function Rule({ text, met }: { text: string; met: boolean }) {
   return (
     <View className="flex-row items-center mt-2">
-      <View className={`w-3 h-3 rounded-full border border-[#8EFF7A] justify-center items-center ${met ? 'bg-[#8EFF7A]' : ''}`} />
+      <View
+        className={`w-3 h-3 rounded-full border justify-center items-center ${
+          met
+            ? "border-[#63E08A] bg-[#63E08A]"
+            : "border-[rgba(255,255,255,0.14)] bg-transparent"
+        }`}
+      />
 
       <Text
-        className="text-[#9B9B9B] ml-3 text-[12px] font-nata"
+        className="text-[rgba(235,235,245,0.6)] ml-3 text-[12px] font-nata"
       >
         {text}
       </Text>

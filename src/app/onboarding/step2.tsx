@@ -23,13 +23,7 @@ export default function Step2() {
   const { categories } = useLocalSearchParams();
   const { updateData } = useOnboarding();
   
-  const [selectedTechs, setSelectedTechs] = useState<string[]>([
-    "React",
-    "MongoDB",
-    "Node.js",
-    "Tailwind CSS",
-    "PostgreSQL",
-  ]);
+  const [selectedTechs, setSelectedTechs] = useState<string[]>([]);
   const [customTechs, setCustomTechs] = useState<string[]>([]);
   const [inputText, setInputText] = useState("");
 
@@ -58,6 +52,8 @@ export default function Step2() {
   };
 
   const handleContinue = () => {
+    if (selectedTechs.length === 0) return;
+
     updateData({ tech_stack: selectedTechs });
     router.push({
       pathname: "/onboarding/step3",
@@ -83,7 +79,7 @@ export default function Step2() {
           {/* Step */}
         <Text
           style={{
-            color: "#F0F6EB",
+            color: "#FFFFFF",
             fontSize: 18,
             marginBottom: 12,
           }}
@@ -108,7 +104,7 @@ export default function Step2() {
         <View style={{ alignItems: "center" }}>
           <Text
             style={{
-              color: "#F0F6EB",
+              color: "#FFFFFF",
               fontSize: 40,
               fontWeight: "700",
               textAlign: "center",
@@ -119,7 +115,7 @@ export default function Step2() {
 
           <Text
             style={{
-              color: "#8EFF7A",
+              color: "#63E08A",
               fontSize: 40,
               fontWeight: "700",
               textAlign: "center",
@@ -130,7 +126,7 @@ export default function Step2() {
 
           <Text
             style={{
-              color: "#8A8A8A",
+              color: "rgba(235,235,245,0.6)",
               textAlign: "center",
               fontSize: 15,
               marginTop: 8,
@@ -141,7 +137,7 @@ export default function Step2() {
 
           <Text
             style={{
-              color: "#8A8A8A",
+              color: "rgba(235,235,245,0.6)",
               textAlign: "center",
               fontSize: 15,
             }}
@@ -156,9 +152,9 @@ export default function Step2() {
             marginTop: 16,
             flexDirection: "row",
             alignItems: "center",
-            backgroundColor: "#151515",
+            backgroundColor: "#1C1C1E",
             borderWidth: 1,
-            borderColor: "#6DA963",
+            borderColor: "rgba(255,255,255,0.14)",
             borderRadius: 12,
             paddingHorizontal: 14,
           }}
@@ -168,7 +164,7 @@ export default function Step2() {
             onChangeText={setInputText}
             onSubmitEditing={handleAddTech}
             placeholder="Add your own tech stack"
-            placeholderTextColor="#777"
+            placeholderTextColor="rgba(235,235,245,0.3)"
             style={{
               flex: 1,
               paddingVertical: 14,
@@ -177,7 +173,7 @@ export default function Step2() {
             }}
           />
           <TouchableOpacity onPress={handleAddTech} style={{ padding: 8 }}>
-            <Text style={{ color: "#6DA963", fontSize: 24, fontWeight: "500" }}>
+            <Text style={{ color: "#63E08A", fontSize: 24, fontWeight: "500" }}>
               +
             </Text>
           </TouchableOpacity>
@@ -188,7 +184,7 @@ export default function Step2() {
           <>
             <Text
               style={{
-                color: "#AAAAAA",
+                color: "rgba(235,235,245,0.6)",
                 fontSize: 16,
                 marginTop: 16,
                 marginBottom: 10,
@@ -216,7 +212,7 @@ export default function Step2() {
           <>
             <Text
               style={{
-                color: "#AAAAAA",
+                color: "rgba(235,235,245,0.6)",
                 fontSize: 16,
                 marginTop: 10,
                 marginBottom: 10,
@@ -239,10 +235,17 @@ export default function Step2() {
           </>
         )}
 
-        <View style={{ marginTop: 16 }}>
+        {selectedTechs.length === 0 ? (
+          <Text style={{ color: "#FF453A", fontSize: 14, marginTop: 8, textAlign: "center" }}>
+            Select at least 1 technology.
+          </Text>
+        ) : null}
+
+        <View style={{ marginTop: selectedTechs.length === 0 ? 8 : 16 }}>
           <PrimaryButton
             title="Continue"
             onPress={handleContinue}
+            disabled={selectedTechs.length === 0}
           />
         </View>
 

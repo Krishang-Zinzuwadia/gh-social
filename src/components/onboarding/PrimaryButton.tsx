@@ -18,20 +18,19 @@ export default function PrimaryButton({
     <TouchableOpacity
       onPress={onPress}
       disabled={disabled}
-      style={{ opacity: disabled ? 0.5 : 1 }}
       className="
-        bg-[#449138]
         rounded-[18px]
         py-4
         items-center
       "
+      style={{ backgroundColor: disabled ? "#1C1C1E" : "#63E08A" }}
     >
       <Text
-  className="text-lg font-bold"
-  style={{
-    color: "#F0F6EB",
-  }}
-    >
+        className="text-lg font-bold"
+        style={{
+          color: disabled ? "rgba(235,235,245,0.35)" : "#FFFFFF",
+        }}
+      >
         {title}
       </Text>
     </TouchableOpacity>

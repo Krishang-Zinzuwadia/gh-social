@@ -1,6 +1,7 @@
 import { db } from '../db/index.js';
-import { users, follows } from '../db/schema.js';
+import { users, follows, activities, repos } from '../db/schema.js';
 import { eq, desc, and } from 'drizzle-orm';
+import { alias } from 'drizzle-orm/pg-core';
 import type { UserProfile, UserUpdate } from '../types/database.js';
 import type { OnboardingStatusResponse, OnboardingStepStatus } from '../types/onboarding.js';
 
@@ -93,21 +94,21 @@ function buildOnboardingStatus(profile: UserProfile): OnboardingStatusResponse {
 export async function getUserProfile(userId: string) {
   try {
     const [data] = await db.select(ONBOARDING_EVALUATION_COLUMNS).from(users).where(eq(users.user_id, userId)).limit(1);
-    
+
     if (!data) {
       // If user is not found in public.users, it means they are a new OAuth user
       // Return a default incomplete status to force them through onboarding
-      return { 
+      return {
         data: {
           isComplete: false,
           steps: { profile: false, github: false, interests: false, skills: false, tech_stack: false },
           missingFields: ['username', 'full_name', 'interests', 'skills', 'tech_stack'],
           profile: null
-        }, 
-        error: null 
+        },
+        error: null
       };
     }
-    
+
     return { data: buildOnboardingStatus(data as unknown as UserProfile), error: null };
   } catch (error) { return { data: null as any, error: error as any }; }
 }
@@ -142,6 +143,74 @@ export async function unfollowUser(followerId: string, followingId: string) {
   } catch (error) { return { data: null, error: error as any, count: 0 }; }
 }
 
+export async function getUserConnections(username: string, type: 'followers' | 'following') {
+  try {
+    const [owner] = await db.select({ user_id: users.user_id }).from(users).where(eq(users.username, username)).limit(1);
+    if (!owner) throw { code: 'PGRST116', message: 'Not found' };
+
+    const connectedUser = alias(users, 'connected_user');
+    const columns = {
+      username: connectedUser.username,
+      full_name: connectedUser.full_name,
+      bio: connectedUser.bio,
+      avatar_url: connectedUser.avatar_url,
+      followers_count: connectedUser.followers_count,
+      following_count: connectedUser.following_count,
+    };
+
+    const data = type === 'followers'
+      ? await db.select(columns).from(follows)
+          .innerJoin(connectedUser, eq(connectedUser.user_id, follows.follower_id))
+          .where(eq(follows.following_id, owner.user_id))
+      : await db.select(columns).from(follows)
+          .innerJoin(connectedUser, eq(connectedUser.user_id, follows.following_id))
+          .where(eq(follows.follower_id, owner.user_id));
+
+    return { data, error: null };
+  } catch (error) {
+    return { data: null as any, error: error as any };
+  }
+}
+
+export async function getUserLikedRepositories(username: string) {
+  try {
+    const [owner] = await db
+      .select({ user_id: users.user_id })
+      .from(users)
+      .where(eq(users.username, username))
+      .limit(1);
+
+    if (!owner) throw { code: 'PGRST116', message: 'Not found' };
+
+    const data = await db
+      .select({
+        repo_id: repos.repo_id,
+        github_repo_url: repos.github_repo_url,
+        owner_id: repos.owner_id,
+        repo_name: repos.repo_name,
+        full_name: repos.full_name,
+        description: repos.description,
+        language_used: repos.language_used,
+        topics: repos.topics,
+        likes_count: repos.likes_count,
+        star_count: repos.star_count,
+        forks_count: repos.forks_count,
+        updated_at: repos.updated_at,
+      })
+      .from(activities)
+      .innerJoin(repos, eq(repos.repo_id, activities.repo_id))
+      .where(and(
+        eq(activities.user_id, owner.user_id),
+        eq(activities.likelihood_count, 1),
+      ))
+      .orderBy(desc(repos.updated_at));
+
+    return { data, error: null };
+  } catch (error) {
+    return { data: null as any, error: error as any };
+  }
+}
+
 export async function getAllUsers() {
   try {
     const data = await db.select(USER_PROFILE_COLUMNS).from(users).orderBy(desc(users.created_at));
@@ -172,7 +241,7 @@ export async function upsertUserProfile(userId: string, updates: UserUpdate) {
       .values({ user_id: userId, ...(updates as any) })
       .onConflictDoUpdate({ target: users.user_id, set: updates })
       .returning(USER_PROFILE_COLUMNS);
-      
+
     if (!upsertedRow) throw { code: 'PGRST116', message: 'Upsert failed' };
     return { data: upsertedRow, error: null };
   } catch (error) { return { data: null as any, error: error as any }; }

@@ -6,6 +6,9 @@ import {
   updateProfile,
   followUser,
   unfollowUser,
+  getFollowers,
+  getFollowing,
+  getLikesGiven,
 } from '../controllers/userController.js';
 import { requireAuth } from '../middlewares/authMiddleware.js';
 
@@ -19,6 +22,10 @@ router.get('/id/:userId', getUserById);
 
 // PATCH /api/users/me - Update current user's profile
 router.patch('/me', requireAuth, updateProfile);
+
+router.get('/:username/followers', getFollowers);
+router.get('/:username/following', getFollowing);
+router.get('/:username/likes-given', getLikesGiven);
 
 // GET /api/users/:username - Fetch a user's public profile
 router.get('/:username', getUserProfile);

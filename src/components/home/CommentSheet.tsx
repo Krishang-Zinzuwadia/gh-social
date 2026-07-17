@@ -419,7 +419,7 @@ export function CommentSheet({
       visible={isVisible}
     >
       <View style={styles.modalRoot}>
-        <Animated.View style={[styles.overlay, { opacity: overlayOpacity }]}> 
+        <Animated.View style={[styles.overlay, { opacity: overlayOpacity }]}>
           <BlurView intensity={12} tint="dark" style={StyleSheet.absoluteFill} />
           <Pressable
             accessibilityLabel="Close comments"

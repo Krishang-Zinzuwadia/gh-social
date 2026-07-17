@@ -2,10 +2,11 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, Linking, Pressable, Text, View, useWindowDimensions } from 'react-native';
 import { ArrowLeft, FolderGit2, GitFork, Heart, Search, Star } from 'lucide-react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import { API_URL } from '@/constants/api';
+import { apiV2 } from '@/api/client';
 import { AUTH_BYPASS_ENABLED } from '@/constants/auth';
 import { REPOSITORIES } from '@/data/repositories';
 import { formatCompactCount } from '@/utils/format-count';
+import { getStorageItem } from '@/utils/storage';
 
 type LikedRepository = {
   repo_id: string;
@@ -43,28 +44,32 @@ const bypassLikedRepositories: LikedRepository[] = REPOSITORIES.slice(0, 3).map(
 
 export default function LikedRepositoriesScreen() {
   const { width } = useWindowDimensions();
-  const { username } = useLocalSearchParams<{ username?: string }>();
+  const { username, userId } = useLocalSearchParams<{ username?: string; userId?: string }>();
   const [repositories, setRepositories] = useState<LikedRepository[]>(
     AUTH_BYPASS_ENABLED ? bypassLikedRepositories : [],
   );
-  const [loading, setLoading] = useState(Boolean(username) && !AUTH_BYPASS_ENABLED);
+  const [loading, setLoading] = useState(Boolean(userId) && !AUTH_BYPASS_ENABLED);
   const [error, setError] = useState('');
 
   useEffect(() => {
     const controller = new AbortController();
     let active = true;
 
-    if (!username || AUTH_BYPASS_ENABLED) {
+    if (!userId || AUTH_BYPASS_ENABLED) {
       return () => controller.abort();
     }
 
-    fetch(`${API_URL}/users/${encodeURIComponent(username)}/likes-given`, {
-      signal: controller.signal,
-    })
-      .then(async (response) => {
-        const payload = await response.json().catch(() => ({}));
-        if (!response.ok) throw new Error(payload.error ?? 'Unable to load liked repositories.');
-        if (active) setRepositories(Array.isArray(payload.data) ? payload.data : []);
+    getStorageItem('access_token')
+      .then((token) => {
+        if (!token) throw new Error('Your session has expired.');
+        return apiV2<{ items: LikedRepository[] }>(
+          `/users/${encodeURIComponent(userId)}/likes-given?limit=100&offset=0`,
+          { signal: controller.signal },
+          token,
+        );
+      })
+      .then((data) => {
+        if (active) setRepositories(Array.isArray(data.items) ? data.items : []);
       })
       .catch((caught) => {
         if (active && caught.name !== 'AbortError') {
@@ -79,7 +84,7 @@ export default function LikedRepositoriesScreen() {
       active = false;
       controller.abort();
     };
-  }, [username]);
+  }, [userId]);
 
   return (
     <View style={{ flex: 1, backgroundColor: '#000000', alignItems: 'center' }}>

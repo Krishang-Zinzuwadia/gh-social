@@ -24,7 +24,10 @@
               "scheme": "ghsocial"
             }
           ],
-          "category": ["BROWSABLE", "DEFAULT"]
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
         }
       ]
     },
@@ -35,7 +38,9 @@
       "expo-router",
       "expo-font",
       "@react-native-community/datetimepicker",
-      "expo-secure-store"
+      "expo-secure-store",
+      "expo-image",
+      "expo-splash-screen"
     ],
     "experiments": {
       "typedRoutes": true,

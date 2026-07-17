@@ -8,7 +8,14 @@
     "dev": "tsx watch server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
-    "migrate": "node scripts/migrate.js"
+    "worker": "node dist/worker.js",
+    "worker:dev": "tsx worker.ts",
+    "migrate": "tsx scripts/migrate.ts",
+    "schema:audit": "tsx scripts/schema-audit.ts",
+    "backfill:v2": "tsx scripts/backfill-v2.ts",
+    "db:reset:v2": "tsx scripts/reset-v2.ts",
+    "qdrant:audit": "tsx scripts/qdrant-audit.ts",
+    "test": "tsx --test tests/**/*.test.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.107.0",

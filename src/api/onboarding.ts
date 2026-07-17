@@ -1,4 +1,4 @@
-import { API_URL } from './config';
+import { apiV2 } from './client';
 
 export interface OnboardingData {
   username: string;
@@ -13,19 +13,26 @@ export interface OnboardingData {
   tech_stack?: string[];
 }
 
-export const setupOnboarding = async (token: string, data: OnboardingData) => {
-  const response = await fetch(`${API_URL}/onboarding/setup`, {
-    method: 'PUT',
-    headers: { 
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}` 
-    },
-    body: JSON.stringify(data),
-  });
+function slug(value: string): string {
+  return value.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 50);
+}
 
-  const resData = await response.json();
-  if (!response.ok) {
-    throw new Error(resData.error || 'Failed to complete onboarding');
-  }
-  return resData.data;
-};
+export async function setupOnboarding(token: string, data: OnboardingData) {
+  await apiV2('/users/me', {
+    method: 'PATCH',
+    body: JSON.stringify({
+      username: data.username,
+      full_name: data.full_name,
+      bio: data.bio ?? null,
+      github_handle: data.github_handle ?? null,
+      avatar_url: data.avatar_url ?? null,
+    }),
+  }, token);
+  const topics = [...new Set([
+    ...(data.interests ?? []), ...(data.skills ?? []), ...(data.tech_stack ?? []),
+  ].map(slug).filter(Boolean))];
+  if (topics.length === 0) throw new Error('Choose at least one interest, skill, or technology.');
+  return apiV2('/onboarding', {
+    method: 'PUT', body: JSON.stringify({ topics, bio: data.bio ?? null }),
+  }, token);
+}

@@ -81,7 +81,7 @@ export default function ProfileScreen() {
 
       const accessToken = await getStorageItem("access_token")
       if (!accessToken) throw new Error("Your session has expired. Please log in again.")
-      const response = await fetch(`${API_URL}/users/me`, {
+      const response = await fetch(`${API_URL}/v2/users/me`, {
         method: "PATCH",
         credentials: "include",
         headers: {
@@ -119,10 +119,10 @@ export default function ProfileScreen() {
   }
 
   const stats = [
-    { value: formatCompactCount(user?.likes_given_count), label: "likes given", href: { pathname: "/likes-given", params: { username } } },
-    { value: String(user?.followers_count ?? 0), label: "followers", href: { pathname: "/followers", params: { username } } },
+    { value: formatCompactCount(user?.likes_given_count), label: "likes given", href: { pathname: "/likes-given", params: { username, userId: user?.user_id } } },
+    { value: String(user?.followers_count ?? 0), label: "followers", href: { pathname: "/followers", params: { username, userId: user?.user_id } } },
     { value: String(user?.saved_repos_count ?? 0), label: "saved" },
-    { value: String(user?.following_count ?? 0), label: "following", href: { pathname: "/following", params: { username } } },
+    { value: String(user?.following_count ?? 0), label: "following", href: { pathname: "/following", params: { username, userId: user?.user_id } } },
   ]
 
   const cardHeight = isCompact ? 40 : isTablet ? 54 : 50

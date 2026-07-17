@@ -53,8 +53,64 @@
     {
       "idx": 7,
       "version": "7",
+      "when": 1782946992000,
+      "tag": "0004_add_likes_given",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1782946992001,
+      "tag": "0005_add_is_saved",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
       "when": 1783555200000,
       "tag": "0007_add_user_feedback",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1784165314000,
+      "tag": "0008_interaction_events_and_saved_counts",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1784165314001,
+      "tag": "0009_app_telemetry_baseline",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1784165314002,
+      "tag": "0010_product_api_baseline",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1784165314003,
+      "tag": "0011_interaction_feedback_grant",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1784251714000,
+      "tag": "0012_remove_profile_length_limits",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1784251714001,
+      "tag": "0013_feed_serve_cursor",
       "breakpoints": true
     }
   ]

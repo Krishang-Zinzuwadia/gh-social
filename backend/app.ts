@@ -37,13 +37,20 @@ const isLocalDevelopmentOrigin = (origin: string): boolean => {
 
   try {
     const url = new URL(origin);
+    const private172Match = url.hostname.match(/^172\.(\d{1,2})\./);
+    const isPrivate172 = Boolean(
+      private172Match &&
+        Number(private172Match[1]) >= 16 &&
+        Number(private172Match[1]) <= 31,
+    );
     return (
       (url.protocol === 'http:' || url.protocol === 'https:') &&
       (url.hostname === 'localhost' ||
         url.hostname === '127.0.0.1' ||
         url.hostname === '10.0.2.2' ||
         url.hostname.startsWith('10.') ||
-        url.hostname.startsWith('192.168.'))
+        url.hostname.startsWith('192.168.') ||
+        isPrivate172)
     );
   } catch {
     return false;

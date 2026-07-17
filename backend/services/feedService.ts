@@ -3,7 +3,7 @@ import redisClient from '../config/redis.js';
 import { mlService, type MlRecommendationBatches } from './mlService.js';
 import { db } from '../db/index.js';
 import { repos, users } from '../db/schema.js';
-import { inArray, eq } from 'drizzle-orm';
+import { desc, inArray, eq } from 'drizzle-orm';
 export class FeedService {
   private SESSION_TTL = 600; // 10 minutes cache lifetime
   /** How long the in-flight lock is held before auto-expiring (ms). */
@@ -249,6 +249,31 @@ export class FeedService {
     }
   }
 
+  /**
+   * Keeps the home feed useful while Redis or ML is unavailable. The fallback
+   * uses repository data already stored in Postgres and does not replace the
+   * personalized Redis queue, so ML recommendations take over automatically
+   * when the dependent services recover.
+   */
+  private async getDatabaseFallback(limit: number): Promise<any[]> {
+    try {
+      const fallback = await db
+        .select()
+        .from(repos)
+        .orderBy(desc(repos.star_count), desc(repos.created_at))
+        .limit(limit);
+
+      await this.recordMetric('database_fallback');
+      return fallback.map((repository) => ({
+        ...repository,
+        fork_count: repository.forks_count,
+      }));
+    } catch (error) {
+      console.error('[FeedService] Database fallback failed:', error);
+      throw error;
+    }
+  }
+
   private async replenishFeedBackground(userId: string): Promise<void> {
     const lockKey = this.getLockKey(userId);
     const lockToken = crypto.randomUUID();
@@ -332,7 +357,14 @@ export class FeedService {
    * populated, then return the cached result — preventing duplicate ML calls.
    */
   async getOrGenerateFeed(userId: string, limit: number = 5): Promise<any[]> {
-    const cachedFeed = await this.getCachedFeed(userId, limit);
+    let cachedFeed: any[] | null;
+    try {
+      cachedFeed = await this.getCachedFeed(userId, limit);
+    } catch (error) {
+      console.error('[FeedService] Redis unavailable; using database fallback:', error);
+      return this.getDatabaseFallback(limit);
+    }
+
     if (cachedFeed !== null) {
       return cachedFeed;
     }
@@ -343,7 +375,13 @@ export class FeedService {
 
     while (Date.now() < deadline) {
       const lockToken = crypto.randomUUID();
-      const acquired = await redisClient.set(lockKey, lockToken, 'PX', this.LOCK_TTL_MS, 'NX');
+      let acquired: string | null;
+      try {
+        acquired = await redisClient.set(lockKey, lockToken, 'PX', this.LOCK_TTL_MS, 'NX');
+      } catch (error) {
+        console.error('[FeedService] Redis lock unavailable; using database fallback:', error);
+        return this.getDatabaseFallback(limit);
+      }
 
       if (acquired === 'OK') {
         try {
@@ -361,6 +399,9 @@ export class FeedService {
           
           // Re-fetch now that it's cached so we pop exactly `limit`
           return await this.getCachedFeed(userId, limit) || [];
+        } catch (error) {
+          console.error('[FeedService] ML generation unavailable; using database fallback:', error);
+          return this.getDatabaseFallback(limit);
         } finally {
           const releaseScript = `
             if redis.call("get",KEYS[1]) == ARGV[1] then
@@ -376,13 +417,20 @@ export class FeedService {
       await new Promise((resolve) => setTimeout(resolve, delay));
       delay = Math.min(delay * 2, 2_000);
 
-      const feed = await this.getCachedFeed(userId, limit);
+      let feed: any[] | null;
+      try {
+        feed = await this.getCachedFeed(userId, limit);
+      } catch (error) {
+        console.error('[FeedService] Redis polling unavailable; using database fallback:', error);
+        return this.getDatabaseFallback(limit);
+      }
       if (feed !== null) {
         return feed;
       }
     }
 
-    throw new Error(`[FeedService] Timeout waiting for feed generation for user ${userId}`);
+    console.warn(`[FeedService] Timed out waiting for ML feed for user ${userId}; using database fallback.`);
+    return this.getDatabaseFallback(limit);
   }
 
   async invalidateUserFeed(userId: string): Promise<void> {

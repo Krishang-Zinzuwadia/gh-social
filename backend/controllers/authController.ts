@@ -49,6 +49,46 @@ const getClientRedirect = (value: unknown): string => {
   }
 };
 
+const isPrivateDevelopmentHost = (hostname: string): boolean => {
+  if (
+    hostname === "localhost" ||
+    hostname === "127.0.0.1" ||
+    hostname === "10.0.2.2"
+  ) {
+    return true;
+  }
+  if (hostname.startsWith("10.") || hostname.startsWith("192.168.")) {
+    return true;
+  }
+  const match = hostname.match(/^172\.(\d{1,2})\./);
+  return Boolean(
+    match && Number(match[1]) >= 16 && Number(match[1]) <= 31,
+  );
+};
+
+const getBackendCallbackUrl = (req: Request): URL => {
+  const configuredCallback = new URL("/api/auth/callback", BACKEND_URL);
+  if (process.env.NODE_ENV === "production") return configuredCallback;
+
+  const host = req.get("host");
+  if (!host) return configuredCallback;
+
+  try {
+    const requestOrigin = new URL(`http://${host}`);
+    if (
+      requestOrigin.protocol === "http:" &&
+      requestOrigin.port === "5000" &&
+      isPrivateDevelopmentHost(requestOrigin.hostname)
+    ) {
+      return new URL("/api/auth/callback", requestOrigin);
+    }
+  } catch {
+    // Fall back to the explicitly configured backend origin.
+  }
+
+  return configuredCallback;
+};
+
 // Helper: Create and store a refresh token securely
 const createAndStoreRefreshToken = async (userId: string, tx: any = db) => {
   const refreshToken = crypto.randomBytes(40).toString("hex");
@@ -320,7 +360,7 @@ export async function getOAuthUrl(req: Request, res: Response): Promise<void> {
 
   try {
     const clientRedirect = getClientRedirect(req.query.redirect_uri);
-    const callbackUrl = new URL(`${BACKEND_URL}/api/auth/callback`);
+    const callbackUrl = getBackendCallbackUrl(req);
     callbackUrl.searchParams.set("client_redirect", clientRedirect);
     const url = new URL(`${process.env.SUPABASE_URL}/auth/v1/authorize`);
     url.searchParams.set("provider", provider);

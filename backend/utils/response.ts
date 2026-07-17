@@ -21,6 +21,11 @@ export function sendControllerError(
 
   if (err instanceof Error) {
     const statusCode = 'statusCode' in err ? (err as { statusCode: number }).statusCode : fallbackStatusCode;
+    if (statusCode >= 500) {
+      // Keep internal details out of the HTTP response, but retain them in
+      // backend logs so production and local failures remain diagnosable.
+      console.error('Controller error:', err);
+    }
     // Don't expose internal error details for 500s
     const message = statusCode >= 500 ? 'Internal server error' : err.message;
     sendError(res, statusCode, message);

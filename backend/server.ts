@@ -4,7 +4,7 @@ import redisClient from './config/redis.js';
 import { sqlClient } from './db/index.js';
 import { getApplicationRuntime } from './runtime/applicationRuntime.js';
 
-const port: number = parseInt(process.env.PORT ?? '5001', 10);
+const port: number = parseInt(process.env.PORT ?? '5000', 10);
 
 const runtime = getApplicationRuntime();
 // This validates feature dependencies; API processes intentionally register no workers.

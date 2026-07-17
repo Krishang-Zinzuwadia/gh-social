@@ -23,21 +23,57 @@ const app = express();
 app.disable('x-powered-by');
 if (process.env.TRUST_PROXY === 'true') app.set('trust proxy', 1);
 
-const configuredClientUrl = process.env.CLIENT_URL;
-const allowedOrigins = new Set([
-  configuredClientUrl,
-  ...(process.env.NODE_ENV === 'production'
-    ? []
-    : ['http://localhost:8081', 'http://127.0.0.1:8081', 'http://localhost:8082', 'http://127.0.0.1:8082']),
-].filter((origin): origin is string => Boolean(origin)));
+const configuredCorsOrigins = new Set(
+  [
+    ...(process.env.CORS_ORIGINS ?? '').split(','),
+    process.env.CLIENT_URL?.startsWith('http') ? process.env.CLIENT_URL : '',
+  ]
+    .map((origin) => origin.trim().replace(/\/$/, ''))
+    .filter(Boolean),
+);
+
+const isLocalDevelopmentOrigin = (origin: string): boolean => {
+  if (process.env.NODE_ENV === 'production') return false;
+
+  try {
+    const url = new URL(origin);
+    const private172Match = url.hostname.match(/^172\.(\d{1,2})\./);
+    const isPrivate172 = Boolean(
+      private172Match &&
+        Number(private172Match[1]) >= 16 &&
+        Number(private172Match[1]) <= 31,
+    );
+    return (
+      (url.protocol === 'http:' || url.protocol === 'https:') &&
+      (url.hostname === 'localhost' ||
+        url.hostname === '127.0.0.1' ||
+        url.hostname === '10.0.2.2' ||
+        url.hostname.startsWith('10.') ||
+        url.hostname.startsWith('192.168.') ||
+        isPrivate172)
+    );
+  } catch {
+    return false;
+  }
+};
 
 // Global middleware used by every route.
 app.use(
   cors({
-    origin(origin, callback) {
-      const isLocalDevelopmentOrigin = process.env.NODE_ENV !== 'production' && /^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(origin ?? '');
-      if (!origin || allowedOrigins.has(origin) || isLocalDevelopmentOrigin) return callback(null, true);
-      return callback(new Error('Origin is not allowed by CORS'));
+    // Native requests do not send an Origin header. Browser origins must be
+    // explicitly configured in production; local/LAN origins are allowed in dev.
+    origin: (origin, callback) => {
+      const normalizedOrigin = origin?.replace(/\/$/, '');
+      if (
+        !normalizedOrigin ||
+        configuredCorsOrigins.has(normalizedOrigin) ||
+        isLocalDevelopmentOrigin(normalizedOrigin)
+      ) {
+        callback(null, true);
+        return;
+      }
+
+      callback(new Error(`CORS origin is not allowed: ${normalizedOrigin}`));
     },
     credentials: true,
   })

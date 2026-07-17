@@ -264,7 +264,10 @@ export class FeedService {
         .limit(limit);
 
       await this.recordMetric('database_fallback');
-      return fallback;
+      return fallback.map((repository) => ({
+        ...repository,
+        fork_count: repository.forks_count,
+      }));
     } catch (error) {
       console.error('[FeedService] Database fallback failed:', error);
       throw error;
@@ -372,7 +375,13 @@ export class FeedService {
 
     while (Date.now() < deadline) {
       const lockToken = crypto.randomUUID();
-      const acquired = await redisClient.set(lockKey, lockToken, 'PX', this.LOCK_TTL_MS, 'NX');
+      let acquired: string | null;
+      try {
+        acquired = await redisClient.set(lockKey, lockToken, 'PX', this.LOCK_TTL_MS, 'NX');
+      } catch (error) {
+        console.error('[FeedService] Redis lock unavailable; using database fallback:', error);
+        return this.getDatabaseFallback(limit);
+      }
 
       if (acquired === 'OK') {
         try {
@@ -408,7 +417,13 @@ export class FeedService {
       await new Promise((resolve) => setTimeout(resolve, delay));
       delay = Math.min(delay * 2, 2_000);
 
-      const feed = await this.getCachedFeed(userId, limit);
+      let feed: any[] | null;
+      try {
+        feed = await this.getCachedFeed(userId, limit);
+      } catch (error) {
+        console.error('[FeedService] Redis polling unavailable; using database fallback:', error);
+        return this.getDatabaseFallback(limit);
+      }
       if (feed !== null) {
         return feed;
       }

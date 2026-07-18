@@ -13,6 +13,7 @@ export const V2_FEATURE_NAMES = [
 
 export type V2FeatureName = typeof V2_FEATURE_NAMES[number];
 export type V2FeatureFlags = Record<V2FeatureName, boolean>;
+export type DedicatedWorkerRole = 'outbox' | 'feed' | 'maintenance';
 
 function enabled(name: V2FeatureName, fallback = false): boolean {
   const value = process.env[name];
@@ -63,4 +64,18 @@ export function validateFeatureDependencies(flags = getV2FeatureFlags()): string
     errors.push('ML_FEEDBACK_OUTBOX requires DB_SCHEMA_V2_WRITES.');
   }
   return errors;
+}
+
+export function validateWorkerRoleDependencies(
+  role: DedicatedWorkerRole | 'all',
+  flags = getV2FeatureFlags(),
+): string[] {
+  if (role === 'all') return [];
+  const requiredFlag: Record<DedicatedWorkerRole, V2FeatureName> = {
+    outbox: 'ML_FEEDBACK_OUTBOX',
+    feed: 'FEED_RESERVATIONS',
+    maintenance: 'DB_SCHEMA_V2_WRITES',
+  };
+  const required = requiredFlag[role];
+  return flags[required] ? [] : [`WORKER_ROLE=${role} requires ${required}=true.`];
 }

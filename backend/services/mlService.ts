@@ -225,9 +225,14 @@ export class MlV2Client implements RecommendationPort, OutboxTransportPort {
 
   constructor(private readonly config: MlRuntimeConfig = getMlRuntimeConfig()) {}
 
-  private async request(path: string, payload: unknown, idempotencyKey: string): Promise<{ status: number; body: unknown; retryAfterMs?: number }> {
+  private async request(
+    path: string,
+    payload: unknown,
+    idempotencyKey: string,
+    timeoutMs = this.config.timeoutMs,
+  ): Promise<{ status: number; body: unknown; retryAfterMs?: number }> {
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), this.config.timeoutMs);
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
     try {
       const response = await fetch(`${this.config.baseUrl}${path}`, {
         method: 'POST',
@@ -273,6 +278,9 @@ export class MlV2Client implements RecommendationPort, OutboxTransportPort {
         || !Array.isArray(value.items)) {
         throw new Error('ML recommendation response violated the v2 envelope.');
       }
+      if (value.items.length === 0) {
+        throw new Error('ML recommendation response contained no items.');
+      }
       const ids = new Set<string>();
       for (const item of value.items) {
         if (!isValidUuid(item.repo_id) || ids.has(item.repo_id) || !Number.isFinite(item.score)
@@ -293,7 +301,12 @@ export class MlV2Client implements RecommendationPort, OutboxTransportPort {
 
   private async deliver(path: string, payload: unknown, idempotencyKey: string): Promise<DeliveryResult> {
     try {
-      const { status, body, retryAfterMs } = await this.request(path, payload, idempotencyKey);
+      const { status, body, retryAfterMs } = await this.request(
+        path,
+        payload,
+        idempotencyKey,
+        this.config.deliveryTimeoutMs ?? this.config.timeoutMs,
+      );
       return {
         accepted: status >= 200 && status < 300,
         retryable: status === 408 || status === 425 || status === 429 || status >= 500,

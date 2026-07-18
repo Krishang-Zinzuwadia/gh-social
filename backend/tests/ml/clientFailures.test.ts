@@ -47,6 +47,62 @@ test('ML recommendation client rejects invalid contracts', async () => {
   });
 });
 
+test('ML recommendation client rejects an empty successful result', async () => {
+  const generationId = '00000000-0000-4000-8000-000000000001';
+  const userId = '00000000-0000-4000-8000-000000000002';
+  await withServer((_req, response) => {
+    response.writeHead(200, { 'content-type': 'application/json' });
+    response.end(JSON.stringify({
+      schema_version: 2,
+      generation_id: generationId,
+      user_id: userId,
+      feed_version: 1,
+      model_version: 'test-model',
+      embedding_version: 'test-embedding',
+      items: [],
+    }));
+  }, async (url) => {
+    const client = new MlV2Client({ baseUrl: url, internalSecret: 'test', timeoutMs: 500, maxResponseBytes: 10_000 });
+    await assert.rejects(client.generate({
+      schema_version: 2,
+      generation_id: generationId,
+      user_id: userId,
+      feed_version: 1,
+      limit: 10,
+      exclude_repo_ids: [],
+      context: { cold_start: false },
+    }), /contained no items/);
+  });
+});
+
+test('ML recommendation client rejects non-canonical repository IDs', async () => {
+  const generationId = '00000000-0000-4000-8000-000000000001';
+  const userId = '00000000-0000-4000-8000-000000000002';
+  await withServer((_req, response) => {
+    response.writeHead(200, { 'content-type': 'application/json' });
+    response.end(JSON.stringify({
+      schema_version: 2,
+      generation_id: generationId,
+      user_id: userId,
+      feed_version: 1,
+      model_version: 'test-model',
+      embedding_version: 'test-embedding',
+      items: [{ repo_id: 'owner/repository', score: 0.9, source: 'semantic' }],
+    }));
+  }, async (url) => {
+    const client = new MlV2Client({ baseUrl: url, internalSecret: 'test', timeoutMs: 500, maxResponseBytes: 10_000 });
+    await assert.rejects(client.generate({
+      schema_version: 2,
+      generation_id: generationId,
+      user_id: userId,
+      feed_version: 1,
+      limit: 10,
+      exclude_repo_ids: [],
+      context: { cold_start: false },
+    }), /invalid or duplicate item/);
+  });
+});
+
 test('ML transport turns timeout/network failures into retryable delivery results', async () => {
   await withServer((_req, response) => setTimeout(() => response.end('{}'), 100), async (url) => {
     const result = await new MlV2Client({ baseUrl: url, internalSecret: 'test', timeoutMs: 10, maxResponseBytes: 10_000 })
@@ -54,5 +110,22 @@ test('ML transport turns timeout/network failures into retryable delivery result
     assert.equal(result.accepted, false);
     assert.equal(result.retryable, true);
     assert.equal(result.status_code, 0);
+  });
+});
+
+test('durable delivery uses its longer timeout without weakening read timeouts', async () => {
+  await withServer((_req, response) => setTimeout(() => {
+    response.writeHead(202, { 'content-type': 'application/json' });
+    response.end('{"accepted":true}');
+  }, 30), async (url) => {
+    const result = await new MlV2Client({
+      baseUrl: url,
+      internalSecret: 'test',
+      timeoutMs: 10,
+      deliveryTimeoutMs: 100,
+      maxResponseBytes: 10_000,
+    }).deliverFeedback(feedback);
+    assert.equal(result.accepted, true);
+    assert.equal(result.status_code, 202);
   });
 });

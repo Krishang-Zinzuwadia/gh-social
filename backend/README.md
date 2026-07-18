@@ -232,14 +232,16 @@ Run separately so HTTP scaling never duplicates periodic jobs:
 
 ```text
 API:                  npm start
-Outbox worker:        WORKER_ROLE=outbox npm run worker
+Outbox worker:        npm run worker:outbox
 Feed reconciliation: WORKER_ROLE=feed npm run worker
 Maintenance:         WORKER_ROLE=maintenance npm run worker
 ```
 
 Use one or more outbox workers; claiming is concurrency-safe. Run one feed and one maintenance worker initially. `WORKER_ROLE=all` is for local development only.
 
-Required production environment variables: `DATABASE_URL`, `SUPABASE_URL`, `SUPABASE_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `JWT_SECRET`, `CLIENT_URL`, `BACKEND_URL`, `REDIS_URL`, `ML_SERVICE_URL`, and `INTERNAL_API_SECRET`. Set all v2 flags in `.env.example` to their shown production values, `FEED_V2_CANARY_PERCENT=100`, and `LEGACY_API_ENABLED=false`. Rotate internal secrets by deploying the new value as primary and the old value as previous, updating ML, then removing the previous value.
+Required production environment variables: `DATABASE_URL`, `SUPABASE_URL`, `SUPABASE_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `JWT_SECRET`, `CLIENT_URL`, `BACKEND_URL`, `REDIS_URL`, `ML_SERVICE_URL`, and `INTERNAL_API_SECRET`. Start from `.env.production.example`, set `FEED_V2_CANARY_PERCENT=100`, and keep `LEGACY_API_ENABLED=false`. Leave `ML_V2_RECOMMENDATIONS=false` until the ingestion canary proves non-empty canonical repository UUID results; `ML_FEEDBACK_OUTBOX=true` still allows onboarding and repository indexing jobs to drain. Rotate internal secrets only through the documented primary/previous overlap, not when adding another worker process.
+
+The outbox launch script sets `--role=outbox` portably and fails startup when `ML_FEEDBACK_OUTBOX` is disabled. A hardened systemd template and install/acceptance procedure are in [the outbox worker runbook](../docs/runbooks/outbox-worker.md).
 
 Set `TRUST_PROXY=true` only when exactly one trusted ingress proxy is in front of the service. Authentication endpoints have a Redis-backed per-IP/path limit of 20 requests per minute; configure broader request and connection limits at the ingress as well.
 

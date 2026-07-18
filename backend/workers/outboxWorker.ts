@@ -18,9 +18,13 @@ export class OutboxWorker {
     return this.transport.deliverRepositoryRefresh(row.payload as unknown as MlRepositoryRefreshJob);
   }
 
-  async runOnce(limit = 50): Promise<number> {
-    const rows = await this.outbox.claim(limit);
-    for (const row of rows) {
+  async runOnce(limit = 5): Promise<number> {
+    let processed = 0;
+    for (let index = 0; index < limit; index++) {
+      // Claim immediately before delivery so rows never wait behind an older
+      // sequential request while their database lease is already ticking.
+      const [row] = await this.outbox.claim(1);
+      if (!row) break;
       const result = await this.deliver(row);
       if (result.accepted) {
         await this.outbox.markDelivered(row);
@@ -32,7 +36,8 @@ export class OutboxWorker {
       else await this.outbox.markFailed(
         row, result.detail ?? `status ${result.status_code}`, result.retryable, result.retry_after_ms,
       );
+      processed++;
     }
-    return rows.length;
+    return processed;
   }
 }

@@ -1,0 +1,31 @@
+[Unit]
+Description=GH Social durable ML outbox worker
+Documentation=file:///opt/gh-social/docs/runbooks/outbox-worker.md
+Wants=network-online.target
+After=network-online.target
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=gh-social
+Group=gh-social
+WorkingDirectory=/opt/gh-social/backend
+EnvironmentFile=/etc/gh-social/backend.env
+Environment=NODE_ENV=production
+Environment=WORKER_ROLE=outbox
+ExecStart=/usr/bin/npm run worker:outbox
+Restart=on-failure
+RestartSec=5
+KillSignal=SIGTERM
+# Rows are claimed immediately before delivery; one call is bounded by
+# ML_DELIVERY_TIMEOUT_MS and shutdown waits for the active run to finish.
+TimeoutStopSec=300
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target

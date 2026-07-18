@@ -2,6 +2,7 @@ export interface MlRuntimeConfig {
   baseUrl: string;
   internalSecret: string;
   timeoutMs: number;
+  deliveryTimeoutMs?: number;
   maxResponseBytes: number;
 }
 
@@ -19,6 +20,7 @@ export function getMlRuntimeConfig(): MlRuntimeConfig {
     baseUrl,
     internalSecret,
     timeoutMs: positiveInt('ML_TIMEOUT_MS', 5_000),
+    deliveryTimeoutMs: positiveInt('ML_DELIVERY_TIMEOUT_MS', 30_000),
     maxResponseBytes: positiveInt('ML_MAX_RESPONSE_BYTES', 1_000_000),
   };
 }

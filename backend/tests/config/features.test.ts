@@ -1,7 +1,12 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { cohortBucket, getV2FeatureFlags, validateFeatureDependencies } from '../../config/features.js';
+import {
+  cohortBucket,
+  getV2FeatureFlags,
+  validateFeatureDependencies,
+  validateWorkerRoleDependencies,
+} from '../../config/features.js';
 
 test('feature flags are dark by default except trending fallback', () => {
   const previous = Object.fromEntries(Object.keys(process.env).filter((key) => key.startsWith('DB_SCHEMA_V2')
@@ -32,4 +37,23 @@ test('rollout cohorts are deterministic and feature dependencies fail closed', (
     'ML_V2_RECOMMENDATIONS requires FEED_V2 and ML_QDRANT_ONLY.',
     'ML_FEEDBACK_OUTBOX requires DB_SCHEMA_V2_WRITES.',
   ]);
+});
+
+test('dedicated worker roles fail closed when their owning feature is disabled', () => {
+  const flags = {
+    DB_SCHEMA_V2_READS: true,
+    DB_SCHEMA_V2_WRITES: true,
+    FEED_V2: true,
+    FEED_RESERVATIONS: true,
+    ML_V2_RECOMMENDATIONS: false,
+    ML_FEEDBACK_OUTBOX: false,
+    ML_QDRANT_ONLY: true,
+    TRENDING_FALLBACK: true,
+  };
+
+  assert.deepEqual(validateWorkerRoleDependencies('outbox', flags), [
+    'WORKER_ROLE=outbox requires ML_FEEDBACK_OUTBOX=true.',
+  ]);
+  assert.deepEqual(validateWorkerRoleDependencies('feed', flags), []);
+  assert.deepEqual(validateWorkerRoleDependencies('maintenance', flags), []);
 });

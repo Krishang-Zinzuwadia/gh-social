@@ -9,6 +9,7 @@
     "build": "tsc",
     "start": "node dist/server.js",
     "worker": "node dist/worker.js",
+    "worker:outbox": "node dist/worker.js --role=outbox",
     "worker:dev": "tsx worker.ts",
     "migrate": "tsx scripts/migrate.ts",
     "schema:audit": "tsx scripts/schema-audit.ts",
